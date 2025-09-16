@@ -9,12 +9,14 @@ class ActionsVerifactu
     public function formObjectOptions($parameters, &$object, &$action, $hookmanager)
     {
         global $langs, $db;
-        var_dump($parameters);
-        die();
+
+
 
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
 
+            var_dump($object);
+            die("🚨 Hook formObjectOptions ejecutado")  ;
             $sql = "SELECT rowid, code, label 
                     FROM ".MAIN_DB_PREFIX."verifactu_facture_type 
                     WHERE active = 1
@@ -38,5 +40,21 @@ class ActionsVerifactu
         }
 
         return 0;
+    }
+
+    public function getNomUrl($parameters, &$object, &$action, $hookmanager)
+    {
+        if ($object->element == 'facture') {
+            // Le decimos al objeto que incluya nuestro campo en los loads
+            if (empty($object->fields['fk_facture_type'])) {
+                $object->fields['fk_facture_type'] = array(
+                    'type' => 'integer',
+                    'label' => 'Tipo Factura',
+                    'enabled' => 1,
+                    'visible' => 1,
+                    'notnull' => 0
+                );
+            }
+        }
     }
 }
