@@ -1,7 +1,7 @@
 <?php
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobject.class.php';
 
-class VeriFactufactureType extends CommonObject
+class VerifactuFactureType extends CommonObject
 {
     public $element       = 'verifactufacturetype';          // Identificador interno
     public $table_element = 'verifactu_facture_types';       // Nombre de la tabla (sin prefijo)

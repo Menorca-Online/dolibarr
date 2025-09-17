@@ -578,7 +578,7 @@ class modVerifactu extends DolibarrModules
 			$obj = $this->db->fetch_row($resql_check);
 
 			if ($obj[0] == 0) { // Solo crear si no existe
-				$typeObj = new VeriFactuFactureType($this->db);
+				$typeObj = new VerifactuFactureType($this->db);
 				$typeObj->code = $type['code'];
 				$typeObj->label = $type['label'];
 				$typeObj->api = $type['api'];
