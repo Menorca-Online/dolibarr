@@ -28,29 +28,7 @@ class InterfaceVerifactu
     public function runTrigger($action, $object, $user, $langs, $conf)
     {
         if ($action === 'BILL_VALIDATE') {
-            if (empty($object->fk_facture_type)) {
-                setEventMessages("El campo Tipo Facture es obligatorio", null, 'errors');
-                return -1; // impedir validación
-            }
-            // echo "<pre>";
-            // var_dump($object->ref);
-            // var_dump($object->total_ht);
-
-            // echo "</pre>";
-            // die("🚨 Trigger VeriFactu ejecutado en BILL_VALIDATE");
-        }
-        if ($action === 'BILL_CREATE' || $action === 'BILL_MODIFY') {
-            global $db;
-
-            // esto no es correcto y creo que no hace falta hacer nada en este trigger. Actualmente ya que estamos usando la api de dolibarr para crear custom fields
-            // if (!empty($_POST['fk_facture_type'])) {
-            //     $facture_type = (int) $_POST['fk_facture_type'];
-
-            //     $sql = "UPDATE ".MAIN_DB_PREFIX."facture
-            //             SET fk_facture_type = ".$facture_type."
-            //             WHERE rowid = ".$object->id;
-            //     $db->query($sql);
-            // }
+            // enviar a verifactu
         }
 
         return 0;
