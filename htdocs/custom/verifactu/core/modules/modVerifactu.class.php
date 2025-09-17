@@ -121,8 +121,8 @@ class modVerifactu extends DolibarrModules
 			// Set here all hooks context managed by module. To find available hook context, make a "grep -r '>initHooks(' *" on source code. You can also set hook context to 'all'
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
-				'invoicecard',
-				'loadTablesExtraFields'
+				// 'invoicecard',
+				// 'loadTablesExtraFields'
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
 			// Set this to 1 if features of module are opened to external users
@@ -495,9 +495,6 @@ class modVerifactu extends DolibarrModules
 		//$result4=$extrafields->addExtraField('verifactu_myattr4', "New Attr 4 label", 'select',  1,  3, 'thirdparty',   0, 1, '', array('options'=>array('code1'=>'Val1','code2'=>'Val2','code3'=>'Val3')), 1,'', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
 		//$result5=$extrafields->addExtraField('verifactu_myattr5', "New Attr 5 label", 'text',    1, 10, 'user',         0, 0, '', '', 1, '', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
 
-		// Permissions
-		$this->remove($options);
-
 		$sql = array();
 
 		// Document templates
@@ -545,6 +542,7 @@ class modVerifactu extends DolibarrModules
 	public function remove($options = '')
 	{
 		$this->_remove_maestros();
+		$this->_remove_extra_fields();
 		$sql = array();
 		return $this->_remove($sql, $options);
 	}
@@ -614,18 +612,45 @@ class modVerifactu extends DolibarrModules
 				'fk_facture_type',
 				'Tipo de factura',
 				'sellist',
-				10,
-				10,
+				100,
+				'',
 				'facture',
 				0,
 				1,
 				1,
-				'verifactu_facture_types:label:id'
+				serialize([
+					"options" => [
+						"verifactu_facture_types:label:id" => null
+					]
+				]),
+				0,
+				'',
+				1,
+				'',
+				'',
+				'',
+				'',
+				'1',
+				0,
+				1,
+
 			);
 
 			if ($result1 < 0) {
 				return -1;
 			}
+		}
+
+		return 1;
+	}
+	public function _remove_extra_fields()
+	{
+		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
+		$extrafields = new ExtraFields($this->db);
+
+		$result1 = $extrafields->delete('fk_facture_type', 'facture');
+		if ($result1 < 0) {
+			return -1;
 		}
 
 		return 1;

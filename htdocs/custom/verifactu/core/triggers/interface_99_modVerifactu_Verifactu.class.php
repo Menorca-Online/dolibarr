@@ -42,14 +42,15 @@ class InterfaceVerifactu
         if ($action === 'BILL_CREATE' || $action === 'BILL_MODIFY') {
             global $db;
 
-            if (!empty($_POST['fk_facture_type'])) {
-                $facture_type = (int) $_POST['fk_facture_type'];
+            // esto no es correcto y creo que no hace falta hacer nada en este trigger. Actualmente ya que estamos usando la api de dolibarr para crear custom fields
+            // if (!empty($_POST['fk_facture_type'])) {
+            //     $facture_type = (int) $_POST['fk_facture_type'];
 
-                $sql = "UPDATE ".MAIN_DB_PREFIX."facture
-                        SET fk_facture_type = ".$facture_type."
-                        WHERE rowid = ".$object->id;
-                $db->query($sql);
-            }
+            //     $sql = "UPDATE ".MAIN_DB_PREFIX."facture
+            //             SET fk_facture_type = ".$facture_type."
+            //             WHERE rowid = ".$object->id;
+            //     $db->query($sql);
+            // }
         }
 
         return 0;
