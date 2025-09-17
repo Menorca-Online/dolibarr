@@ -82,8 +82,12 @@ class ActionsVerifactu
                     // Función para aplicar configuración Verifactu
                     function applyVerifactuDateRules() {
                         // Formatear fecha como YYYY-MM-DD para input type="date"
-                        var todayStr = (day < 10 ? "0" : "") + day + "/" + (month < 10 ? "0" : "") + month + "/" + year;
+                        var todayStr = year + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day;
                         $("input[name=\'re\']").val(todayStr).prop("readonly", true);
+                        $("input[name=\'reday\']").val(day);
+                        $("input[name=\'remonth\']").val(month);
+                        $("input[name=\'reyear\']").val(year);
+
 
                         // Estilo visual para campo bloqueado
                         $("input[name=\'re\']").css({
