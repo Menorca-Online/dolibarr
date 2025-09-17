@@ -26,7 +26,7 @@
  *  \ingroup    verifactu
  *  \brief      Description and activation file for module Verifactu
  */
-include_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
+include_once DOL_DOCUMENT_ROOT . '/core/modules/DolibarrModules.class.php';
 
 
 /**
@@ -81,7 +81,7 @@ class modVerifactu extends DolibarrModules
 		//$this->url_last_version = 'http://www.example.com/versionmodule.txt';
 
 		// Key used in llx_const table to save module status enabled/disabled (where VERIFACTU is value of property name of module in uppercase)
-		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
+		$this->const_name = 'MAIN_MODULE_' . strtoupper($this->name);
 
 		// Name of image file used for this module.
 		// If file is in theme/yourtheme/img directory under name object_pictovalue.png, use this->picto='pictovalue'
@@ -473,6 +473,11 @@ class modVerifactu extends DolibarrModules
 			return -1; // Do not activate module if error 'not allowed' returned when loading module SQL queries (the _load_table run sql with run_sql with the error allowed parameter set to 'default')
 		}
 
+		//crear maestros
+		$result = $this->_create_maestros();
+
+		$result = $this->_add_extra_fields();
+
 		// Create extrafields during init
 		//include_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
 		//$extrafields = new ExtraFields($this->db);
@@ -495,12 +500,12 @@ class modVerifactu extends DolibarrModules
 
 		foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 			if ($myTmpObjectArray['includerefgeneration']) {
-				$src = DOL_DOCUMENT_ROOT.'/install/doctemplates/'.$moduledir.'/template_myobjects.odt';
-				$dirodt = DOL_DATA_ROOT.($conf->entity > 1 ? '/'.$conf->entity : '').'/doctemplates/'.$moduledir;
-				$dest = $dirodt.'/template_myobjects.odt';
+				$src = DOL_DOCUMENT_ROOT . '/install/doctemplates/' . $moduledir . '/template_myobjects.odt';
+				$dirodt = DOL_DATA_ROOT . ($conf->entity > 1 ? '/' . $conf->entity : '') . '/doctemplates/' . $moduledir;
+				$dest = $dirodt . '/template_myobjects.odt';
 
 				if (file_exists($src) && !file_exists($dest)) {
-					require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+					require_once DOL_DOCUMENT_ROOT . '/core/lib/files.lib.php';
 					dol_mkdir($dirodt);
 					$result = dol_copy($src, $dest, '0', 0);
 					if ($result < 0) {
@@ -511,10 +516,10 @@ class modVerifactu extends DolibarrModules
 				}
 
 				$sql = array_merge($sql, array(
-					"DELETE FROM ".$this->db->prefix()."document_model WHERE nom = 'standard_".strtolower($myTmpObjectKey)."' AND type = '".$this->db->escape(strtolower($myTmpObjectKey))."' AND entity = ".((int) $conf->entity),
-					"INSERT INTO ".$this->db->prefix()."document_model (nom, type, entity) VALUES('standard_".strtolower($myTmpObjectKey)."', '".$this->db->escape(strtolower($myTmpObjectKey))."', ".((int) $conf->entity).")",
-					"DELETE FROM ".$this->db->prefix()."document_model WHERE nom = 'generic_".strtolower($myTmpObjectKey)."_odt' AND type = '".$this->db->escape(strtolower($myTmpObjectKey))."' AND entity = ".((int) $conf->entity),
-					"INSERT INTO ".$this->db->prefix()."document_model (nom, type, entity) VALUES('generic_".strtolower($myTmpObjectKey)."_odt', '".$this->db->escape(strtolower($myTmpObjectKey))."', ".((int) $conf->entity).")"
+					"DELETE FROM " . $this->db->prefix() . "document_model WHERE nom = 'standard_" . strtolower($myTmpObjectKey) . "' AND type = '" . $this->db->escape(strtolower($myTmpObjectKey)) . "' AND entity = " . ((int) $conf->entity),
+					"INSERT INTO " . $this->db->prefix() . "document_model (nom, type, entity) VALUES('standard_" . strtolower($myTmpObjectKey) . "', '" . $this->db->escape(strtolower($myTmpObjectKey)) . "', " . ((int) $conf->entity) . ")",
+					"DELETE FROM " . $this->db->prefix() . "document_model WHERE nom = 'generic_" . strtolower($myTmpObjectKey) . "_odt' AND type = '" . $this->db->escape(strtolower($myTmpObjectKey)) . "' AND entity = " . ((int) $conf->entity),
+					"INSERT INTO " . $this->db->prefix() . "document_model (nom, type, entity) VALUES('generic_" . strtolower($myTmpObjectKey) . "_odt', '" . $this->db->escape(strtolower($myTmpObjectKey)) . "', " . ((int) $conf->entity) . ")"
 				));
 			}
 		}
@@ -532,7 +537,80 @@ class modVerifactu extends DolibarrModules
 	 */
 	public function remove($options = '')
 	{
+		$this->_remove_maestros();
 		$sql = array();
 		return $this->_remove($sql, $options);
+	}
+
+	public function _create_maestros()
+	{
+		global $user;
+
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_facture_types (
+			id integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			api integer NOT NULL DEFAULT 0
+		) ENGINE=innodb;";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$types = array(
+			array('code' => 'AC', 'label' => 'Accrual', 'api' => 1),
+			array('code' => 'CA', 'label' => 'Cash', 'api' => 1),
+		);
+
+		foreach ($types as $type) {
+			$typeObj = new VeriFactuFactureType($this->db);
+			$typeObj->code = $type['code'];
+			$typeObj->label = $type['label'];
+			$typeObj->api = $type['api'];
+			$typeObj->create($user);
+		}
+
+		return 1;
+	}
+
+	public function _remove_maestros()
+	{
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_facture_types";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		return 1;
+	}
+
+	public function _add_extra_fields()
+	{
+		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
+		$extrafields = new ExtraFields($this->db);
+
+		$result1 = $extrafields->addExtraField(
+			'fk_facture_type',                 // code
+			'Tipo de factura',                 // label
+			'sellist',                          // type
+			10,                                // position
+			10,                                // size
+			'facture',                         // elementtype
+			0,                                 // unique
+			1,                                 // required
+			1,                                 // defaultvalue
+			'verifactu_facture_types:label:id' // params
+		);
+
+
+		if ($result1 < 0) {
+			return -1;
+		}
+
+		return 1;
 	}
 }
