@@ -27,6 +27,7 @@
  *  \brief      Description and activation file for module Verifactu
  */
 include_once DOL_DOCUMENT_ROOT . '/core/modules/DolibarrModules.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 
 
 /**
@@ -440,7 +441,7 @@ class modVerifactu extends DolibarrModules
 		$this->import_convertvalue_array[$r] = array(
 			't.ref' => array(
 				'rule'=>'getrefifauto',
-				'class'=>(!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON')),
+				'class'=(!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON')),
 				'path'=>"/core/modules/verifactu/".(!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON')).'.php',
 				'classobject'=>'MyObject',
 				'pathobject'=>'/verifactu/class/myobject.class.php',
@@ -475,8 +476,14 @@ class modVerifactu extends DolibarrModules
 
 		//crear maestros
 		$result = $this->_create_maestros();
+		if ($result < 0) {
+			return -1;
+		}
 
 		$result = $this->_add_extra_fields();
+		if ($result < 0) {
+			return -1;
+		}
 
 		// Create extrafields during init
 		//include_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
@@ -565,11 +572,18 @@ class modVerifactu extends DolibarrModules
 		);
 
 		foreach ($types as $type) {
-			$typeObj = new VeriFactuFactureType($this->db);
-			$typeObj->code = $type['code'];
-			$typeObj->label = $type['label'];
-			$typeObj->api = $type['api'];
-			$typeObj->create($user);
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "verifactu_facture_types WHERE code = '" . $this->db->escape($type['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			$obj = $this->db->fetch_row($resql_check);
+
+			if ($obj[0] == 0) { // Solo crear si no existe
+				$typeObj = new VeriFactuFactureType($this->db);
+				$typeObj->code = $type['code'];
+				$typeObj->label = $type['label'];
+				$typeObj->api = $type['api'];
+				$typeObj->create($user);
+			}
 		}
 
 		return 1;
@@ -593,22 +607,25 @@ class modVerifactu extends DolibarrModules
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
 		$extrafields = new ExtraFields($this->db);
 
-		$result1 = $extrafields->addExtraField(
-			'fk_facture_type',                 // code
-			'Tipo de factura',                 // label
-			'sellist',                          // type
-			10,                                // position
-			10,                                // size
-			'facture',                         // elementtype
-			0,                                 // unique
-			1,                                 // required
-			1,                                 // defaultvalue
-			'verifactu_facture_types:label:id' // params
-		);
+		// Verificar si ya existe antes de crear
+		$existing = $extrafields->fetch_name_optionals_label('facture');
+		if (!isset($existing['fk_facture_type'])) {
+			$result1 = $extrafields->addExtraField(
+				'fk_facture_type',
+				'Tipo de factura',
+				'sellist',
+				10,
+				10,
+				'facture',
+				0,
+				1,
+				1,
+				'verifactu_facture_types:label:id'
+			);
 
-
-		if ($result1 < 0) {
-			return -1;
+			if ($result1 < 0) {
+				return -1;
+			}
 		}
 
 		return 1;
