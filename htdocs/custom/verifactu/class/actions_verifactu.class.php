@@ -67,91 +67,166 @@ class ActionsVerifactu
             // Solo aplicar en facturas
             if ($object->element == 'facture' || get_class($object) == 'Facture') {
                 
-                // Agregar JavaScript para bloquear fecha según normativa Verifactu
+                // Determinar si la factura ya existe (modo edición) o se está creando
+                $isExistingInvoice = !empty($object->id) && $object->id > 0;
+                $isCreating = ($action === 'create' || empty($object->id));
+                
                 $this->resprints .= '
                 <script type="text/javascript">
                 $(document).ready(function() {
+                    var isExistingInvoice = ' . ($isExistingInvoice ? 'true' : 'false') . ';
+                    var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
+                    
+                    // Remover botones que permiten modificar fecha
                     $(\'#reButtonNow\').remove();
                     $(\'.ui-datepicker-trigger\').remove();
-                    // Establecer fecha actual en el campo de fecha \'re\'
+                    
+                    // Establecer fecha actual
                     var today = new Date();
                     var day = today.getDate();
                     var month = today.getMonth() + 1;
                     var year = today.getFullYear();
+                    var todayStr = year + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day;
 
-                    // Función para aplicar configuración Verifactu
                     function applyVerifactuDateRules() {
-                        // Formatear fecha como YYYY-MM-DD para input type="date"
-                        var todayStr = year + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day;
-                        $("input[name=\'re\']").val(todayStr).prop("readonly", true);
-                        $("input[name=\'reday\']").val(day);
-                        $("input[name=\'remonth\']").val(month);
-                        $("input[name=\'reyear\']").val(year);
-
-
-                        // Estilo visual para campo bloqueado
-                        $("input[name=\'re\']").css({
+                        var dateInput = $("input[name=\'re\']");
+                        
+                        if (isCreating) {
+                            // MODO CREACIÓN: Forzar fecha actual
+                            dateInput.val(todayStr).prop("readonly", true);
+                            
+                            // También establecer campos ocultos si existen
+                            $("input[name=\'reday\']").val(day);
+                            $("input[name=\'remonth\']").val(month);
+                            $("input[name=\'reyear\']").val(year);
+                            
+                            showVerifactuWarning("create");
+                            
+                        } else if (isExistingInvoice) {
+                            // MODO EDICIÓN: Bloquear completamente el campo
+                            dateInput.prop("readonly", true).prop("disabled", false);
+                            
+                            // Bloquear también cualquier selector de fecha
+                            $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']")
+                                .prop("disabled", true);
+                            
+                            showVerifactuWarning("edit");
+                        }
+                        
+                        // Estilo visual para campos bloqueados
+                        $("input[name=\'re\'], select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']").css({
                             "background-color": "#f5f5f5",
                             "color": "#666",
                             "cursor": "not-allowed"
                         });
-
-                        // Agregar mensaje informativo si no existe
-                        if (!$(".verifactu-date-warning").length) {
-                            var warningHtml = \'<tr class="verifactu-date-warning"><td colspan="4">\' +
-                                \'<div style="background:#fff3cd; border:1px solid #ffeaa7; padding:8px; margin:5px 0; border-radius:4px; font-size:12px;">\' +
-                                \'<i class="fa fa-exclamation-triangle" style="color:#856404;"></i> \' +
-                                \'<strong>Normativa Verifactu:</strong> La fecha de factura debe ser la fecha actual y no puede modificarse.\' +
-                                \'</div></td></tr>\';
-
-                            var dateContainer = $("input[name=\'re\']").closest("tr");
-                            if (dateContainer.length) {
-                                dateContainer.after(warningHtml);
+                        
+                        // Interceptar cualquier intento de cambio
+                        dateInput.on("focus click keydown keyup", function(e) {
+                            if (isExistingInvoice) {
+                                e.preventDefault();
+                                alert("' . $langs->trans('VerifactuErrorFechaNoModificable') . '");
+                                return false;
                             }
+                        });
+                    }
+                    
+                    function showVerifactuWarning(mode) {
+                        if ($(".verifactu-date-warning").length > 0) return;
+                        
+                        var message = "";
+                        if (mode === "create") {
+                            message = "La fecha de factura se establece automáticamente a la fecha actual según la normativa Verifactu.";
+                        } else {
+                            message = "La fecha de factura no puede modificarse una vez creada según la normativa Verifactu.";
+                        }
+                        
+                        var warningHtml = \'<tr class="verifactu-date-warning"><td colspan="4">\' +
+                            \'<div style="background:#fff3cd; border:1px solid #ffeaa7; padding:8px; margin:5px 0; border-radius:4px; font-size:12px;">\' +
+                            \'<i class="fa fa-exclamation-triangle" style="color:#856404;"></i> \' +
+                            \'<strong>Normativa Verifactu:</strong> \' + message +
+                            \'</div></td></tr>\';
+
+                        var dateContainer = $("input[name=\'re\']").closest("tr");
+                        if (dateContainer.length) {
+                            dateContainer.after(warningHtml);
                         }
                     }
                     
                     // Aplicar reglas inmediatamente
                     applyVerifactuDateRules();
                     
-                    // Replicar cada segundo para evitar modificaciones externas
-                    setInterval(applyVerifactuDateRules, 1000);
+                    // Monitorear cambios cada segundo (por si algo externo modifica los campos)
+                    setInterval(function() {
+                        if (isExistingInvoice) {
+                            $("input[name=\'re\']").prop("readonly", true);
+                            $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']").prop("disabled", true);
+                        }
+                    }, 1000);
                     
-                    // Interceptar envío del formulario para validar fecha
+                    // Interceptar envío del formulario
                     $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
-                        var currentDate = new Date();
-                        var formDate = $("input[name=\'re\']").val();
-                        var formDay = null, formMonth = null, formYear = null;
-                        if (formDate) {
-                            var parts = formDate.split("/");
-                            if(parts.length !== 3) {
-                                parts = formDate.split("-");
-                            }
-                            if (parts.length === 3) {
-                                if(parts[0].length === 4) {
-                                    // Formato YYYY-MM-DD
-                                    formYear = parseInt(parts[0]);
-                                    formMonth = parseInt(parts[1]);
-                                    formDay = parseInt(parts[2]);
-                                } else {
-                                    // Formato DD-MM-YYYY o DD/MM/YYYY
-                                    formYear = parseInt(parts[2]);
-                                    formMonth = parseInt(parts[1]);
-                                    formDay = parseInt(parts[0]);
-                                }
-                            }
-                        }
-                        if (formDay !== currentDate.getDate() || 
-                            formMonth !== (currentDate.getMonth() + 1) || 
-                            formYear !== currentDate.getFullYear()) {
+                        if (isCreating) {
+                            // Validar que la fecha sea hoy en modo creación
+                            var currentDate = new Date();
+                            var formDate = $("input[name=\'re\']").val();
                             
-                            alert("' . $langs->trans('VerifactuErrorFechaDebeSerHoy') . '");
-                            e.preventDefault();
-                            return false;
+                            if (formDate !== todayStr) {
+                                alert("' . $langs->trans('VerifactuErrorFechaDebeSerHoy') . '");
+                                e.preventDefault();
+                                return false;
+                            }
                         }
+                        // En modo edición, simplemente permitir el envío sin cambiar la fecha
                     });
                 });
                 </script>';
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Hook para interceptar antes de guardar cambios en factura
+     */
+    public function doActions($parameters, &$object, &$action, $hookmanager)
+    {
+        global $langs, $user;
+
+        if ($parameters['currentcontext'] === 'invoicecard') {
+            $langs->load("verifactu@verifactu");
+
+            // Solo aplicar en facturas existentes
+            if (($object->element == 'facture' || get_class($object) == 'Facture') && !empty($object->id)) {
+                
+                // Si se está intentando modificar la fecha en una factura existente
+                if ($action == 'update' && isset($_POST['re'])) {
+                    
+                    // Obtener la fecha original de la base de datos
+                    $sql = "SELECT date_facture FROM " . MAIN_DB_PREFIX . "facture WHERE rowid = " . ((int) $object->id);
+                    $resql = $this->db->query($sql);
+                    
+                    if ($resql && $this->db->num_rows($resql) > 0) {
+                        $obj = $this->db->fetch_object($resql);
+                        $originalDate = $obj->date_facture;
+                        
+                        // Verificar si se está intentando cambiar la fecha
+                        $newDate = $_POST['re'];
+                        if (!empty($newDate) && $newDate != $originalDate) {
+                            
+                            // BLOQUEAR el cambio
+                            setEventMessages($langs->trans('VerifactuErrorFechaNoModificable'), null, 'errors');
+                            
+                            // Restaurar la fecha original en el POST para evitar el cambio
+                            $_POST['re'] = $originalDate;
+                            $_POST['reday'] = date('d', strtotime($originalDate));
+                            $_POST['remonth'] = date('m', strtotime($originalDate));
+                            $_POST['reyear'] = date('Y', strtotime($originalDate));
+                            
+                            dol_syslog("Verifactu: Intento de modificar fecha bloqueado en doActions. Original: $originalDate, Intento: $newDate");
+                        }
+                    }
+                }
             }
         }
 

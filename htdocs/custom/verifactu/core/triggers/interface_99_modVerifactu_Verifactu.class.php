@@ -85,35 +85,62 @@ class InterfaceVerifactu extends DolibarrTriggers
             case 'BILL_CREATE':
                 // Forzar fecha de factura a hoy según normativa Verifactu
                 $today = dol_now();
-                if ($object->date != $today) {
-                    $object->date = $today;
-                    $object->update($user);
-                    dol_syslog("Verifactu: Fecha de factura ajustada a fecha actual para cumplir normativa");
+                $todayMidnight = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+                
+                if ($object->date != $todayMidnight) {
+                    $object->date = $todayMidnight;
+                    dol_syslog("Verifactu: Fecha de factura establecida a fecha actual: " . dol_print_date($todayMidnight));
                 }
                 break;
 
             case 'BILL_MODIFY':
-                // Evitar que se cambie la fecha de factura una vez creada
-                if (isset($object->date) && $object->date != $object->oldcopy->date) {
-                    $object->date = $object->oldcopy->date;
-                    $object->update($user);
-                    setEventMessages($langs->trans('VerifactuErrorFechaNoModificable'), null, 'errors');
-                    dol_syslog("Verifactu: Intento de modificar fecha de factura bloqueado por normativa");
+                // PROTECCIÓN CRÍTICA: Evitar que se cambie la fecha de factura una vez creada
+                if (isset($object->oldcopy) && isset($object->oldcopy->date)) {
+                    $originalDate = $object->oldcopy->date;
+                    
+                    // Si alguien intenta cambiar la fecha, la restauramos
+                    if (isset($object->date) && $object->date != $originalDate) {
+                        dol_syslog("Verifactu: INTENTO BLOQUEADO de modificar fecha de factura. Original: " . 
+                                  dol_print_date($originalDate) . ", Nuevo intento: " . dol_print_date($object->date));
+                        
+                        // Restaurar fecha original
+                        $object->date = $originalDate;
+                        
+                        // Mostrar error al usuario
+                        setEventMessages($langs->trans('VerifactuErrorFechaNoModificable'), null, 'errors');
+                        
+                        return -1; // Bloquear la operación
+                    }
                 }
                 break;
 
             case 'BILL_VALIDATE':
-                // Validar que la fecha de factura sea la actual
+                // Validar que la fecha de factura sea la actual antes de validar
                 $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
                 $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
                 
                 if ($invoicedate != $today) {
                     setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
+                    dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " . 
+                              dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
                     return -1; // Bloquear validación
                 }
                 
-                // Aquí iría el código para enviar a Verifactu
-                dol_syslog("Verifactu: Factura validada, enviando a sistema Verifactu");
+                dol_syslog("Verifactu: Factura validada correctamente con fecha actual");
+                break;
+
+            // Protección adicional para otros eventos que puedan modificar facturas
+            case 'BILL_BUILDDOC':
+            case 'BILL_SENTBYMAIL':
+                // Verificar que la fecha no haya sido alterada
+                if (isset($object->date)) {
+                    $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+                    $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
+                    
+                    if ($invoicedate != $today) {
+                        dol_syslog("Verifactu: ADVERTENCIA - Factura con fecha incorrecta detectada en evento " . $action);
+                    }
+                }
                 break;
 
             default:
