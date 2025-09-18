@@ -22,6 +22,7 @@
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/modules/facture/modules_facture.php';
+require_once DOL_DOCUMENT_ROOT.'/core/modules/facture/doc/pdf_crabe.modules.php';
 require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
@@ -199,16 +200,123 @@ class pdf_verifactu extends ModelePDFFactures
 	 */
 	public function write_file($object, $outputlangs, $srctemplatepath = '', $hidedetails = 0, $hidedesc = 0, $hideref = 0)
 	{
-		// Incluir el archivo de la plantilla crabe original para reutilizar su lógica
-		require_once DOL_DOCUMENT_ROOT.'/core/modules/facture/doc/pdf_crabe.modules.php';
+		global $conf, $hookmanager, $langs, $user;
+
+		// Incluir librerías necesarias para QR
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/pdf.lib.php';
 		
-		// Crear una instancia de la plantilla crabe
-		$crabeTemplate = new pdf_crabe($this->db);
+		// Generar la URL del QR con los datos de la factura
+		$qrData = $this->generateQRData($object);
 		
-		// Llamar al método write_file de crabe pero con nuestra información
+		// Crear una instancia de la plantilla crabe modificada
+		$crabeTemplate = new pdf_crabe_verifactu($this->db, $qrData);
+		
+		// Copiar nuestras propiedades específicas
+		$crabeTemplate->name = $this->name;
+		$crabeTemplate->description = $this->description;
+		
+		// Generar el PDF usando la plantilla modificada
 		$result = $crabeTemplate->write_file($object, $outputlangs, $srctemplatepath, $hidedetails, $hidedesc, $hideref);
 		
 		return $result;
+	}
+
+	/**
+	 * Generar los datos para el código QR
+	 */
+	private function generateQRData($object)
+	{
+		global $conf;
+		
+		// Obtener configuraciones
+		$urlComprobar = getDolGlobalString('VERIFACTU_URL_COMPROBAR_FACTURA', 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR');
+		
+		// Asegurar datos válidos
+		$nif = $this->emetteur->idprof1 ? $this->emetteur->idprof1 : 'TESTNIF';
+		$num = $object->ref ? $object->ref : 'TESTREF';
+		$fecha = $object->date ? dol_print_date($object->date, '%Y%m%d') : date('Ymd');
+		$importe = $object->total_ttc ? number_format($object->total_ttc, 2, '.', '') : '0.00';
+		
+		// Construir URL con parámetros de la factura
+		$params = array(
+			'nif' => $nif,
+			'num' => $num,
+			'fecha' => $fecha,
+			'importe' => $importe
+		);
+		
+		$qrUrl = $urlComprobar . '?' . http_build_query($params);
+		
+		// Log para debug
+		dol_syslog("QR Data: " . $qrUrl, LOG_DEBUG);
+		
+		return $qrUrl;
+	}
+}
+
+/**
+ * Clase extendida de pdf_crabe que incluye código QR
+ */
+class pdf_crabe_verifactu extends pdf_crabe
+{
+	public $qrData = '';
+	
+	public function __construct($db, $qrData = '')
+	{
+		parent::__construct($db);
+		$this->qrData = $qrData;
+	}
+	
+	/**
+	 * Sobrescribir el método para agregar QR en el pie de página
+	 */
+	protected function _pagefoot(&$pdf, $object, $outputlangs, $hidefreetext = 0, $heightforqrinvoice = 0)
+	{
+		// Llamar al pie de página original
+		$result = parent::_pagefoot($pdf, $object, $outputlangs, $hidefreetext, $heightforqrinvoice);
+		
+		// Agregar código QR si tenemos datos
+		if (!empty($this->qrData)) {
+			$this->addQRCode($pdf);
+		}
+		
+		return $result;
+	}
+	
+	/**
+	 * Agregar código QR al PDF
+	 */
+	private function addQRCode(&$pdf)
+	{
+		// Incluir librería QR
+		require_once DOL_DOCUMENT_ROOT.'/includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php';
+		
+		// Verificar si la librería QR está disponible
+		if (class_exists('TCPDF2DBarcode')) {
+			// Posición del QR (esquina inferior derecha)
+			$qrSize = 25; // mm
+			$x = $this->page_largeur - $this->marge_droite - $qrSize - 5;
+			$y = $this->page_hauteur - $this->marge_basse - $qrSize - 15;
+			
+			// Generar y agregar el QR
+			$pdf->write2DBarcode($this->qrData, 'QRCODE,L', $x, $y, $qrSize, $qrSize, array(), false);
+			
+			// Agregar texto explicativo
+			$pdf->SetFont('helvetica', '', 8);
+			$pdf->SetXY($x, $y + $qrSize + 2);
+			$pdf->Cell($qrSize, 4, 'Verificar AEAT', 0, 0, 'C');
+			
+			// Debug: agregar un rectángulo para ver la posición
+			$pdf->SetDrawColor(255, 0, 0); // Color rojo
+			$pdf->Rect($x, $y, $qrSize, $qrSize);
+			
+		} else {
+			// Si no hay QR, agregar texto de debug
+			$pdf->SetFont('helvetica', '', 8);
+			$pdf->SetXY(150, 250);
+			$pdf->Cell(50, 4, 'QR no disponible: ' . $this->qrData, 0, 0, 'L');
+		}
 	}
 
 	// phpcs:disable PEAR.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
