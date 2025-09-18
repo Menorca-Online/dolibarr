@@ -136,10 +136,10 @@ $item->fieldParams['isMandatory'] = 1;
 
 $item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA');
 $item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?';
+$item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 $item->cssClass = 'minwidth500';
 $item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
-$item->helpText ='URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?';
+$item->helpText ='URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 // // Setup conf for a selection of an Email template of type thirdparty
 // $formSetup->newItem('VERIFACTU_MYPARAM6')->setAsEmailTemplate('thirdparty');
 
