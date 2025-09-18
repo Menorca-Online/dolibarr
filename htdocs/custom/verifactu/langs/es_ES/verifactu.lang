@@ -29,6 +29,11 @@ VerifactuErrorFechaDebeSerHoy = La fecha de factura debe ser la fecha actual seg
 VerifactuFechaAjustadaAutomaticamente = La fecha de factura ha sido ajustada automáticamente a la fecha actual para cumplir con la normativa Verifactu
 
 #
+# PDF Template
+#
+PDFVerifactuDescription = Plantilla de factura adaptada para normativa Verifactu
+
+#
 # About page
 #
 About = Acerca de

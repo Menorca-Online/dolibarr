@@ -488,6 +488,12 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		// Registrar la plantilla de factura Verifactu automáticamente
+		$result = $this->_register_pdf_template();
+		if ($result < 0) {
+			return -1;
+		}
+
 		// Create extrafields during init
 		//include_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
 		//$extrafields = new ExtraFields($this->db);
@@ -546,6 +552,7 @@ class modVerifactu extends DolibarrModules
 	{
 		$this->_remove_maestros();
 		$this->_remove_extra_fields();
+		$this->_remove_pdf_template(); // Eliminar plantilla PDF
 		$sql = array();
 		return $this->_remove($sql, $options);
 	}
@@ -646,6 +653,50 @@ class modVerifactu extends DolibarrModules
 
 		return 1;
 	}
+
+	/**
+	 * Registrar la plantilla PDF de Verifactu en la base de datos
+	 */
+	public function _register_pdf_template()
+	{
+		global $conf;
+
+		// Registrar la plantilla de factura Verifactu
+		$sql = "DELETE FROM " . $this->db->prefix() . "document_model WHERE nom = 'verifactu' AND type = 'facture' AND entity = " . ((int) $conf->entity);
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$sql = "INSERT INTO " . $this->db->prefix() . "document_model (nom, type, entity) VALUES('verifactu', 'facture', " . ((int) $conf->entity) . ")";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		return 1;
+	}
+
+	/**
+	 * Eliminar la plantilla PDF de Verifactu de la base de datos
+	 */
+	public function _remove_pdf_template()
+	{
+		global $conf;
+
+		// Eliminar la plantilla de factura Verifactu
+		$sql = "DELETE FROM " . $this->db->prefix() . "document_model WHERE nom = 'verifactu' AND type = 'facture' AND entity = " . ((int) $conf->entity);
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		return 1;
+	}
+
 	public function _remove_extra_fields()
 	{
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
