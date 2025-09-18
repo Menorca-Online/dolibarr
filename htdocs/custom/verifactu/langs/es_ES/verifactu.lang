@@ -20,7 +20,7 @@ VERIFACTU_MYPARAM1 = Mi parámetro 1
 VERIFACTU_MYPARAM1Tooltip = Tooltip de mi parámetro 1
 VERIFACTU_MYPARAM2=Mi parámetro 2
 VERIFACTU_MYPARAM2Tooltip=Tooltip de mi parámetro 2
-
+VERIFACTU_URL_ENDPOINT=URL DEL ENDPOINT DE VERIFACTU
 #
 # Errores y mensajes Verifactu
 #
@@ -46,3 +46,4 @@ MyPageName = Mi nombre de página
 #
 MyWidget = Mi widget
 MyWidgetDescription = Descripción de mi widget
+
