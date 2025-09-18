@@ -21,6 +21,8 @@ VERIFACTU_MYPARAM1Tooltip = Tooltip de mi parámetro 1
 VERIFACTU_MYPARAM2=Mi parámetro 2
 VERIFACTU_MYPARAM2Tooltip=Tooltip de mi parámetro 2
 VERIFACTU_URL_ENDPOINT=URL DEL ENDPOINT DE VERIFACTU
+VERIFACTU_URL_COMPROBAR_FACTURA=URL para comprobar facturas (QR)
+VERIFACTU_PODER_AEAT=¿Tiene poder para comunicar con AEAT?
 #
 # Errores y mensajes Verifactu
 #

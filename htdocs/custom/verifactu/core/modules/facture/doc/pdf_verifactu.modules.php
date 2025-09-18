@@ -83,9 +83,12 @@ class pdf_verifactu extends ModelePDFFactures
 	 *
 	 *  @param		DoliDB		$db      Database handler
 	 */
+
+	public $verifactuQR = '' ;
+
 	public function __construct($db)
 	{
-		global $langs, $mysoc;
+		global $langs, $mysoc, $conf;
 
 		// Translations
 		$langs->loadLangs(array("main", "bills", "verifactu@verifactu"));
@@ -94,6 +97,19 @@ class pdf_verifactu extends ModelePDFFactures
 		$this->name = "verifactu";
 		$this->description = $langs->trans('PDFVerifactuDescription');
 		$this->update_main_doc_field = 1; // Save the name of generated file as the main doc when generating a doc with this template
+
+		// Obtener la URL del endpoint desde la configuración del módulo
+		$verifactuEndpoint = getDolGlobalString('VERIFACTU_URL_ENDPOINT', '');
+		$verifactuUrlComprobar = getDolGlobalString('VERIFACTU_URL_COMPROBAR_FACTURA', '');
+		
+		// Construir la URL del QR usando la configuración
+		$this->verifactuQR = !empty($verifactuUrlComprobar) ? $verifactuUrlComprobar : $verifactuEndpoint;
+		
+
+		// Si no hay configuración, usar una URL por defecto
+		if (empty($this->verifactuQR)) {
+			$this->verifactuQR = 'https://verifactu.com/api/v1/qr';
+		}
 
 		// Dimension page
 		$this->type = 'pdf';
