@@ -389,144 +389,147 @@ class ActionsVerifactu
      */
     public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
     {
+
         global $langs, $user, $conf;
 
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
-
+		 	echo '<pre>';
+		    var_dump($object->element, get_class($object), empty($object->id),  $object->status);
+		    echo '</pre>';
             // Solo aplicar en facturas existentes que NO son borrador
             if (($object->element == 'facture' || get_class($object) == 'Facture') && !empty($object->id) && $object->status > 0) {
+				$this->resprints .= '<script>alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");</script>';
+                // // Script para deshabilitar los botones de modificación y eliminación
+                // $this->resprints .= '
+                // <script type="text/javascript">
+                // $(document).ready(function() {
+                //     console.log("Verifactu: Deshabilitando botones de modificación para factura no borrador");
 
-                // Script para deshabilitar los botones de modificación y eliminación
-                $this->resprints .= '
-                <script type="text/javascript">
-                $(document).ready(function() {
-                    console.log("Verifactu: Deshabilitando botones de modificación para factura no borrador");
+                //     // Desactivar botones de acciones principales (modificar, eliminar)
+                //     // Método 1: Botones principales de acción
+                //     $("a.butAction").each(function() {
+                //         var $btn = $(this);
+                //         var btnText = $btn.text().trim().toLowerCase();
 
-                    // Desactivar botones de acciones principales (modificar, eliminar)
-                    // Método 1: Botones principales de acción
-                    $("a.butAction").each(function() {
-                        var $btn = $(this);
-                        var btnText = $btn.text().trim().toLowerCase();
+                //         // Verificar si es un botón de modificar o eliminar por su texto
+                //         if (btnText.indexOf("modif") >= 0 ||
+                //             btnText.indexOf("edit") >= 0 ||
+                //             btnText.indexOf("elim") >= 0 ||
+                //             btnText.indexOf("suppr") >= 0 ||
+                //             btnText.indexOf("delet") >= 0) {
 
-                        // Verificar si es un botón de modificar o eliminar por su texto
-                        if (btnText.indexOf("modif") >= 0 ||
-                            btnText.indexOf("edit") >= 0 ||
-                            btnText.indexOf("elim") >= 0 ||
-                            btnText.indexOf("suppr") >= 0 ||
-                            btnText.indexOf("delet") >= 0) {
+                //             // Convertir a botón deshabilitado
+                //             $btn.removeClass("butAction").addClass("butActionRefused");
 
-                            // Convertir a botón deshabilitado
-                            $btn.removeClass("butAction").addClass("butActionRefused");
+                //             // Agregar un título explicativo
+                //             $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
 
-                            // Agregar un título explicativo
-                            $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //             // Eliminar eventos y href original
+                //             var originalHref = $btn.attr("href");
+                //             $btn.data("original-href", originalHref);
+                //             $btn.attr("href", "javascript:void(0);");
 
-                            // Eliminar eventos y href original
-                            var originalHref = $btn.attr("href");
-                            $btn.data("original-href", originalHref);
-                            $btn.attr("href", "javascript:void(0);");
+                //             // Agregar evento para mostrar mensaje
+                //             $btn.off("click").on("click", function(e) {
+                //                 e.preventDefault();
+                //                 e.stopPropagation();
+                //                 alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //                 return false;
+                //             });
+                //         }
+                //     });
 
-                            // Agregar evento para mostrar mensaje
-                            $btn.off("click").on("click", function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
-                                return false;
-                            });
-                        }
-                    });
+                //     // Método 2: Botones secundarios y de menú desplegable
+                //     $("a.btnTitle, div.dropdown-menu a, li.dropdown-submenu a").each(function() {
+                //         var $btn = $(this);
+                //         var btnText = $btn.text().trim().toLowerCase();
+                //         var btnHref = $btn.attr("href") || "";
 
-                    // Método 2: Botones secundarios y de menú desplegable
-                    $("a.btnTitle, div.dropdown-menu a, li.dropdown-submenu a").each(function() {
-                        var $btn = $(this);
-                        var btnText = $btn.text().trim().toLowerCase();
-                        var btnHref = $btn.attr("href") || "";
+                //         if ((btnText.indexOf("modif") >= 0 ||
+                //              btnText.indexOf("edit") >= 0 ||
+                //              btnText.indexOf("elim") >= 0 ||
+                //              btnText.indexOf("suppr") >= 0 ||
+                //              btnText.indexOf("delet") >= 0) ||
+                //             (btnHref.indexOf("action=edit") >= 0 ||
+                //              btnHref.indexOf("action=delete") >= 0)) {
 
-                        if ((btnText.indexOf("modif") >= 0 ||
-                             btnText.indexOf("edit") >= 0 ||
-                             btnText.indexOf("elim") >= 0 ||
-                             btnText.indexOf("suppr") >= 0 ||
-                             btnText.indexOf("delet") >= 0) ||
-                            (btnHref.indexOf("action=edit") >= 0 ||
-                             btnHref.indexOf("action=delete") >= 0)) {
+                //             // Guardar href original y deshabilitar
+                //             $btn.data("original-href", btnHref);
+                //             $btn.attr("href", "javascript:void(0);");
+                //             $btn.addClass("disabled");
+                //             $btn.css("color", "#999");
+                //             $btn.css("cursor", "not-allowed");
+                //             $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
 
-                            // Guardar href original y deshabilitar
-                            $btn.data("original-href", btnHref);
-                            $btn.attr("href", "javascript:void(0);");
-                            $btn.addClass("disabled");
-                            $btn.css("color", "#999");
-                            $btn.css("cursor", "not-allowed");
-                            $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //             // Agregar evento para mostrar mensaje
+                //             $btn.off("click").on("click", function(e) {
+                //                 e.preventDefault();
+                //                 e.stopPropagation();
+                //                 alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //                 return false;
+                //             });
+                //         }
+                //     });
 
-                            // Agregar evento para mostrar mensaje
-                            $btn.off("click").on("click", function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
-                                return false;
-                            });
-                        }
-                    });
+                //     // Monitorizar nuevos elementos (para menús dinámicos)
+                //     var observer = new MutationObserver(function(mutations) {
+                //         mutations.forEach(function(mutation) {
+                //             if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                //                 for (var i = 0; i < mutation.addedNodes.length; i++) {
+                //                     var node = mutation.addedNodes[i];
+                //                     if (node.nodeType === 1) { // Solo elementos DOM
+                //                         $(node).find("a").each(function() {
+                //                             var $btn = $(this);
+                //                             var btnText = $btn.text().trim().toLowerCase();
+                //                             var btnHref = $btn.attr("href") || "";
 
-                    // Monitorizar nuevos elementos (para menús dinámicos)
-                    var observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                                for (var i = 0; i < mutation.addedNodes.length; i++) {
-                                    var node = mutation.addedNodes[i];
-                                    if (node.nodeType === 1) { // Solo elementos DOM
-                                        $(node).find("a").each(function() {
-                                            var $btn = $(this);
-                                            var btnText = $btn.text().trim().toLowerCase();
-                                            var btnHref = $btn.attr("href") || "";
+                //                             if ((btnText.indexOf("modif") >= 0 ||
+                //                                  btnText.indexOf("edit") >= 0 ||
+                //                                  btnText.indexOf("elim") >= 0 ||
+                //                                  btnText.indexOf("suppr") >= 0 ||
+                //                                  btnText.indexOf("delet") >= 0) ||
+                //                                 (btnHref.indexOf("action=edit") >= 0 ||
+                //                                  btnHref.indexOf("action=delete") >= 0)) {
 
-                                            if ((btnText.indexOf("modif") >= 0 ||
-                                                 btnText.indexOf("edit") >= 0 ||
-                                                 btnText.indexOf("elim") >= 0 ||
-                                                 btnText.indexOf("suppr") >= 0 ||
-                                                 btnText.indexOf("delet") >= 0) ||
-                                                (btnHref.indexOf("action=edit") >= 0 ||
-                                                 btnHref.indexOf("action=delete") >= 0)) {
+                //                                 $btn.data("original-href", btnHref);
+                //                                 $btn.attr("href", "javascript:void(0);");
+                //                                 $btn.addClass("disabled");
+                //                                 $btn.css("color", "#999");
+                //                                 $btn.css("cursor", "not-allowed");
+                //                                 $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
 
-                                                $btn.data("original-href", btnHref);
-                                                $btn.attr("href", "javascript:void(0);");
-                                                $btn.addClass("disabled");
-                                                $btn.css("color", "#999");
-                                                $btn.css("cursor", "not-allowed");
-                                                $btn.attr("title", "' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //                                 $btn.off("click").on("click", function(e) {
+                //                                     e.preventDefault();
+                //                                     e.stopPropagation();
+                //                                     alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
+                //                                     return false;
+                //                                 });
+                //                             }
+                //                         });
+                //                     }
+                //                 }
+                //             }
+                //         });
+                //     });
 
-                                                $btn.off("click").on("click", function(e) {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    alert("' . $langs->trans("VerifactuFacturaNoModificable") . '");
-                                                    return false;
-                                                });
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        });
-                    });
+                //     // Observar cambios en todo el documento para menús dinámicos
+                //     observer.observe(document.body, {
+                //         childList: true,
+                //         subtree: true
+                //     });
 
-                    // Observar cambios en todo el documento para menús dinámicos
-                    observer.observe(document.body, {
-                        childList: true,
-                        subtree: true
-                    });
+                //     // Agregar notificación visual
+                //     if ($(".verifactu-lock-warning").length === 0) {
+                //         var warningHtml = \'<div class="verifactu-lock-warning" style="margin: 10px 0; padding: 10px; background:#fff3cd; border:1px solid #ffeaa7; color:#856404; border-radius:4px;">\' +
+                //             \'<i class="fa fa-lock" style="margin-right:8px;"></i> \' +
+                //             \'<strong>Protección Verifactu:</strong> Esta factura no se puede modificar ni eliminar porque ya no está en estado borrador. Los cambios en facturas validadas no están permitidos según normativa.\' +
+                //             \'</div>\';
 
-                    // Agregar notificación visual
-                    if ($(".verifactu-lock-warning").length === 0) {
-                        var warningHtml = \'<div class="verifactu-lock-warning" style="margin: 10px 0; padding: 10px; background:#fff3cd; border:1px solid #ffeaa7; color:#856404; border-radius:4px;">\' +
-                            \'<i class="fa fa-lock" style="margin-right:8px;"></i> \' +
-                            \'<strong>Protección Verifactu:</strong> Esta factura no se puede modificar ni eliminar porque ya no está en estado borrador. Los cambios en facturas validadas no están permitidos según normativa.\' +
-                            \'</div>\';
-
-                        $(\'div.tabBar\').prepend(warningHtml);
-                    }
-                });
-                </script>';
+                //         $(\'div.tabBar\').prepend(warningHtml);
+                //     }
+                // });
+                // </script>';
             }
         }
 
