@@ -122,7 +122,7 @@ class modVerifactu extends DolibarrModules
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
 				'invoicecard',
-				'invoicelist', 
+				'invoicelist',
 				'loadTablesExtraFields',
 				'invoicereccard',
 				'globalcard'
@@ -645,10 +645,71 @@ class modVerifactu extends DolibarrModules
 				1,
 
 			);
+		}
+
+		// Añadir campo hash si no existe
+		if (!isset($existing['hash'])) {
+			$result2 = $extrafields->addExtraField(
+				'hash',
+				'Hash',
+				'varchar',
+				110,
+				'255',
+				'facture',
+				0,
+				1,
+				1,
+				'',
+				0,
+				'',
+				1,
+				'',
+				'',
+				'',
+				'',
+				'1',
+				0,
+				1,
+			);
+		}
+
+		// Añadir campo hash_anterior si no existe
+		if (!isset($existing['hash_anterior'])) {
+			$result3 = $extrafields->addExtraField(
+				'hash_anterior',
+				'Hash Anterior',
+				'varchar',
+				120,
+				'255',
+				'facture',
+				0,
+				1,
+				1,
+				'',
+				0,
+				'',
+				1,
+				'',
+				'',
+				'',
+				'',
+				'1',
+				0,
+				1,
+			);
 
 			if ($result1 < 0) {
 				return -1;
 			}
+		}
+
+		// Verificar los resultados de la creación de los nuevos campos
+		if (isset($result2) && $result2 < 0) {
+			return -1;
+		}
+
+		if (isset($result3) && $result3 < 0) {
+			return -1;
 		}
 
 		return 1;
@@ -702,8 +763,21 @@ class modVerifactu extends DolibarrModules
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
 		$extrafields = new ExtraFields($this->db);
 
+		// Eliminar campo fk_facture_type
 		$result1 = $extrafields->delete('fk_facture_type', 'facture');
 		if ($result1 < 0) {
+			return -1;
+		}
+
+		// Eliminar campo hash
+		$result2 = $extrafields->delete('hash', 'facture');
+		if ($result2 < 0) {
+			return -1;
+		}
+
+		// Eliminar campo hash_anterior
+		$result3 = $extrafields->delete('hash_anterior', 'facture');
+		if ($result3 < 0) {
 			return -1;
 		}
 
