@@ -74,6 +74,8 @@ class InterfaceVerifactu extends DolibarrTriggers
         $result = $this->db->query($sql);
         if ($result && $this->db->num_rows($result) > 0) {
             $obj = $this->db->fetch_object($result);
+			//SI EL HASH ES 1 ES QUE NO TIENE HASH
+			if($obj->hash == '1') return "";
             return $obj->hash;
         }
 
@@ -89,7 +91,7 @@ class InterfaceVerifactu extends DolibarrTriggers
     {
         // Buscar la última factura con hash en orden descendente
         $sql = "SELECT f.hash FROM " . MAIN_DB_PREFIX . "facture_extrafields f";
-        $sql .= " WHERE f.hash IS NOT NULL AND f.hash != ''";
+        $sql .= " WHERE f.hash IS NOT NULL AND f.hash != '1'";
         $sql .= " ORDER BY f.fk_object DESC"; // Ordenar por ID de factura descendente (más reciente)
         $sql .= " LIMIT 1";
 
@@ -100,7 +102,7 @@ class InterfaceVerifactu extends DolibarrTriggers
         }
 
         // Si no hay facturas previas, devolver un valor inicial (64 ceros = hash SHA-256 inicial)
-        return "0000000000000000000000000000000000000000000000000000000000000000";
+        return "";
     }
 
     /**
@@ -114,29 +116,81 @@ class InterfaceVerifactu extends DolibarrTriggers
         // Obtener líneas de factura
         $object->fetch_lines();
 
-        // Extraer información principal
-        $data = array(
-            'id' => $object->id,
-            'ref' => $object->ref,
-            'date' => $object->date,
-            'client_id' => $object->socid,
-            'amount' => $object->total_ttc,
-            'lines' => array()
-        );
+		//PARA OBTENER EL HASH ACTUAL NECESITAMOS
+		// 1.º NIF del emisor.
+		// 2.º Numero de factura y serie.
+		// 3.º Fecha de expedición de la factura.
+		// 4.º Tipo de factura.
+		// 5.º Cuota total.
+		// 6.º Importe total.
+		// 7.º Huella del registro de facturación anterior.
+		// 8.º Fecha, hora y huso horario de generación del registro.
+		// el tipo factura es el fk_facture_type  llx_verifactu_facture_types
+		$TipoFactura = $object->array_options['fk_facture_type'] ?? null;
+		require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
+		$verifactuType = new VerifactuFactureType($this->db);
+		$timestamp = dol_now();
 
-        // Añadir líneas de factura
-        if (!empty($object->lines)) {
-            foreach ($object->lines as $line) {
-                $data['lines'][] = array(
-                    'id' => $line->id,
-                    'description' => $line->desc,
-                    'qty' => $line->qty,
-                    'price' => $line->price,
-                    'total' => $line->total_ttc
-                );
-            }
-        }
+		if($TipoFactura) $verifactuType->fetch($TipoFactura);
+		$tipo = $verifactuType->code ?? 'F1';
+		$fechaHora = dol_print_date($timestamp, '%Y-%m-%dT%H:%M:%S%z');
+		$huellaAnterior = $this->getLastInvoiceHash();
 
+		// Obtener información del emisor (empresa)
+		$nif = '';
+		if ($object->socid > 0) {
+			require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
+			$societe = new Societe($this->db);
+			$societe->fetch($object->socid);
+			$nif = $societe->idprof1;
+		}
+
+		// Verificar si la factura todavía tiene un número provisional
+		$numFactura = $object->ref;
+
+		// Si estamos en BILL_VALIDATE, la factura podría tener aún un número provisional
+		if (preg_match('/^\(PROV/i', $numFactura)) {
+			dol_syslog("Verifactu: La factura tiene un número provisional: " . $numFactura);
+
+			// Esperar un momento para que Dolibarr asigne el número definitivo
+			sleep(1);
+
+			// 1. Intentar recargar la factura para obtener el número definitivo
+			$object->fetch($object->id);
+			$numFactura = $object->ref;
+
+			// 2. Si todavía es provisional, intentar obtener el número generado
+			if (preg_match('/^\(PROV/i', $numFactura)) {
+				// Intentar acceder a la factura a través del modelo de facturación
+				require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
+				$facture = new Facture($this->db);
+				if ($facture->fetch($object->id) > 0) {
+					// Si la factura se ha cargado correctamente, tomamos su número
+					$numFactura = $facture->ref;
+					dol_syslog("Verifactu: Obtenido número desde objeto Facture: " . $numFactura);
+				}
+			}
+		}
+
+		// Si todavía tenemos un número provisional, generar un mensaje de advertencia
+		if (preg_match('/^\(PROV/i', $numFactura)) {
+			dol_syslog("Verifactu ADVERTENCIA: No se pudo obtener el número definitivo de factura. Usando: " . $numFactura, LOG_WARNING);
+			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
+		}
+
+		// Preparar datos según especificaciones Verifactu
+		$data = array(
+			'IDEmisorFactura' => $nif,
+			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
+			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
+			'TipoFactura' => $tipo,
+			'CuotaTotal' => $object->total_tva,
+			'ImporteTotal' => $object->total_ttc,
+			'Huella' =>  $huellaAnterior,
+			'FechaHoraHusoGenRegistro' => $fechaHora,
+		);
+
+        // Devolver los datos preparados para la generación del hash
         return $data;
     }
 
@@ -228,6 +282,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_MODIFY':
+				dol_syslog("Verifactu: Entrando en BILL_MODIFY para factura id={$object->id}, ref={$object->ref}");
                 // PROTECCIÓN CRÍTICA: Evitar que se cambie la fecha de factura una vez creada
                 if (isset($object->oldcopy) && isset($object->oldcopy->date)) {
                     $originalDate = $object->oldcopy->date;
