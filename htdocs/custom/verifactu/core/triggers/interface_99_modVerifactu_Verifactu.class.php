@@ -139,13 +139,11 @@ class InterfaceVerifactu extends DolibarrTriggers
 		$huellaAnterior = $this->getLastInvoiceHash();
 
 		// Obtener información del emisor (empresa)
-		$nif = '';
-		if ($object->socid > 0) {
-			require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
-			$societe = new Societe($this->db);
-			$societe->fetch($object->socid);
-			$nif = $societe->idprof1;
-		}
+
+		global $conf;
+
+		$nif    = $conf->global->MAIN_INFO_TVAINTRA ?: $conf->global->MAIN_INFO_SIREN ?: $conf->global->MAIN_INFO_NIF;
+
 
 		// Verificar si la factura todavía tiene un número provisional
 		$numFactura = $object->ref;
