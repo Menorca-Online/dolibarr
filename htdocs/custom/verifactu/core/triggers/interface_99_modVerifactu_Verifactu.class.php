@@ -129,11 +129,13 @@ class InterfaceVerifactu extends DolibarrTriggers
 		$TipoFactura = $object->array_options['fk_facture_type'] ?? null;
 		require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 		$verifactuType = new VerifactuFactureType($this->db);
-		$timestamp = dol_now();
 
 		if($TipoFactura) $verifactuType->fetch($TipoFactura);
 		$tipo = $verifactuType->code ?? 'F1';
-		$fechaHora = dol_print_date($timestamp, '%Y-%m-%dT%H:%M:%S%z');
+		$timestamp = dol_now();
+		$dt = new DateTime('@'.$timestamp);         // crea desde timestamp UTC
+		$dt->setTimezone(new DateTimeZone('Europe/Madrid')); // o la tz que necesites
+		$fechaHora = $dt->format('Y-m-d\TH:i:sP'); // 2025-09-19T10:29:58+02:00
 		$huellaAnterior = $this->getLastInvoiceHash();
 
 		// Obtener información del emisor (empresa)
