@@ -116,6 +116,15 @@ class InterfaceVerifactu extends DolibarrTriggers
         // Obtener líneas de factura
         $object->fetch_lines();
 
+        // Registrar información sobre el tipo de factura para debugging
+        dol_syslog("Verifactu: Preparando datos para hash de factura ID: " . $object->id . ", ref: " . $object->ref . ", type: " . $object->type);
+
+        // Identificar si es una factura rectificativa (type = 2)
+        $isRectificativa = ($object->type == 2);
+        if ($isRectificativa) {
+            dol_syslog("Verifactu: Detectada factura rectificativa/nota de crédito - ID: " . $object->id);
+        }
+
 		//PARA OBTENER EL HASH ACTUAL NECESITAMOS
 		// 1.º NIF del emisor.
 		// 2.º Numero de factura y serie.
@@ -178,12 +187,31 @@ class InterfaceVerifactu extends DolibarrTriggers
 			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
 		}
 
+		// Determinar tipo de documento para el hash
+		$tipoDocumento = $tipo;
+
+		// Para facturas rectificativas, modificamos el tipo de documento
+		if ($object->type == 2) {
+		    // Aquí podemos usar un tipo específico para facturas rectificativas
+		    // Por ejemplo, si F1 es factura estándar, podríamos usar R1 para rectificativas
+		    $tipoDocumento = 'R1'; // R para Rectificativa
+
+		    // O si tenemos un tipo específico en la configuración
+		    if ($tipo == 'F1') {
+		        $tipoDocumento = 'R1';
+		    } elseif ($tipo == 'F2') {
+		        $tipoDocumento = 'R2';
+		    }
+
+		    dol_syslog("Verifactu: Usando tipo especial para factura rectificativa: " . $tipoDocumento);
+		}
+
 		// Preparar datos según especificaciones Verifactu
 		$data = array(
 			'IDEmisorFactura' => $nif,
 			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
 			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
-			'TipoFactura' => $tipo,
+			'TipoFactura' => $tipoDocumento, // Usamos el tipo que corresponde (normal o rectificativa)
 			'CuotaTotal' => $object->total_tva,
 			'ImporteTotal' => $object->total_ttc,
 			'Huella' =>  $huellaAnterior,
@@ -328,20 +356,28 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_VALIDATE':
-                // Validar que la fecha de factura sea la actual antes de validar
-                $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
-                $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
+                // Verificar si es una factura rectificativa
+                $isRectificativa = ($object->type == 2);
 
-                if ($invoicedate != $today) {
-                    setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
-                    dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
-                              dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
-                    return -1; // Bloquear validación
+                if ($isRectificativa) {
+                    dol_syslog("Verifactu: Detectada validación de factura rectificativa/nota de crédito - ID: " . $object->id);
+                    // Para las facturas rectificativas no exigimos que la fecha sea hoy
+                } else {
+                    // Para facturas normales, validar que la fecha de factura sea la actual
+                    $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+                    $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
+
+                    if ($invoicedate != $today) {
+                        setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
+                        dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
+                                  dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
+                        return -1; // Bloquear validación
+                    }
                 }
 
                 // Generar nuevo hash para la factura validada
                 try {
-                    dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id);
+                    dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
 
                     // Verificar si ya tiene un hash (por si es una revalidación)
                     $existingHash = $this->getInvoiceHash($object->id);
@@ -349,6 +385,14 @@ class InterfaceVerifactu extends DolibarrTriggers
                         dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
                         setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
                         return 1; // Ya tiene un hash, no necesitamos continuar
+                    }
+
+                    // Comprobar si es una factura rectificativa (tipo = 2) o una nota de crédito
+                    $isRectificativa = ($object->type == 2);
+                    if ($isRectificativa) {
+                        dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
+                        // Para facturas rectificativas, siempre generamos nuevos hashes
+                        // No heredamos nada de la factura original
                     }
 
                     // 1. Obtener el último hash conocido (hash_anterior)
