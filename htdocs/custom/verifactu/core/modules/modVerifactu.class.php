@@ -650,79 +650,87 @@ class modVerifactu extends DolibarrModules
 		// Añadir campo hash si no existe
 		if (!isset($existing['hash'])) {
 			$result2 = $extrafields->addExtraField(
-				'hash',
-				'Hash',
-				'varchar',
-				110,
-				'255',
-				'facture',
-				0,
-				1,
-				1,
-				serialize(array('default' => null)),  // Valor por defecto NULL
-				0,
-				'',
-				1,
-				'',
-				'',
-				'',
-				'',
-				'1',
-				0,
-				1,
+				'hash',             // $attrname
+				'Hash',             // $label
+				'varchar',          // $type
+				110,                // $pos
+				'255',              // $size
+				'facture',          // $elementtype
+				0,                  // $unique
+				0,                  // $required
+				'',                 // $default_value
+				'',                 // $param
+				0,                  // $alwayseditable
+				'',                 // $perms
+				1,                  // $list
+				'',                 // $help
+				'',                 // $computed
+				'',                 // $entity
+				'',                 // $langfile
+				'1',                // $enabled
+				0,                  // $totalizable
+				1,                  // $printable
+				array(),            // $moreparams
+				''                  // $aiprompt
 			);
 		}
 
 		// Añadir campo hash_anterior si no existe
 		if (!isset($existing['hash_anterior'])) {
 			$result3 = $extrafields->addExtraField(
-				'hash_anterior',
-				'Hash Anterior',
-				'varchar',
-				120,
-				'255',
-				'facture',
-				0,
-				1,
-				1,
-				serialize(array('default' => null)),  // Valor por defecto NULL
-				0,
-				'',
-				1,
-				'',
-				'',
-				'',
-				'',
-				'1',
-				0,
-				1,
+				'hash_anterior',             // $attrname
+				'Hash Anterior',             // $label
+				'varchar',          // $type
+				110,                // $pos
+				'255',              // $size
+				'facture',          // $elementtype
+				0,                  // $unique
+				0,                  // $required
+				'',                 // $default_value
+				'',                 // $param
+				0,                  // $alwayseditable
+				'',                 // $perms
+				1,                  // $list
+				'',                 // $help
+				'',                 // $computed
+				'',                 // $entity
+				'',                 // $langfile
+				'1',                // $enabled
+				0,                  // $totalizable
+				1,                  // $printable
+				array(),            // $moreparams
+				''                  // $aiprompt
 			);
 		}
 
 		// Añadir campo hash_data si no existe (para almacenar los datos usados para generar el hash)
 		if (!isset($existing['hash_data'])) {
 			$result4 = $extrafields->addExtraField(
-				'hash_data',
-				'Datos Hash',
-				'text',
-				130,
-				'',  // Sin límite de longitud para texto
-				'facture',
-				0,
-				1,  // Visible en formulario
-				1,  // Visible en lista
-				serialize(array('default' => null)),  // Valor por defecto NULL
-				0,
-				'',
-				1,
-				'Datos utilizados para generar el hash',  // Ayuda
-				'',
-				'',
-				'',
-				'1',
-				0,
-				1,
+				'hash_data',             // $attrname
+				'Hash Data',             // $label
+				'text',                  // $type
+				130,                     // $pos
+				'',                      // $size
+				'facture',          // $elementtype
+				0,                  // $unique
+				0,                  // $required
+				'',                 // $default_value
+				'',                 // $param
+				0,                  // $alwayseditable
+				'',                 // $perms
+				0,                  // $list
+				'Datos utilizados para generar el hash',                 // $help
+				'',                 // $computed
+				'',                 // $entity
+				'',                 // $langfile
+				'1',                // $enabled
+				0,                  // $totalizable
+				1,                  // $printable
+				array(),            // $moreparams
+				''                  // $aiprompt
 			);
+
+
 		}
 
 		// Verificar los resultados de la creación de los nuevos campos

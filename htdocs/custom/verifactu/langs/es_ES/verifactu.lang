@@ -29,6 +29,7 @@ VERIFACTU_PODER_AEAT=¿Tiene poder para comunicar con AEAT?
 VerifactuErrorFechaNoModificable = La fecha de factura no puede modificarse según la normativa Verifactu
 VerifactuErrorFechaDebeSerHoy = La fecha de factura debe ser la fecha actual según la normativa Verifactu
 VerifactuFechaAjustadaAutomaticamente = La fecha de factura ha sido ajustada automáticamente a la fecha actual para cumplir con la normativa Verifactu
+VerifactuFacturaNoModificable = Esta factura no puede ser modificada ni eliminada porque ya no está en estado borrador
 
 #
 # PDF Template
