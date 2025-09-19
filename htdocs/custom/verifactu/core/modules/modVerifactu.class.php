@@ -697,18 +697,48 @@ class modVerifactu extends DolibarrModules
 				0,
 				1,
 			);
+		}
 
-			if ($result1 < 0) {
-				return -1;
-			}
+		// Añadir campo hash_data si no existe (para almacenar los datos usados para generar el hash)
+		if (!isset($existing['hash_data'])) {
+			$result4 = $extrafields->addExtraField(
+				'hash_data',
+				'Datos Hash',
+				'text',
+				130,
+				'',  // Sin límite de longitud para texto
+				'facture',
+				0,
+				1,  // Visible en formulario
+				1,  // Visible en lista
+				serialize(array('default' => null)),  // Valor por defecto NULL
+				0,
+				'',
+				1,
+				'Datos utilizados para generar el hash',  // Ayuda
+				'',
+				'',
+				'',
+				'1',
+				0,
+				1,
+			);
 		}
 
 		// Verificar los resultados de la creación de los nuevos campos
+		if (isset($result1) && $result1 < 0) {
+			return -1;
+		}
+
 		if (isset($result2) && $result2 < 0) {
 			return -1;
 		}
 
 		if (isset($result3) && $result3 < 0) {
+			return -1;
+		}
+
+		if (isset($result4) && $result4 < 0) {
 			return -1;
 		}
 
@@ -778,6 +808,12 @@ class modVerifactu extends DolibarrModules
 		// Eliminar campo hash_anterior
 		$result3 = $extrafields->delete('hash_anterior', 'facture');
 		if ($result3 < 0) {
+			return -1;
+		}
+
+		// Eliminar campo hash_data
+		$result4 = $extrafields->delete('hash_data', 'facture');
+		if ($result4 < 0) {
 			return -1;
 		}
 

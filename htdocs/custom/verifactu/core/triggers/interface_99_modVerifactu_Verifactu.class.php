@@ -221,10 +221,17 @@ class InterfaceVerifactu extends DolibarrTriggers
      * @param int $invoiceId ID de la factura
      * @param string $newHash Nuevo hash generado
      * @param string $previousHash Hash anterior
+     * @param array $data Datos utilizados para generar el hash
      * @return bool True si se guardó correctamente, False en caso contrario
      */
-    private function saveInvoiceHashes($invoiceId, $newHash, $previousHash)
+    private function saveInvoiceHashes($invoiceId, $newHash, $previousHash, $data = null)
     {
+        // Convertir los datos a JSON para almacenarlos
+        $jsonData = '';
+        if ($data !== null) {
+            $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
         // Verificar primero si ya existen registros para esta factura
         $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "facture_extrafields WHERE fk_object = " . ((int) $invoiceId);
         $result = $this->db->query($sql);
@@ -234,14 +241,31 @@ class InterfaceVerifactu extends DolibarrTriggers
             $sql = "UPDATE " . MAIN_DB_PREFIX . "facture_extrafields";
             $sql .= " SET hash = '" . $this->db->escape($newHash) . "',";
             $sql .= " hash_anterior = '" . $this->db->escape($previousHash) . "'";
+
+            // Añadir los datos del hash si están disponibles
+            if (!empty($jsonData)) {
+                $sql .= ", hash_data = '" . $this->db->escape($jsonData) . "'";
+            }
+
             $sql .= " WHERE fk_object = " . ((int) $invoiceId);
         } else {
             // Insertar nuevos registros
-            $sql = "INSERT INTO " . MAIN_DB_PREFIX . "facture_extrafields";
-            $sql .= " (fk_object, hash, hash_anterior)";
-            $sql .= " VALUES (" . ((int) $invoiceId) . ",";
-            $sql .= " '" . $this->db->escape($newHash) . "',";
-            $sql .= " '" . $this->db->escape($previousHash) . "')";
+            if (!empty($jsonData)) {
+                // Con datos
+                $sql = "INSERT INTO " . MAIN_DB_PREFIX . "facture_extrafields";
+                $sql .= " (fk_object, hash, hash_anterior, hash_data)";
+                $sql .= " VALUES (" . ((int) $invoiceId) . ",";
+                $sql .= " '" . $this->db->escape($newHash) . "',";
+                $sql .= " '" . $this->db->escape($previousHash) . "',";
+                $sql .= " '" . $this->db->escape($jsonData) . "')";
+            } else {
+                // Sin datos
+                $sql = "INSERT INTO " . MAIN_DB_PREFIX . "facture_extrafields";
+                $sql .= " (fk_object, hash, hash_anterior)";
+                $sql .= " VALUES (" . ((int) $invoiceId) . ",";
+                $sql .= " '" . $this->db->escape($newHash) . "',";
+                $sql .= " '" . $this->db->escape($previousHash) . "')";
+            }
         }
 
         $resql = $this->db->query($sql);
@@ -338,8 +362,8 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $newHash = $this->generateHash($invoiceData, $lastHash);
                     dol_syslog("Verifactu: Nuevo hash generado: " . $newHash);
 
-                    // 4. Guardar el nuevo hash y el hash anterior en los campos extras
-                    $result = $this->saveInvoiceHashes($object->id, $newHash, $lastHash);
+                    // 4. Guardar el nuevo hash, el hash anterior y los datos utilizados para generar el hash en los campos extras
+                    $result = $this->saveInvoiceHashes($object->id, $newHash, $lastHash, $invoiceData);
 
                     if ($result) {
                         dol_syslog("Verifactu: Hash guardado correctamente para factura ID: " . $object->id);
