@@ -575,8 +575,8 @@ class modVerifactu extends DolibarrModules
 		}
 
 		$types = array(
-			array('code' => 'AC', 'label' => 'Accrual', 'api' => 1),
-			array('code' => 'CA', 'label' => 'Cash', 'api' => 1),
+			array('code' => 'F1', 'label' => 'F1 - Factura Estandar', 'api' => 1),
+			array('code' => 'F2', 'label' => 'F2 - Factura Simplificada', 'api' => 1),
 		);
 
 		foreach ($types as $type) {
