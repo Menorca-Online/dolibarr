@@ -152,20 +152,19 @@ class ActionsVerifactu
                         }
                     }
 
-                    // Bloquear campos hash y hash_anterior
+                    // Gestionar campos hash y hash_anterior - mostrar solo cuando la factura ya existe
                     function blockHashFields() {
+                        // PASO 1: Buscar tanto los campos como sus contenedores (filas, divs, etc.)
+
                         // Dolibarr puede usar diferentes nombres de selector según la versión y configuración
-                        // Intentamos todas las posibles variantes para encontrar los campos
                         var hashSelectors = [
                             "input[name=\'options_hash\']",
                             "#options_hash",
                             "input[name=\'hash\']",
                             "#hash",
-                            "[name^=\'hash\']",
+                            "[name^=\'hash\']:not([name*=\'anterior\'])",
                             "input[data-fieldname=\'hash\']",
-                            "input[id$=\'_hash\']",
-                            "div.hash input",
-                            "tr.hash input"
+                            "input[id$=\'_hash\']"
                         ];
 
                         var hashAnteriorSelectors = [
@@ -175,97 +174,139 @@ class ActionsVerifactu
                             "#hash_anterior",
                             "[name^=\'hash_anterior\']",
                             "input[data-fieldname=\'hash_anterior\']",
-                            "input[id$=\'_hash_anterior\']",
-                            "div.hash_anterior input",
-                            "tr.hash_anterior input"
+                            "input[id$=\'_hash_anterior\']"
                         ];
 
-                        // Buscar los campos probando todos los posibles selectores
+                        // Buscar contenedores (filas, divs, etc)
+                        var hashRowSelectors = [
+                            "tr:has(" + hashSelectors.join("), tr:has(") + ")",
+                            "div.form-group:has(" + hashSelectors.join("), div.form-group:has(") + ")",
+                            ".hash",
+                            "tr.hash",
+                            "div.hash"
+                        ];
+
+                        var hashAnteriorRowSelectors = [
+                            "tr:has(" + hashAnteriorSelectors.join("), tr:has(") + ")",
+                            "div.form-group:has(" + hashAnteriorSelectors.join("), div.form-group:has(") + ")",
+                            ".hash_anterior",
+                            "tr.hash_anterior",
+                            "div.hash_anterior"
+                        ];
+
+                        // PASO 2: Ejecutar búsquedas
                         var hashField = $(hashSelectors.join(", "));
                         var hashAnteriorField = $(hashAnteriorSelectors.join(", "));
+                        var hashRow = $(hashRowSelectors.join(", "));
+                        var hashAnteriorRow = $(hashAnteriorRowSelectors.join(", "));
 
-                        console.log("Campos hash encontrados: " + hashField.length);
-                        console.log("Campos hash_anterior encontrados: " + hashAnteriorField.length);
+                        // Eliminar cualquier aviso previo para evitar duplicados
+                        $(".verifactu-hash-warning").remove();
 
-                        // Si no encontramos los campos, los buscaremos más adelante
-                        if (hashField.length === 0 || hashAnteriorField.length === 0) {
-                            console.log("Algunos campos hash no fueron encontrados. Intentando nuevamente en 1 segundo...");
-                            setTimeout(blockHashFields, 1000);
-                            return;
+                        // PASO 3: Decidir qué hacer según el modo (creación o edición)
+
+                        // MODO CREACIÓN: Ocultar completamente los campos
+                        if (isCreating) {
+                            if (hashRow.length > 0) hashRow.hide();
+                            if (hashAnteriorRow.length > 0) hashAnteriorRow.hide();
+                            if (hashField.length > 0) hashField.closest("tr, div.form-group").hide();
+                            if (hashAnteriorField.length > 0) hashAnteriorField.closest("tr, div.form-group").hide();
+                            return; // No hay más que hacer en modo creación
                         }
 
-                        // Guardar los valores originales como atributos data
-                        if (!hashField.data("original-value")) {
-                            hashField.data("original-value", hashField.val());
+                        // MODO EDICIÓN: Solo mostrar como lectura
+
+                        // PASO 4: Mostrar y configurar campos para modo edición
+                        if (hashRow.length > 0 || hashField.length > 0) {
+                            if (hashRow.length > 0) hashRow.show();
+                            if (hashField.length > 0) {
+                                hashField.closest("tr, div.form-group").show();
+                                // Guardar valor original solo una vez
+                                if (!hashField.data("original-value")) {
+                                    hashField.data("original-value", hashField.val());
+                                }
+
+                                // Configurar como solo lectura sin disparar eventos
+                                hashField
+                                    .prop("readonly", true)
+                                    .removeAttr("disabled")
+                                    .css({
+                                        "background-color": "#f5f5f5",
+                                        "color": "#666",
+                                        "cursor": "not-allowed"
+                                    });
+
+                                // Desactivar eventos existentes y agregar nuevos sin alertas
+                                hashField.off().on("focus click keydown keyup change", function(e) {
+                                    e.preventDefault();
+                                    $(this).val($(this).data("original-value") || "");
+                                    return false;
+                                });
+                            }
                         }
-                        if (!hashAnteriorField.data("original-value")) {
-                            hashAnteriorField.data("original-value", hashAnteriorField.val());
+
+                        if (hashAnteriorRow.length > 0 || hashAnteriorField.length > 0) {
+                            if (hashAnteriorRow.length > 0) hashAnteriorRow.show();
+                            if (hashAnteriorField.length > 0) {
+                                hashAnteriorField.closest("tr, div.form-group").show();
+                                // Guardar valor original solo una vez
+                                if (!hashAnteriorField.data("original-value")) {
+                                    hashAnteriorField.data("original-value", hashAnteriorField.val());
+                                }
+
+                                // Configurar como solo lectura sin disparar eventos
+                                hashAnteriorField
+                                    .prop("readonly", true)
+                                    .removeAttr("disabled")
+                                    .css({
+                                        "background-color": "#f5f5f5",
+                                        "color": "#666",
+                                        "cursor": "not-allowed"
+                                    });
+
+                                // Desactivar eventos existentes y agregar nuevos sin alertas
+                                hashAnteriorField.off().on("focus click keydown keyup change", function(e) {
+                                    e.preventDefault();
+                                    $(this).val($(this).data("original-value") || "");
+                                    return false;
+                                });
+                            }
                         }
 
-                        // IMPORTANTE: Usar solo readonly=true y NO disabled=true
-                        // disabled=true hace que el campo no se envíe en el formulario
-                        hashField.add(hashAnteriorField)
-                            .prop("readonly", true)
-                            .removeAttr("disabled") // Asegurar que no esté deshabilitado
-                            .css({
-                                "background-color": "#f5f5f5",
-                                "color": "#666",
-                                "cursor": "not-allowed"
-                            });
-
-                        // Asegurar que los campos sean visibles
-                        hashField.closest("tr").show();
-                        hashAnteriorField.closest("tr").show();
-
-                        // Agregar mensaje explicativo si no existe
-                        if ($(".verifactu-hash-warning").length === 0) {
+                        // PASO 5: Añadir mensaje explicativo solo en modo edición
+                        if ((hashField.length > 0 || hashAnteriorField.length > 0) && $(".verifactu-hash-warning").length === 0) {
                             var warningHtml = \'<tr class="verifactu-hash-warning"><td colspan="4">\' +
                                 \'<div style="background:#fff3cd; border:1px solid #ffeaa7; padding:8px; margin:5px 0; border-radius:4px; font-size:12px;">\' +
                                 \'<i class="fa fa-lock" style="color:#856404;"></i> \' +
-                                \'<strong>Campos de seguridad:</strong> Los campos Hash y Hash Anterior son gestionados automáticamente por el sistema y no pueden ser modificados.\' +
+                                \'<strong>Campos de seguridad:</strong> Los campos Hash y Hash Anterior son gestionados automáticamente por el sistema.\' +
                                 \'</div></td></tr>\';
 
-                            // Intentar insertar después del primer campo hash encontrado
-                            if (hashField.closest("tr").length > 0) {
-                                hashField.closest("tr").after(warningHtml);
-                            } else if (hashAnteriorField.closest("tr").length > 0) {
-                                hashAnteriorField.closest("tr").after(warningHtml);
+                            // Intentar insertar el mensaje en el lugar adecuado
+                            var targetRow = null;
+                            if (hashField.length > 0) {
+                                targetRow = hashField.closest("tr");
+                            } else if (hashAnteriorField.length > 0) {
+                                targetRow = hashAnteriorField.closest("tr");
+                            }
+
+                            if (targetRow && targetRow.length > 0) {
+                                targetRow.after(warningHtml);
                             }
                         }
-
-                        // Interceptar intentos de modificación
-                        hashField.add(hashAnteriorField).off().on("focus click keydown keyup change", function(e) {
-                            e.preventDefault();
-                            var originalValue = $(this).data("original-value") || "";
-                            $(this).val(originalValue); // Restaurar valor original inmediatamente
-
-                            // Mostrar mensaje solo en el primer intento para no ser intrusivo
-                            if (!$(this).data("warned")) {
-                                $(this).data("warned", true);
-                                // Mensaje más sutil
-                                var fieldName = $(this).attr("name").indexOf("anterior") > -1 ? "Hash Anterior" : "Hash";
-                                alert("El campo " + fieldName + " es de seguridad y no puede ser modificado manualmente.");
-                                setTimeout(function() {
-                                    // Resetear el flag después de un tiempo
-                                    $(this).data("warned", false);
-                                }.bind(this), 30000); // 30 segundos
-                            }
-
-                            return false;
-                        });
                     }
 
                     // Aplicar reglas inmediatamente
                     applyVerifactuDateRules();
                     blockHashFields();
 
-                    // Monitorear cambios cada segundo (por si algo externo modifica los campos)
+                    // Monitorear cambios cada segundo SOLO para fecha (no para los campos hash)
                     setInterval(function() {
                         if (isExistingInvoice) {
                             $("input[name=\'re\']").prop("readonly", true);
                             $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']").prop("disabled", true);
                         }
-                        blockHashFields(); // Asegurar que los campos hash permanezcan bloqueados
+                        // Ya NO llamamos a blockHashFields() aquí para evitar alertas infinitas
+                        // Los campos hash se configuran una vez al inicio
                     }, 1000);
 
                     // Interceptar envío del formulario
