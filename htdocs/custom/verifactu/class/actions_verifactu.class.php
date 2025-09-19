@@ -154,9 +154,45 @@ class ActionsVerifactu
 
                     // Bloquear campos hash y hash_anterior
                     function blockHashFields() {
-                        // Buscar los campos por su ID (Dolibarr usa "options_" para los campos personalizados)
-                        var hashField = $("input[name=\'options_hash\'], #options_hash");
-                        var hashAnteriorField = $("input[name=\'options_hash_anterior\'], #options_hash_anterior");
+                        // Dolibarr puede usar diferentes nombres de selector según la versión y configuración
+                        // Intentamos todas las posibles variantes para encontrar los campos
+                        var hashSelectors = [
+                            "input[name=\'options_hash\']",
+                            "#options_hash",
+                            "input[name=\'hash\']",
+                            "#hash",
+                            "[name^=\'hash\']",
+                            "input[data-fieldname=\'hash\']",
+                            "input[id$=\'_hash\']",
+                            "div.hash input",
+                            "tr.hash input"
+                        ];
+
+                        var hashAnteriorSelectors = [
+                            "input[name=\'options_hash_anterior\']",
+                            "#options_hash_anterior",
+                            "input[name=\'hash_anterior\']",
+                            "#hash_anterior",
+                            "[name^=\'hash_anterior\']",
+                            "input[data-fieldname=\'hash_anterior\']",
+                            "input[id$=\'_hash_anterior\']",
+                            "div.hash_anterior input",
+                            "tr.hash_anterior input"
+                        ];
+
+                        // Buscar los campos probando todos los posibles selectores
+                        var hashField = $(hashSelectors.join(", "));
+                        var hashAnteriorField = $(hashAnteriorSelectors.join(", "));
+
+                        console.log("Campos hash encontrados: " + hashField.length);
+                        console.log("Campos hash_anterior encontrados: " + hashAnteriorField.length);
+
+                        // Si no encontramos los campos, los buscaremos más adelante
+                        if (hashField.length === 0 || hashAnteriorField.length === 0) {
+                            console.log("Algunos campos hash no fueron encontrados. Intentando nuevamente en 1 segundo...");
+                            setTimeout(blockHashFields, 1000);
+                            return;
+                        }
 
                         // Guardar los valores originales como atributos data
                         if (!hashField.data("original-value")) {
@@ -166,12 +202,20 @@ class ActionsVerifactu
                             hashAnteriorField.data("original-value", hashAnteriorField.val());
                         }
 
-                        // Aplicar estilos y restricciones
-                        hashField.add(hashAnteriorField).prop("readonly", true).prop("disabled", false).css({
-                            "background-color": "#f5f5f5",
-                            "color": "#666",
-                            "cursor": "not-allowed"
-                        });
+                        // IMPORTANTE: Usar solo readonly=true y NO disabled=true
+                        // disabled=true hace que el campo no se envíe en el formulario
+                        hashField.add(hashAnteriorField)
+                            .prop("readonly", true)
+                            .removeAttr("disabled") // Asegurar que no esté deshabilitado
+                            .css({
+                                "background-color": "#f5f5f5",
+                                "color": "#666",
+                                "cursor": "not-allowed"
+                            });
+
+                        // Asegurar que los campos sean visibles
+                        hashField.closest("tr").show();
+                        hashAnteriorField.closest("tr").show();
 
                         // Agregar mensaje explicativo si no existe
                         if ($(".verifactu-hash-warning").length === 0) {
@@ -181,15 +225,32 @@ class ActionsVerifactu
                                 \'<strong>Campos de seguridad:</strong> Los campos Hash y Hash Anterior son gestionados automáticamente por el sistema y no pueden ser modificados.\' +
                                 \'</div></td></tr>\';
 
-                            hashField.closest("tr").after(warningHtml);
+                            // Intentar insertar después del primer campo hash encontrado
+                            if (hashField.closest("tr").length > 0) {
+                                hashField.closest("tr").after(warningHtml);
+                            } else if (hashAnteriorField.closest("tr").length > 0) {
+                                hashAnteriorField.closest("tr").after(warningHtml);
+                            }
                         }
 
                         // Interceptar intentos de modificación
-                        hashField.add(hashAnteriorField).on("focus click keydown keyup change", function(e) {
+                        hashField.add(hashAnteriorField).off().on("focus click keydown keyup change", function(e) {
                             e.preventDefault();
                             var originalValue = $(this).data("original-value") || "";
                             $(this).val(originalValue); // Restaurar valor original inmediatamente
-                            alert("Este campo es de seguridad y no puede ser modificado manualmente.");
+
+                            // Mostrar mensaje solo en el primer intento para no ser intrusivo
+                            if (!$(this).data("warned")) {
+                                $(this).data("warned", true);
+                                // Mensaje más sutil
+                                var fieldName = $(this).attr("name").indexOf("anterior") > -1 ? "Hash Anterior" : "Hash";
+                                alert("El campo " + fieldName + " es de seguridad y no puede ser modificado manualmente.");
+                                setTimeout(function() {
+                                    // Resetear el flag después de un tiempo
+                                    $(this).data("warned", false);
+                                }.bind(this), 30000); // 30 segundos
+                            }
+
                             return false;
                         });
                     }
@@ -224,26 +285,53 @@ class ActionsVerifactu
 
                         // Validación para campos hash en modo edición
                         if (isExistingInvoice) {
-                            // Obtener valores originales de los campos (guardados como data attributes)
-                            var hashField = $("input[name=\'options_hash\'], #options_hash");
-                            var hashAnteriorField = $("input[name=\'options_hash_anterior\'], #options_hash_anterior");
+                            // Buscar los campos con todos los posibles selectores
+                            var hashSelectors = [
+                                "input[name=\'options_hash\']",
+                                "#options_hash",
+                                "input[name=\'hash\']",
+                                "#hash",
+                                "[name^=\'hash\']:not([name*=\'anterior\'])",
+                                "input[data-fieldname=\'hash\']",
+                                "input[id$=\'_hash\']"
+                            ];
 
-                            var originalHash = hashField.data("original-value") || hashField.val();
-                            var originalHashAnterior = hashAnteriorField.data("original-value") || hashAnteriorField.val();
+                            var hashAnteriorSelectors = [
+                                "input[name=\'options_hash_anterior\']",
+                                "#options_hash_anterior",
+                                "input[name=\'hash_anterior\']",
+                                "#hash_anterior",
+                                "[name^=\'hash_anterior\']",
+                                "input[data-fieldname=\'hash_anterior\']",
+                                "input[id$=\'_hash_anterior\']"
+                            ];
 
-                            // Comparar con valores actuales
-                            if (hashField.val() !== originalHash) {
-                                alert("El campo Hash no puede ser modificado manualmente.");
-                                hashField.val(originalHash);
-                                e.preventDefault();
-                                return false;
+                            var hashField = $(hashSelectors.join(", "));
+                            var hashAnteriorField = $(hashAnteriorSelectors.join(", "));
+
+                            // Solo validar si encontramos los campos
+                            if (hashField.length > 0) {
+                                var originalHash = hashField.data("original-value") || hashField.val();
+
+                                // Asegurar que el campo no está disabled al enviar
+                                hashField.removeAttr("disabled");
+
+                                // Restaurar silenciosamente si hay cambios
+                                if (hashField.val() !== originalHash) {
+                                    hashField.val(originalHash);
+                                }
                             }
 
-                            if (hashAnteriorField.val() !== originalHashAnterior) {
-                                alert("El campo Hash Anterior no puede ser modificado manualmente.");
-                                hashAnteriorField.val(originalHashAnterior);
-                                e.preventDefault();
-                                return false;
+                            if (hashAnteriorField.length > 0) {
+                                var originalHashAnterior = hashAnteriorField.data("original-value") || hashAnteriorField.val();
+
+                                // Asegurar que el campo no está disabled al enviar
+                                hashAnteriorField.removeAttr("disabled");
+
+                                // Restaurar silenciosamente si hay cambios
+                                if (hashAnteriorField.val() !== originalHashAnterior) {
+                                    hashAnteriorField.val(originalHashAnterior);
+                                }
                             }
                         }
                     });
