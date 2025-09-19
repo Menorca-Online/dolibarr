@@ -87,6 +87,39 @@ class InterfaceVerifactu extends DolibarrTriggers
      *
      * @return string Último hash o una cadena con ceros si no hay facturas previas
      */
+    /**
+     * Limpia los hashes de una factura específica
+     * Útil para facturas rectificativas que podrían haber heredado hashes de la original
+     *
+     * @param int $invoiceId ID de la factura
+     * @return bool True si se limpió correctamente o no tenía hashes
+     */
+    private function clearInvoiceHashes($invoiceId)
+    {
+        // Verificar primero si ya existen registros para esta factura
+        $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "facture_extrafields WHERE fk_object = " . ((int) $invoiceId);
+        $result = $this->db->query($sql);
+
+        if ($result && $this->db->num_rows($result) > 0) {
+            // Actualizar registros existentes para eliminar los hashes
+            $sql = "UPDATE " . MAIN_DB_PREFIX . "facture_extrafields";
+            $sql .= " SET hash = NULL, hash_anterior = NULL";
+            $sql .= " WHERE fk_object = " . ((int) $invoiceId);
+
+            $resql = $this->db->query($sql);
+            if (!$resql) {
+                dol_syslog("Verifactu: Error al limpiar hashes de factura ID: " . $invoiceId, LOG_ERR);
+                return false;
+            }
+
+            dol_syslog("Verifactu: Hashes limpiados correctamente para factura rectificativa ID: " . $invoiceId);
+            return true;
+        }
+
+        // No tenía registros, no es necesario limpiar
+        return true;
+    }
+
     private function getLastInvoiceHash()
     {
         // Buscar la última factura con hash en orden descendente
@@ -260,6 +293,19 @@ class InterfaceVerifactu extends DolibarrTriggers
             $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }
 
+        // Verificar si es una factura rectificativa
+        $sql = "SELECT type FROM " . MAIN_DB_PREFIX . "facture WHERE rowid = " . ((int) $invoiceId);
+        $typeResult = $this->db->query($sql);
+        $isRectificativa = false;
+
+        if ($typeResult && $this->db->num_rows($typeResult) > 0) {
+            $typeObj = $this->db->fetch_object($typeResult);
+            if ($typeObj->type == 2) {
+                $isRectificativa = true;
+                dol_syslog("Verifactu: Guardando hash para factura rectificativa ID: " . $invoiceId);
+            }
+        }
+
         // Verificar primero si ya existen registros para esta factura
         $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "facture_extrafields WHERE fk_object = " . ((int) $invoiceId);
         $result = $this->db->query($sql);
@@ -379,25 +425,34 @@ class InterfaceVerifactu extends DolibarrTriggers
                 try {
                     dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
 
-                    // Verificar si ya tiene un hash (por si es una revalidación)
-                    $existingHash = $this->getInvoiceHash($object->id);
-                    if (!empty($existingHash)) {
-                        dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
-                        setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
-                        return 1; // Ya tiene un hash, no necesitamos continuar
-                    }
-
                     // Comprobar si es una factura rectificativa (tipo = 2) o una nota de crédito
                     $isRectificativa = ($object->type == 2);
+
                     if ($isRectificativa) {
                         dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
-                        // Para facturas rectificativas, siempre generamos nuevos hashes
-                        // No heredamos nada de la factura original
-                    }
-
-                    // 1. Obtener el último hash conocido (hash_anterior)
+                        // Para facturas rectificativas, siempre limpiamos los hashes existentes
+                        // que podrían haberse copiado de la factura original
+                        $this->clearInvoiceHashes($object->id);
+                        dol_syslog("Verifactu: Se han limpiado posibles hashes heredados para la factura rectificativa");
+                    } else {
+                        // Solo para facturas normales verificamos si ya tienen hash
+                        $existingHash = $this->getInvoiceHash($object->id);
+                        if (!empty($existingHash)) {
+                            dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
+                            setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
+                            return 1; // Ya tiene un hash, no necesitamos continuar
+                        }
+                    }                    // 1. Obtener el último hash conocido (hash_anterior)
                     $lastHash = $this->getLastInvoiceHash();
                     dol_syslog("Verifactu: Último hash encontrado: " . $lastHash);
+
+                    // Para facturas rectificativas, asegurarse de usar el último hash del sistema
+                    if ($isRectificativa) {
+                        dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
+                        if (empty($lastHash)) {
+                            $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
+                        }
+                    }
 
                     // 2. Obtener datos de esta factura para generar el nuevo hash
                     $invoiceData = $this->prepareInvoiceDataForHash($object);
