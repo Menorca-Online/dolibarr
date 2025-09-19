@@ -659,7 +659,7 @@ class modVerifactu extends DolibarrModules
 				0,
 				1,
 				1,
-				'',
+				serialize(array('default' => null)),  // Valor por defecto NULL
 				0,
 				'',
 				1,
@@ -685,7 +685,7 @@ class modVerifactu extends DolibarrModules
 				0,
 				1,
 				1,
-				'',
+				serialize(array('default' => null)),  // Valor por defecto NULL
 				0,
 				'',
 				1,
