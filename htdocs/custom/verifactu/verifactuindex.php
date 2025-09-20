@@ -292,7 +292,8 @@ function regenerarHashMasivo() {
 }
 </script>';
 
-print '</div></div>';
+// Cerrar el layout de dos columnas antes de la tabla completa
+
 
 // Tabla completa de facturas con paginación
 print '<div class="fichecenter">';
@@ -483,7 +484,7 @@ print '</table>';
 print '</div>';
 print '</form>';
 print '</div>';
-
+print '</div></div>'; // Cierra fichetwothirdright y fichecenter
 // End of page
 llxFooter();
 $db->close();
