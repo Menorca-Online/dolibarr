@@ -344,6 +344,67 @@ class ActionsVerifactu
                     // Aplicar reglas inmediatamente
                     applyVerifactuDateRules();
                     blockHashFields();
+                    disableAdvanceInvoiceType();
+
+                    // FUNCIÓN PARA DESHABILITAR TIPO DE FACTURA "ANTICIPO"
+                    function disableAdvanceInvoiceType() {
+                        // Buscar radiobuttons de tipo de factura
+                        // En Dolibarr, el tipo "Anticipo" normalmente tiene value="3"
+                        var advanceRadios = $(\'input[type="radio"][name="type"][value="3"]\');
+
+                        if (advanceRadios.length > 0) {
+                            // Deshabilitar el radiobutton de anticipo
+                            advanceRadios.prop("disabled", true);
+                            advanceRadios.prop("checked", false);
+
+                            // Ocultar visualmente la opción de anticipo
+                            advanceRadios.closest("label, .radio, tr, div").hide();
+
+                            // Agregar mensaje explicativo si no existe
+                            var advanceContainer = advanceRadios.closest("td, div").first();
+                            if (advanceContainer.length && !advanceContainer.find(".verifactu-anticipo-warning").length) {
+                                advanceContainer.append(
+                                    \'<div class="verifactu-anticipo-warning" style="background:#f8d7da; border:1px solid #f5c6cb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#721c24;">\' +
+                                    \'<i class="fa fa-ban"></i> <strong>Verifactu:</strong> Los anticipos no están permitidos en este sistema.\' +
+                                    \'</div>\'
+                                );
+                            }
+
+                            console.log("Verifactu: Radiobutton de anticipo deshabilitado");
+                        }
+
+                        // También buscar con otros posibles selectores
+                        var otherAdvanceSelectors = [
+                            \'select[name="type"] option[value="3"]\',
+                            \'input[value*="anticip"]\',
+                            \'input[value*="deposit"]\',
+                            \'input[value*="advance"]\'
+                        ];
+
+                        otherAdvanceSelectors.forEach(function(selector) {
+                            $(selector).each(function() {
+                                var $this = $(this);
+                                var value = $this.val();
+                                var text = $this.text() || $this.next("label").text() || "";
+
+                                // Verificar si es el tipo anticipo
+                                if (value == "3" ||
+                                    text.toLowerCase().includes("anticip") ||
+                                    text.toLowerCase().includes("deposit") ||
+                                    text.toLowerCase().includes("advance")) {
+
+                                    if ($this.is("option")) {
+                                        $this.prop("disabled", true).hide();
+                                    } else {
+                                        $this.prop("disabled", true);
+                                        $this.closest("label, .radio, tr, div").hide();
+                                    }
+
+                                    console.log("Verifactu: Opción de anticipo encontrada y deshabilitada:", text);
+                                }
+                            });
+                        });
+                    }
 
                     // Monitorear cambios cada segundo SOLO para fecha (no para los campos hash)
                     setInterval(function() {
@@ -351,6 +412,8 @@ class ActionsVerifactu
                             $("input[name=\'re\']").prop("readonly", true);
                             $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']").prop("disabled", true);
                         }
+                        // Reintentar deshabilitar anticipos periódicamente por si se cargan dinámicamente
+                        disableAdvanceInvoiceType();
                         // Ya NO llamamos a blockHashFields() aquí para evitar alertas infinitas
                         // Los campos hash se configuran una vez al inicio
                     }, 1000);
