@@ -522,7 +522,7 @@ class ActionsVerifactu
 				// PINTA el botón tú mismo (no devuelvas array)
 				print '<div class="inline-block divButAction">'
 					. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
-					. 'href="' . dol_buildpath('/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
+					. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
 					. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
 					. '</div>';
 
