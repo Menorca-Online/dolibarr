@@ -156,13 +156,17 @@ if ($result) {
         $arrayofcustomers[$obj->rowid] = $obj->nom;
     }
 }
-
 $item = $formSetup->newItem('INVOICE_CLIENTE_GENERICO');
 $item->setAsSelect($arrayofcustomers);
 $item->helpText ='Cliente genérico para facturas simplificadas. Crear previamente el tercero con NIF 00000000T.';
 $item->fieldParams['isMandatory'] = 1;
 $item->cssClass = 'minwidth500';
 
+
+$item = $formSetup->newItem('INVOICE_MAX_AMOUNT_SIMPLIFICADAS');
+$item->fieldAttr['type'] = 'number';
+$item->fieldAttr['step'] = '0.01';
+$item->fieldParams['isMandatory'] = 1;
 
 // // Setup conf for a selection of an Email template of type thirdparty
 // $formSetup->newItem('VERIFACTU_MYPARAM6')->setAsEmailTemplate('thirdparty');
