@@ -622,7 +622,7 @@ class modVerifactu extends DolibarrModules
 				'fk_facture_type',
 				'Tipo de factura',
 				'sellist',
-				100,
+				2,              // CAMBIADO: posición 2 para que sea el segundo campo
 				'',
 				'facture',
 				0,
