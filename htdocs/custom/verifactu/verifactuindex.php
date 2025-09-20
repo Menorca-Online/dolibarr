@@ -124,133 +124,155 @@ print load_fiche_titre($langs->trans("VerifactuArea"), '', 'verifactu.png@verifa
 
 print '<div class="fichecenter"><div class="fichethirdleft">';
 
+// Estadísticas de facturas con hash
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<th colspan="2">Estadísticas Verifactu</th>';
+print "</tr>\n";
 
-/* BEGIN MODULEBUILDER DRAFT MYOBJECT
-// Draft MyObject
-if (isModEnabled('verifactu') && $user->hasRight('verifactu', 'read')) {
-	$langs->load("orders");
-
-	$sql = "SELECT c.rowid, c.ref, c.ref_client, c.total_ht, c.tva as total_tva, c.total_ttc, s.rowid as socid, s.nom as name, s.client, s.canvas";
-	$sql.= ", s.code_client";
-	$sql.= " FROM ".$db->prefix()."commande as c";
-	$sql.= ", ".$db->prefix()."societe as s";
-	$sql.= " WHERE c.fk_soc = s.rowid";
-	$sql.= " AND c.fk_statut = 0";
-	$sql.= " AND c.entity IN (".getEntity('commande').")";
-	if ($socid)	$sql.= " AND c.fk_soc = ".((int) $socid);
-
-	$resql = $db->query($sql);
-	if ($resql)
-	{
-		$total = 0;
-		$num = $db->num_rows($resql);
-
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre">';
-		print '<th colspan="3">'.$langs->trans("DraftMyObjects").($num?'<span class="badge marginleftonlyshort">'.$num.'</span>':'').'</th></tr>';
-
-		$var = true;
-		if ($num > 0)
-		{
-			$i = 0;
-			while ($i < $num)
-			{
-
-				$obj = $db->fetch_object($resql);
-				print '<tr class="oddeven"><td class="nowrap">';
-
-				$myobjectstatic->id=$obj->rowid;
-				$myobjectstatic->ref=$obj->ref;
-				$myobjectstatic->ref_client=$obj->ref_client;
-				$myobjectstatic->total_ht = $obj->total_ht;
-				$myobjectstatic->total_tva = $obj->total_tva;
-				$myobjectstatic->total_ttc = $obj->total_ttc;
-
-				print $myobjectstatic->getNomUrl(1);
-				print '</td>';
-				print '<td class="nowrap">';
-				print '</td>';
-				print '<td class="right" class="nowrap">'.price($obj->total_ttc).'</td></tr>';
-				$i++;
-				$total += $obj->total_ttc;
-			}
-			if ($total>0)
-			{
-
-				print '<tr class="liste_total"><td>'.$langs->trans("Total").'</td><td colspan="2" class="right">'.price($total)."</td></tr>";
-			}
-		}
-		else
-		{
-
-			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("NoOrder").'</td></tr>';
-		}
-		print "</table><br>";
-
-		$db->free($resql);
-	}
-	else
-	{
-		dol_print_error($db);
-	}
+// Contar facturas totales
+$sql = "SELECT COUNT(*) as total FROM ".MAIN_DB_PREFIX."facture WHERE entity IN (".getEntity('invoice').")";
+$resql = $db->query($sql);
+if ($resql) {
+    $obj = $db->fetch_object($resql);
+    $total_facturas = $obj->total;
+    $db->free($resql);
+} else {
+    $total_facturas = 0;
 }
-END MODULEBUILDER DRAFT MYOBJECT */
 
+// Contar facturas con hash
+$sql = "SELECT COUNT(DISTINCT f.rowid) as con_hash
+        FROM ".MAIN_DB_PREFIX."facture f
+        INNER JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
+        WHERE ef.hash IS NOT NULL
+        AND ef.hash != ''
+        AND f.entity IN (".getEntity('invoice').")";
+$resql = $db->query($sql);
+if ($resql) {
+    $obj = $db->fetch_object($resql);
+    $facturas_con_hash = $obj->con_hash;
+    $db->free($resql);
+} else {
+    $facturas_con_hash = 0;
+}
+
+$facturas_sin_hash = $total_facturas - $facturas_con_hash;
+
+print '<tr class="oddeven">';
+print '<td>Facturas Totales</td>';
+print '<td class="right"><span class="badge badge-info">'.$total_facturas.'</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td>Facturas con Hash</td>';
+print '<td class="right"><span class="badge badge-success">'.$facturas_con_hash.'</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td>Facturas sin Hash</td>';
+print '<td class="right"><span class="badge badge-warning">'.$facturas_sin_hash.'</span></td>';
+print '</tr>';
+
+if ($total_facturas > 0) {
+    $porcentaje = round(($facturas_con_hash / $total_facturas) * 100, 1);
+    print '<tr class="oddeven">';
+    print '<td><strong>Porcentaje Completo</strong></td>';
+    print '<td class="right"><strong><span class="badge badge-primary">'.$porcentaje.'%</span></strong></td>';
+    print '</tr>';
+}
+
+print '</table>';
+print '</div>';
 
 print '</div><div class="fichetwothirdright">';
 
+// Lista de facturas recientes sin hash
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<th colspan="4">Facturas Recientes sin Hash</th>';
+print "</tr>\n";
 
-/* BEGIN MODULEBUILDER LASTMODIFIED MYOBJECT
-// Last modified myobject
-if (isModEnabled('verifactu') && $user->hasRight('verifactu', 'read')) {
-	$sql = "SELECT s.rowid, s.ref, s.label, s.date_creation, s.tms";
-	$sql.= " FROM ".$db->prefix()."verifactu_myobject as s";
-	$sql.= " WHERE s.entity IN (".getEntity($myobjectstatic->element).")";
-	//if ($socid)	$sql.= " AND s.rowid = $socid";
-	$sql .= " ORDER BY s.tms DESC";
-	$sql .= $db->plimit($max, 0);
+$sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client
+        FROM ".MAIN_DB_PREFIX."facture f
+        LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid
+        LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
+        WHERE f.entity IN (".getEntity('invoice').")
+        AND (ef.hash IS NULL OR ef.hash = '')
+        ORDER BY f.datef DESC
+        LIMIT 10";
 
-	$resql = $db->query($sql);
-	if ($resql)
-	{
-		$num = $db->num_rows($resql);
-		$i = 0;
+$resql = $db->query($sql);
+if ($resql) {
+    $num = $db->num_rows($resql);
+    if ($num > 0) {
+        print '<tr class="liste_titre">';
+        print '<th>Referencia</th>';
+        print '<th>Fecha</th>';
+        print '<th>Cliente</th>';
+        print '<th class="right">Total</th>';
+        print '</tr>';
 
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre">';
-		print '<th colspan="2">';
-		print $langs->trans("BoxTitleLatestModifiedMyObjects", $max);
-		print '</th>';
-		print '<th class="right">'.$langs->trans("DateModificationShort").'</th>';
-		print '</tr>';
-		if ($num)
-		{
-			while ($i < $num)
-			{
-				$objp = $db->fetch_object($resql);
-
-				$myobjectstatic->id=$objp->rowid;
-				$myobjectstatic->ref=$objp->ref;
-				$myobjectstatic->label=$objp->label;
-				$myobjectstatic->status = $objp->status;
-
-				print '<tr class="oddeven">';
-				print '<td class="nowrap">'.$myobjectstatic->getNomUrl(1).'</td>';
-				print '<td class="right nowrap">';
-				print "</td>";
-				print '<td class="right nowrap">'.dol_print_date($db->jdate($objp->tms), 'day')."</td>";
-				print '</tr>';
-				$i++;
-			}
-
-			$db->free($resql);
-		} else {
-			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("None").'</td></tr>';
-		}
-		print "</table><br>";
-	}
+        $i = 0;
+        while ($i < $num) {
+            $obj = $db->fetch_object($resql);
+            print '<tr class="oddeven">';
+            print '<td><a href="'.DOL_URL_ROOT.'/compta/facture/card.php?facid='.$obj->rowid.'">'.$obj->ref.'</a></td>';
+            print '<td>'.dol_print_date($db->jdate($obj->datef), 'day').'</td>';
+            print '<td>'.$obj->client.'</td>';
+            print '<td class="right">'.price($obj->total_ttc).'</td>';
+            print '</tr>';
+            $i++;
+        }
+    } else {
+        print '<tr class="oddeven"><td colspan="4" class="center">¡Todas las facturas tienen hash!</td></tr>';
+    }
+    $db->free($resql);
+} else {
+    print '<tr class="oddeven"><td colspan="4" class="center">Error consultando datos</td></tr>';
 }
-*/
+
+print '</table>';
+print '</div>';
+
+print '</div></div>';
+
+// Acciones rápidas
+print '<div class="fichecenter">';
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<th colspan="2">Acciones Rápidas</th>';
+print "</tr>\n";
+
+print '<tr class="oddeven">';
+print '<td><a href="'.dol_buildpath('/verifactu/admin/setup.php', 1).'" class="butAction">Configurar Módulo</a></td>';
+print '<td>Configurar parámetros del módulo Verifactu</td>';
+print '</tr>';
+
+
+
+if ($facturas_sin_hash > 0) {
+    print '<tr class="oddeven">';
+    print '<td><a href="#" onclick="regenerarHashMasivo(); return false;" class="butAction">Regenerar Hash</a></td>';
+    print '<td>Regenerar hash para facturas que no lo tienen ('.$facturas_sin_hash.' pendientes)</td>';
+    print '</tr>';
+}
+
+print '</table>';
+print '</div>';
+print '</div>';
+
+// JavaScript para acciones
+print '<script type="text/javascript">
+function regenerarHashMasivo() {
+    if (confirm("¿Está seguro de que desea regenerar el hash para todas las facturas que no lo tienen?")) {
+        alert("Funcionalidad en desarrollo. Se procesarían '.$facturas_sin_hash.' facturas.");
+    }
+}
+</script>';
 
 print '</div></div>';
 
