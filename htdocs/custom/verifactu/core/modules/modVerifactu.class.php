@@ -742,7 +742,32 @@ class modVerifactu extends DolibarrModules
 				array(),            // $moreparams
 				''                  // $aiprompt
 			);
-
+			if (!isset($existing['fechaHoraHusoGenRegistro'])) {
+						$result5 = $extrafields->addExtraField(
+							'fechaHoraHusoGenRegistro',             // $attrname
+							'Fecha y Hora de Generación del Registro Verifactu',             // $label
+							'varchar',          // $type
+							110,                // $pos
+							'255',              // $size
+							'facture',          // $elementtype
+							0,                  // $unique
+							0,                  // $required
+							'',                 // $default_value
+							'',                 // $param
+							0,                  // $alwayseditable
+							'',                 // $perms
+							1,                  // $list
+							'',                 // $help
+							'',                 // $computed
+							'',                 // $entity
+							'',                 // $langfile
+							'1',                // $enabled
+							0,                  // $totalizable
+							1,                  // $printable
+							array(),            // $moreparams
+							''                  // $aiprompt
+						);
+					}
 
 		}
 
@@ -760,6 +785,9 @@ class modVerifactu extends DolibarrModules
 		}
 
 		if (isset($result4) && $result4 < 0) {
+			return -1;
+		}
+		if (isset($result5) && $result5 < 0) {
 			return -1;
 		}
 
@@ -871,6 +899,11 @@ class modVerifactu extends DolibarrModules
 		// Eliminar campo hash_data
 		$result4 = $extrafields->delete('hash_data', 'facture');
 		if ($result4 < 0) {
+			return -1;
+		}
+		// Eliminar campo fechaHoraHusoGenRegistro
+		$result5 = $extrafields->delete('fechaHoraHusoGenRegistro', 'facture');
+		if ($result5 < 0) {
 			return -1;
 		}
 

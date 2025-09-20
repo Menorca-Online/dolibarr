@@ -288,6 +288,7 @@ class InterfaceVerifactu extends DolibarrTriggers
     private function saveInvoiceHashes($invoiceId, $newHash, $previousHash, $data = null)
     {
         // Convertir los datos a JSON para almacenarlos
+		$fechaHora = $data['FechaHoraHusoGenRegistro'] ?? '';
         $jsonData = '';
         if ($data !== null) {
             $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -314,7 +315,8 @@ class InterfaceVerifactu extends DolibarrTriggers
             // Actualizar registros existentes
             $sql = "UPDATE " . MAIN_DB_PREFIX . "facture_extrafields";
             $sql .= " SET hash = '" . $this->db->escape($newHash) . "',";
-            $sql .= " hash_anterior = '" . $this->db->escape($previousHash) . "'";
+            $sql .= " hash_anterior = '" . $this->db->escape($previousHash) . "',";
+			$sql .= " fechaHoraHusoGenRegistro = '" . $this->db->escape($fechaHora) . "'";
 
             // Añadir los datos del hash si están disponibles
             if (!empty($jsonData)) {
@@ -327,18 +329,20 @@ class InterfaceVerifactu extends DolibarrTriggers
             if (!empty($jsonData)) {
                 // Con datos
                 $sql = "INSERT INTO " . MAIN_DB_PREFIX . "facture_extrafields";
-                $sql .= " (fk_object, hash, hash_anterior, hash_data)";
+                $sql .= " (fk_object, hash, hash_anterior, hash_data, fechaHoraHusoGenRegistro)";
                 $sql .= " VALUES (" . ((int) $invoiceId) . ",";
                 $sql .= " '" . $this->db->escape($newHash) . "',";
                 $sql .= " '" . $this->db->escape($previousHash) . "',";
-                $sql .= " '" . $this->db->escape($jsonData) . "')";
+                $sql .= " '" . $this->db->escape($jsonData) . "',";
+                $sql .= " '" . $this->db->escape($fechaHora) . "')";
             } else {
                 // Sin datos
                 $sql = "INSERT INTO " . MAIN_DB_PREFIX . "facture_extrafields";
-                $sql .= " (fk_object, hash, hash_anterior)";
+                $sql .= " (fk_object, hash, hash_anterior, fechaHoraHusoGenRegistro)";
                 $sql .= " VALUES (" . ((int) $invoiceId) . ",";
                 $sql .= " '" . $this->db->escape($newHash) . "',";
-                $sql .= " '" . $this->db->escape($previousHash) . "')";
+                $sql .= " '" . $this->db->escape($previousHash) . "',";
+                $sql .= " '" . $this->db->escape($fechaHora) . "' )";
             }
         }
 
