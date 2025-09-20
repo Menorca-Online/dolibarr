@@ -488,6 +488,9 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		// Forzar actualización de posiciones de extrafields
+		$this->_update_extrafields_positions();
+
 		// Registrar la plantilla de factura Verifactu automáticamente
 		$result = $this->_register_pdf_template();
 		if ($result < 0) {
@@ -618,33 +621,43 @@ class modVerifactu extends DolibarrModules
 		// Verificar si ya existe antes de crear
 		$existing = $extrafields->fetch_name_optionals_label('facture');
 		if (!isset($existing['fk_facture_type'])) {
+			// CREAR extrafield nuevo
 			$result1 = $extrafields->addExtraField(
-				'fk_facture_type',
-				'Tipo de factura',
-				'sellist',
-				-10,            // CAMBIADO: posición negativa para que aparezca al inicio
-				'',
-				'facture',
-				0,
-				1,              // required = 1 para que sea obligatorio
-				1,
-				serialize([
+				'fk_facture_type',                     // $attrname
+				'Tipo de factura',                     // $label
+				'sellist',                             // $type
+				-10,                                   // $pos (posición negativa para aparecer al inicio)
+				'',                                    // $size
+				'facture',                             // $elementtype
+				0,                                     // $unique
+				1,                                     // $required (obligatorio)
+				'',                                    // $default_value
+				serialize([                            // $param
 					"options" => [
 						"verifactu_facture_types:label:id" => null
 					]
 				]),
-				0,
-				'',
-				1,
-				'',
-				'',
-				'',
-				'',
-				'1',
-				0,
-				1,
-
+				0,                                     // $alwayseditable
+				'',                                    // $perms
+				1,                                     // $list
+				'Seleccione el tipo de factura según Verifactu', // $help
+				'',                                    // $computed
+				'',                                    // $entity
+				'',                                    // $langfile
+				'1',                                   // $enabled
+				0,                                     // $totalizable
+				1                                      // $printable
 			);
+		} else {
+			// ACTUALIZAR extrafield existente para cambiar la posición
+			$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+					SET pos = -10,
+						label = 'Tipo de factura',
+						required = 1
+					WHERE name = 'fk_facture_type'
+					AND elementtype = 'facture'";
+			$this->db->query($sql);
+			dol_syslog("Verifactu: Actualizada posición del extrafield fk_facture_type a -10");
 		}
 
 		// Añadir campo hash si no existe
@@ -749,6 +762,42 @@ class modVerifactu extends DolibarrModules
 		if (isset($result4) && $result4 < 0) {
 			return -1;
 		}
+
+		return 1;
+	}
+
+	/**
+	 * Actualizar posiciones de extrafields para asegurar el orden correcto
+	 */
+	public function _update_extrafields_positions()
+	{
+		// Actualizar posición del campo fk_facture_type para que aparezca primero
+		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+				SET pos = -10
+				WHERE name = 'fk_facture_type'
+				AND elementtype = 'facture'";
+		$this->db->query($sql);
+
+		// Actualizar posiciones de otros campos para mantener el orden
+		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+				SET pos = 100
+				WHERE name = 'hash'
+				AND elementtype = 'facture'";
+		$this->db->query($sql);
+
+		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+				SET pos = 110
+				WHERE name = 'hash_anterior'
+				AND elementtype = 'facture'";
+		$this->db->query($sql);
+
+		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+				SET pos = 120
+				WHERE name = 'hash_data'
+				AND elementtype = 'facture'";
+		$this->db->query($sql);
+
+		dol_syslog("Verifactu: Actualizadas posiciones de extrafields - fk_facture_type ahora en posición -10");
 
 		return 1;
 	}
