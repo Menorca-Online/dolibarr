@@ -580,6 +580,12 @@ class modVerifactu extends DolibarrModules
 		$types = array(
 			array('code' => 'F1', 'label' => 'F1 - Factura Estandar', 'api' => 1),
 			array('code' => 'F2', 'label' => 'F2 - Factura Simplificada', 'api' => 1),
+			//array('code' => 'F3', 'label' => 'F3 - Factura Recapitulativa', 'api' => 1),
+			array('code' => 'R1', 'label' => 'R1 - Rectificativa Estandar', 'api' => 1),
+			array('code' => 'R2', 'label' => 'Modificación de la base imponible del IVA por concurso de acreedores (art. 80 Tres LIVA)', 'api' => 1),
+			array('code' => 'R3', 'label' => 'Modificación de la base imponible por crédito incobrable (art. 80 Cuatro LIVA)', 'api' => 1),
+			array('code' => 'R4', 'label' => 'Factura rectificativa por otras causas distintas de las anteriores, o datos no monetarios erróneamente consignados', 'api' => 1),
+			array('code' => 'R5', 'label' => 'R5 - Rectificativa Simplificada', 'api' => 1),
 		);
 
 		foreach ($types as $type) {
