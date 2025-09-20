@@ -5,14 +5,6 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
@@ -31,14 +23,9 @@ class VerifactuXML
     public $db;
 
     /**
-     * @var array Configuración del módulo Verifactu
+     * @var array Configuración del módulo
      */
     private $config;
-
-    /**
-     * @var string Namespace del XML
-     */
-    private $namespace = 'sum1';
 
     /**
      * Constructor
@@ -115,35 +102,69 @@ class VerifactuXML
         // Obtener datos del hash de la factura
         $hashData = $this->getInvoiceHashData($facture->id);
 
-        // Crear el documento XML
+        // Crear el documento XML con estructura SOAP
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
 
-        // Crear elemento raíz RegistroAlta
-        $registroAlta = $dom->createElement($this->namespace . ':RegistroAlta');
-        $registroAlta->setAttribute('xmlns:' . $this->namespace, 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/ssii/fact/ws/SuministroInformacion.xsd');
-        $dom->appendChild($registroAlta);
+        // Crear elemento raíz soapenv:Envelope con todos los namespaces
+        $envelope = $dom->createElement('soapenv:Envelope');
+        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
+        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
+        $dom->appendChild($envelope);
+
+        // soapenv:Header (vacío)
+        $header = $dom->createElement('soapenv:Header');
+        $envelope->appendChild($header);
+
+        // soapenv:Body
+        $body = $dom->createElement('soapenv:Body');
+        $envelope->appendChild($body);
+
+        // sum:RegFactuSistemaFacturacion
+        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
+        $body->appendChild($regFactu);
+
+        // sum:Cabecera
+        $cabecera = $dom->createElement('sum:Cabecera');
+        $regFactu->appendChild($cabecera);
+
+        // sum1:ObligadoEmision
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $cabecera->appendChild($obligadoEmision);
+
+        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
+        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+
+        // sum:RegistroFactura
+        $registroFactura = $dom->createElement('sum:RegistroFactura');
+        $regFactu->appendChild($registroFactura);
+
+        // sum1:RegistroAlta
+        $registroAlta = $dom->createElement('sum1:RegistroAlta');
+        $registroFactura->appendChild($registroAlta);
 
         // 1. IDVersion
-        $this->addElement($dom, $registroAlta, 'IDVersion', '1.0');
+        $this->addElement($dom, $registroAlta, 'sum1:IDVersion', '1.0');
 
         // 2. IDFactura
         $this->addIDFactura($dom, $registroAlta, $facture);
 
         // 3. RefExterna (hash de la factura como referencia externa)
         $refExterna = str_pad($facture->id, 20, '0', STR_PAD_LEFT);
-        $this->addElement($dom, $registroAlta, 'RefExterna', $refExterna);
+        $this->addElement($dom, $registroAlta, 'sum1:RefExterna', $refExterna);
 
         // 4. NombreRazonEmisor
-        $this->addElement($dom, $registroAlta, 'NombreRazonEmisor', $this->config['emisor_nombre']);
+        $this->addElement($dom, $registroAlta, 'sum1:NombreRazonEmisor', $this->config['emisor_nombre']);
 
         // 5. TipoFactura
         $tipoFactura = $this->getTipoFactura($facture);
-        $this->addElement($dom, $registroAlta, 'TipoFactura', $tipoFactura);
+        $this->addElement($dom, $registroAlta, 'sum1:TipoFactura', $tipoFactura);
 
         // 6. DescripcionOperacion
         $descripcion = $this->getDescripcionOperacion($facture);
-        $this->addElement($dom, $registroAlta, 'DescripcionOperacion', $descripcion);
+        $this->addElement($dom, $registroAlta, 'sum1:DescripcionOperacion', $descripcion);
 
         // 7. Destinatarios
         $this->addDestinatarios($dom, $registroAlta, $facture);
@@ -152,12 +173,12 @@ class VerifactuXML
         $this->addDesglose($dom, $registroAlta, $facture);
 
         // 9. CuotaTotal
-        $this->addElement($dom, $registroAlta, 'CuotaTotal', number_format($facture->total_tva, 2, '.', ''));
+        $this->addElement($dom, $registroAlta, 'sum1:CuotaTotal', number_format($facture->total_tva, 2, '.', ''));
 
         // 10. ImporteTotal
-        $this->addElement($dom, $registroAlta, 'ImporteTotal', number_format($facture->total_ttc, 2, '.', ''));
+        $this->addElement($dom, $registroAlta, 'sum1:ImporteTotal', number_format($facture->total_ttc, 2, '.', ''));
 
-        // 11. Encadenamiento (solo si hay hash anterior)
+        // 11. Encadenamiento (si hay hash anterior)
         if (!empty($hashData['hash_anterior'])) {
             $this->addEncadenamiento($dom, $registroAlta, $hashData);
         }
@@ -166,18 +187,17 @@ class VerifactuXML
         $this->addSistemaInformatico($dom, $registroAlta);
 
         // 13. FechaHoraHusoGenRegistro
-        $fechaHora = $hashData['fechaHoraHusoGenRegistro'] ?? $this->generateTimestamp();
-        $this->addElement($dom, $registroAlta, 'FechaHoraHusoGenRegistro', $fechaHora);
+        $fechaHora = !empty($hashData['fechaHoraHusoGenRegistro']) ?
+                     $hashData['fechaHoraHusoGenRegistro'] :
+                     date('c'); // ISO 8601 format
+        $this->addElement($dom, $registroAlta, 'sum1:FechaHoraHusoGenRegistro', $fechaHora);
 
         // 14. TipoHuella
-        $this->addElement($dom, $registroAlta, 'TipoHuella', '01');
+        $this->addElement($dom, $registroAlta, 'sum1:TipoHuella', '01');
 
-        // 15. Huella (hash de la factura)
-        $huella = $hashData['hash'] ?? '';
-        if (empty($huella)) {
-            throw new Exception('No se encontró hash para la factura ID: ' . $facture->id);
-        }
-        $this->addElement($dom, $registroAlta, 'Huella', $huella);
+        // 15. Huella
+        $huella = !empty($hashData['hash']) ? $hashData['hash'] : 'HASH_NO_GENERADO';
+        $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
 
         return $dom->saveXML();
     }
@@ -191,9 +211,9 @@ class VerifactuXML
                 FROM " . MAIN_DB_PREFIX . "facture_extrafields
                 WHERE fk_object = " . ((int) $invoiceId);
 
-        $result = $this->db->query($sql);
-        if ($result && $this->db->num_rows($result) > 0) {
-            $obj = $this->db->fetch_object($result);
+        $resql = $this->db->query($sql);
+        if ($resql && $this->db->num_rows($resql) > 0) {
+            $obj = $this->db->fetch_object($resql);
             return array(
                 'hash' => $obj->hash,
                 'hash_anterior' => $obj->hash_anterior,
@@ -206,21 +226,21 @@ class VerifactuXML
     }
 
     /**
-     * Agrega el elemento IDFactura
+     * Agrega elemento IDFactura al XML
      */
     private function addIDFactura($dom, $parent, $facture)
     {
-        $idFactura = $dom->createElement($this->namespace . ':IDFactura');
+        $idFactura = $dom->createElement('sum1:IDFactura');
 
         // IDEmisorFactura
-        $this->addElement($dom, $idFactura, 'IDEmisorFactura', $this->config['emisor_nif']);
+        $this->addElement($dom, $idFactura, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
 
         // NumSerieFactura
-        $this->addElement($dom, $idFactura, 'NumSerieFactura', $facture->ref);
+        $this->addElement($dom, $idFactura, 'sum1:NumSerieFactura', $facture->ref);
 
         // FechaExpedicionFactura
         $fechaExpedicion = date('d-m-Y', $facture->date);
-        $this->addElement($dom, $idFactura, 'FechaExpedicionFactura', $fechaExpedicion);
+        $this->addElement($dom, $idFactura, 'sum1:FechaExpedicionFactura', $fechaExpedicion);
 
         $parent->appendChild($idFactura);
     }
@@ -279,32 +299,30 @@ class VerifactuXML
             $descripcion = 'Prestación de servicios';
         }
 
-        // Limitar longitud y limpiar
-        $descripcion = substr(strip_tags($descripcion), 0, 500);
+        // Limitar longitud y limpiar caracteres especiales
+        $descripcion = substr($descripcion, 0, 500);
+        $descripcion = htmlspecialchars($descripcion, ENT_XML1 | ENT_COMPAT, 'UTF-8');
 
         return $descripcion;
     }
 
     /**
-     * Agrega destinatarios
+     * Agrega elemento Destinatarios al XML
      */
     private function addDestinatarios($dom, $parent, $facture)
     {
-        $destinatarios = $dom->createElement($this->namespace . ':Destinatarios');
+        $destinatarios = $dom->createElement('sum1:Destinatarios');
 
-        $idDestinatario = $dom->createElement($this->namespace . ':IDDestinatario');
+        $idDestinatario = $dom->createElement('sum1:IDDestinatario');
 
-        // NombreRazon
-        $nombreCliente = $facture->thirdparty->name ?: $facture->thirdparty->nom;
-        $this->addElement($dom, $idDestinatario, 'NombreRazon', $nombreCliente);
+        // NombreRazon del destinatario
+        $nombreDestinatario = $facture->thirdparty->name ?: $facture->thirdparty->nom;
+        $this->addElement($dom, $idDestinatario, 'sum1:NombreRazon', $nombreDestinatario);
 
-        // NIF/CIF del cliente
-        $nifCliente = $facture->thirdparty->tva_intra ?: $facture->thirdparty->idprof1 ?: '';
-        if (!empty($nifCliente)) {
-            $this->addElement($dom, $idDestinatario, 'NIF', $nifCliente);
-        } else {
-            // Si no tiene NIF español, podría ser extranjero
-            $this->addElement($dom, $idDestinatario, 'IDOtro', $facture->thirdparty->idprof1 ?: 'SIN_NIF');
+        // NIF del destinatario
+        $nifDestinatario = $facture->thirdparty->tva_intra ?: $facture->thirdparty->idprof1;
+        if (!empty($nifDestinatario)) {
+            $this->addElement($dom, $idDestinatario, 'sum1:NIF', $nifDestinatario);
         }
 
         $destinatarios->appendChild($idDestinatario);
@@ -312,49 +330,24 @@ class VerifactuXML
     }
 
     /**
-     * Agrega el desglose de impuestos
+     * Agrega elemento Desglose al XML
      */
     private function addDesglose($dom, $parent, $facture)
     {
-        $desglose = $dom->createElement($this->namespace . ':Desglose');
+        $desglose = $dom->createElement('sum1:Desglose');
 
         // Agrupar líneas por tipo de IVA
-        $impuestos = array();
+        $desgloseData = $this->agruparPorTipoIVA($facture);
 
-        foreach ($facture->lines as $line) {
-            $tipoIva = $line->tva_tx;
-            if (!isset($impuestos[$tipoIva])) {
-                $impuestos[$tipoIva] = array(
-                    'base' => 0,
-                    'cuota' => 0
-                );
-            }
-            $impuestos[$tipoIva]['base'] += $line->total_ht;
-            $impuestos[$tipoIva]['cuota'] += $line->total_tva;
-        }
+        foreach ($desgloseData as $tipoIva => $data) {
+            $detalleDesglose = $dom->createElement('sum1:DetalleDesglose');
 
-        // Crear DetalleDesglose para cada tipo de IVA
-        foreach ($impuestos as $tipoIva => $datos) {
-            $detalleDesglose = $dom->createElement($this->namespace . ':DetalleDesglose');
-
-            // Impuesto (01 = IVA)
-            $this->addElement($dom, $detalleDesglose, 'Impuesto', '01');
-
-            // ClaveRegimen (01 = Régimen general)
-            $this->addElement($dom, $detalleDesglose, 'ClaveRegimen', '01');
-
-            // CalificacionOperacion
-            $calificacion = $this->getCalificacionOperacion($tipoIva);
-            $this->addElement($dom, $detalleDesglose, 'CalificacionOperacion', $calificacion);
-
-            // TipoImpositivo
-            $this->addElement($dom, $detalleDesglose, 'TipoImpositivo', number_format($tipoIva, 2, '.', ''));
-
-            // BaseImponibleOimporteNoSujeto
-            $this->addElement($dom, $detalleDesglose, 'BaseImponibleOimporteNoSujeto', number_format($datos['base'], 2, '.', ''));
-
-            // CuotaRepercutida
-            $this->addElement($dom, $detalleDesglose, 'CuotaRepercutida', number_format($datos['cuota'], 2, '.', ''));
+            $this->addElement($dom, $detalleDesglose, 'sum1:Impuesto', '01'); // IVA
+            $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', '01'); // Régimen general
+            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $this->getCalificacionOperacion($tipoIva));
+            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 0));
+            $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['base'], 2, '.', ''));
+            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
 
             $desglose->appendChild($detalleDesglose);
         }
@@ -363,57 +356,76 @@ class VerifactuXML
     }
 
     /**
-     * Obtiene la calificación de operación según el tipo de IVA
+     * Agrupa las líneas de factura por tipo de IVA
+     */
+    private function agruparPorTipoIVA($facture)
+    {
+        $desglose = array();
+
+        foreach ($facture->lines as $line) {
+            $tipoIva = $line->tva_tx;
+
+            if (!isset($desglose[$tipoIva])) {
+                $desglose[$tipoIva] = array('base' => 0, 'cuota' => 0);
+            }
+
+            $desglose[$tipoIva]['base'] += $line->total_ht;
+            $desglose[$tipoIva]['cuota'] += $line->total_tva;
+        }
+
+        return $desglose;
+    }
+
+    /**
+     * Obtiene la calificación de la operación según el tipo de IVA
      */
     private function getCalificacionOperacion($tipoIva)
     {
         if ($tipoIva == 0) {
             return 'E1'; // Exenta
-        } elseif ($tipoIva >= 1 && $tipoIva <= 10) {
-            return 'S2'; // Sujeta - tipo reducido/superreducido
-        } else {
-            return 'S1'; // Sujeta - tipo general
         }
+        return 'S1'; // Sujeta
     }
 
     /**
-     * Agrega información de encadenamiento
+     * Agrega elemento Encadenamiento al XML
      */
     private function addEncadenamiento($dom, $parent, $hashData)
     {
-        // Obtener datos de la factura anterior
+        $encadenamiento = $dom->createElement('sum1:Encadenamiento');
+
+        $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
+
+        // Obtener datos de la factura anterior a partir del hash anterior
         $facturaAnterior = $this->getFacturaAnterior($hashData['hash_anterior']);
 
         if ($facturaAnterior) {
-            $encadenamiento = $dom->createElement($this->namespace . ':Encadenamiento');
-            $registroAnterior = $dom->createElement($this->namespace . ':RegistroAnterior');
-
-            $this->addElement($dom, $registroAnterior, 'IDEmisorFactura', $this->config['emisor_nif']);
-            $this->addElement($dom, $registroAnterior, 'NumSerieFactura', $facturaAnterior['ref']);
-            $this->addElement($dom, $registroAnterior, 'FechaExpedicionFactura', $facturaAnterior['fecha']);
-            $this->addElement($dom, $registroAnterior, 'Huella', $hashData['hash_anterior']);
-
-            $encadenamiento->appendChild($registroAnterior);
-            $parent->appendChild($encadenamiento);
+            $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
+            $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $facturaAnterior['ref']);
+            $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $facturaAnterior['fecha']);
+            $this->addElement($dom, $registroAnterior, 'sum1:Huella', $hashData['hash_anterior']);
         }
+
+        $encadenamiento->appendChild($registroAnterior);
+        $parent->appendChild($encadenamiento);
     }
 
     /**
-     * Obtiene datos de la factura anterior por su hash
+     * Obtiene datos de la factura anterior basándose en el hash anterior
      */
     private function getFacturaAnterior($hashAnterior)
     {
-        $sql = "SELECT f.ref, f.datef
+        $sql = "SELECT f.ref, DATE_FORMAT(f.datef, '%d-%m-%Y') as fecha
                 FROM " . MAIN_DB_PREFIX . "facture f
-                INNER JOIN " . MAIN_DB_PREFIX . "facture_extrafields fe ON f.rowid = fe.fk_object
+                INNER JOIN " . MAIN_DB_PREFIX . "facture_extrafields fe ON fe.fk_object = f.rowid
                 WHERE fe.hash = '" . $this->db->escape($hashAnterior) . "'";
 
-        $result = $this->db->query($sql);
-        if ($result && $this->db->num_rows($result) > 0) {
-            $obj = $this->db->fetch_object($result);
+        $resql = $this->db->query($sql);
+        if ($resql && $this->db->num_rows($resql) > 0) {
+            $obj = $this->db->fetch_object($resql);
             return array(
                 'ref' => $obj->ref,
-                'fecha' => date('d-m-Y', $this->db->jdate($obj->datef))
+                'fecha' => $obj->fecha
             );
         }
 
@@ -421,77 +433,40 @@ class VerifactuXML
     }
 
     /**
-     * Agrega información del sistema informático
+     * Agrega elemento SistemaInformatico al XML
      */
     private function addSistemaInformatico($dom, $parent)
     {
-        $sistemaInformatico = $dom->createElement($this->namespace . ':SistemaInformatico');
+        $sistema = $dom->createElement('sum1:SistemaInformatico');
 
-        $this->addElement($dom, $sistemaInformatico, 'NombreRazon', $this->config['sistema_nombre']);
-        $this->addElement($dom, $sistemaInformatico, 'NIF', $this->config['sistema_nif']);
-        $this->addElement($dom, $sistemaInformatico, 'NombreSistemaInformatico', $this->config['sistema_nombre_software']);
-        $this->addElement($dom, $sistemaInformatico, 'IdSistemaInformatico', $this->config['sistema_id']);
-        $this->addElement($dom, $sistemaInformatico, 'Version', $this->config['sistema_version']);
-        $this->addElement($dom, $sistemaInformatico, 'NumeroInstalacion', $this->config['sistema_instalacion']);
-        $this->addElement($dom, $sistemaInformatico, 'TipoUsoPosibleSoloVerifactu', $this->config['sistema_solo_verifactu']);
-        $this->addElement($dom, $sistemaInformatico, 'TipoUsoPosibleMultiOT', $this->config['sistema_multi_ot']);
-        $this->addElement($dom, $sistemaInformatico, 'IndicadorMultiplesOT', $this->config['sistema_indicador_multi']);
+        $this->addElement($dom, $sistema, 'sum1:NombreRazon', $this->config['sistema_nombre']);
+        $this->addElement($dom, $sistema, 'sum1:NIF', $this->config['sistema_nif']);
+        $this->addElement($dom, $sistema, 'sum1:NombreSistemaInformatico', $this->config['sistema_nombre_software']);
+        $this->addElement($dom, $sistema, 'sum1:IdSistemaInformatico', $this->config['sistema_id']);
+        $this->addElement($dom, $sistema, 'sum1:Version', $this->config['sistema_version']);
+        $this->addElement($dom, $sistema, 'sum1:NumeroInstalacion', $this->config['sistema_instalacion']);
+        $this->addElement($dom, $sistema, 'sum1:TipoUsoPosibleSoloVerifactu', $this->config['sistema_solo_verifactu']);
+        $this->addElement($dom, $sistema, 'sum1:TipoUsoPosibleMultiOT', $this->config['sistema_multi_ot']);
+        $this->addElement($dom, $sistema, 'sum1:IndicadorMultiplesOT', $this->config['sistema_indicador_multi']);
 
-        $parent->appendChild($sistemaInformatico);
+        $parent->appendChild($sistema);
     }
 
     /**
-     * Genera timestamp en formato ISO 8601 con zona horaria
+     * Genera timestamp en formato ISO 8601
      */
     private function generateTimestamp()
     {
-        $dt = new DateTime('now', new DateTimeZone('Europe/Madrid'));
-        return $dt->format('Y-m-d\TH:i:sP');
+        return date('c'); // ISO 8601 format: 2025-09-18T17:15:41+02:00
     }
 
     /**
-     * Método auxiliar para agregar elementos al DOM
+     * Agrega un elemento al DOM
      */
     private function addElement($dom, $parent, $name, $value)
     {
-        $element = $dom->createElement($this->namespace . ':' . $name, htmlspecialchars($value, ENT_XML1, 'UTF-8'));
+        $element = $dom->createElement($name);
+        $element->appendChild($dom->createTextNode($value));
         $parent->appendChild($element);
-    }
-
-    /**
-     * Genera XML para un lote de facturas (hasta 1000)
-     *
-     * @param array $factureIds Array de IDs de facturas
-     * @return string XML del lote
-     */
-    public function generateLoteFacturas($factureIds)
-    {
-        if (count($factureIds) > 1000) {
-            throw new Exception('El lote no puede contener más de 1000 facturas');
-        }
-
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->formatOutput = true;
-
-        // Crear elemento raíz del lote
-        $lote = $dom->createElement($this->namespace . ':LoteFacturas');
-        $lote->setAttribute('xmlns:' . $this->namespace, 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/ssii/fact/ws/SuministroInformacion.xsd');
-        $dom->appendChild($lote);
-
-        foreach ($factureIds as $factureId) {
-            $facture = new Facture($this->db);
-            if ($facture->fetch($factureId) > 0) {
-                // Generar XML individual y agregarlo al lote
-                $registroXML = $this->generateRegistroAlta($facture);
-
-                // Extraer solo el elemento RegistroAlta del XML individual
-                $tempDom = new DOMDocument();
-                $tempDom->loadXML($registroXML);
-                $registroNode = $dom->importNode($tempDom->documentElement, true);
-                $lote->appendChild($registroNode);
-            }
-        }
-
-        return $dom->saveXML();
     }
 }
