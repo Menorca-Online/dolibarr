@@ -506,111 +506,35 @@ class ActionsVerifactu
         return 0;
     }
 
-    /**
-     * Hook para interceptar y desactivar los botones de modificar y eliminar en facturas no borrador
-     */
-    public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
-    {
-        global $langs, $user, $conf;
+    // /**
+    //  * Hook para interceptar y desactivar los botones de modificar y eliminar en facturas no borrador
+    //  */
+	public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
+	{
+		global $langs;
 
-        if ($parameters['currentcontext'] === 'invoicecard') {
-            $langs->load("verifactu@verifactu");
+		if (strpos($parameters['currentcontext'], 'invoicecard') !== false) {
+			$langs->load("verifactu@verifactu");
 
-            // Solo aplicar en facturas existentes que NO son borrador
-            if (($object->element == 'facture' || get_class($object) == 'Facture') && !empty($object->id) && $object->status > 0) {
-                // CSS más agresivo para ocultar botones
-                $this->resprints = '<style>
-                    /* Ocultar botones de modificar y eliminar */
-                    a[href*="action=edit"],
-                    a[href*="&action=edit"],
-                    a[href*="?action=edit"],
-                    a[href*="action=delete"],
-                    a[href*="&action=delete"],
-                    a[href*="?action=delete"],
-                    .butAction[href*="edit"],
-                    .butActionDelete[href*="delete"],
-                    input[name="edit"],
-                    input[name="delete"],
-                    input[value*="Modificar"],
-                    input[value*="Eliminar"],
-                    span.butAction:contains("Modificar"),
-                    span.butAction:contains("Edit"),
-                    span.butActionDelete:contains("Eliminar"),
-                    span.butActionDelete:contains("Delete") {
-                        display: none !important;
-                        visibility: hidden !important;
-                        opacity: 0 !important;
-                        pointer-events: none !important;
-                    }
-                </style>';
+			if (($object->element == 'facture' || get_class($object) == 'Facture')
+				&& !empty($object->id) && $object->status > 0) {
 
-                // JavaScript más robusto
-                $this->resprints .= '<script type="text/javascript">
-                document.addEventListener("DOMContentLoaded", function() {
-                    var attempts = 0;
-                    var maxAttempts = 10;
+				// PINTA el botón tú mismo (no devuelvas array)
+				print '<div class="inline-block divButAction">'
+					. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
+					. 'href="' . dol_buildpath('/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
+					. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
+					. '</div>';
 
-                    function hideButtons() {
-                        attempts++;
+				return 0; // no reemplazo los botones estándar
+			}
+		}
 
-                        // Selectores más amplios
-                        var selectors = [
-                            \'a[href*="action=edit"]\',
-                            \'a[href*="action=delete"]\',
-                            \'a.butAction[href*="edit"]\',
-                            \'a.butActionDelete[href*="delete"]\',
-                            \'input[name="edit"]\',
-                            \'input[name="delete"]\',
-                            \'input[value*="Modificar"]\',
-                            \'input[value*="Eliminar"]\',
-                            \'.butAction\',
-                            \'.butActionDelete\'
-                        ];
+		return 0;
+	}
 
-                        var hiddenCount = 0;
-                        selectors.forEach(function(selector) {
-                            var elements = document.querySelectorAll(selector);
-                            elements.forEach(function(element) {
-                                var href = element.getAttribute("href") || "";
-                                var value = element.getAttribute("value") || "";
-                                var text = element.textContent || "";
 
-                                // Verificar si es botón de editar o eliminar
-                                if (href.includes("edit") || href.includes("delete") ||
-                                    value.includes("Modificar") || value.includes("Eliminar") ||
-                                    text.includes("Modificar") || text.includes("Eliminar") ||
-                                    text.includes("Edit") || text.includes("Delete")) {
 
-                                    element.style.display = "none";
-                                    element.style.visibility = "hidden";
-                                    element.style.opacity = "0";
-                                    element.style.pointerEvents = "none";
-                                    if (element.disabled !== undefined) element.disabled = true;
-                                    hiddenCount++;
-                                }
-                            });
-                        });
-
-                        console.log("Verifactu: Intento " + attempts + " - Botones ocultados: " + hiddenCount);
-
-                        // Reintentar si no se encontraron botones y no hemos llegado al límite
-                        if (hiddenCount === 0 && attempts < maxAttempts) {
-                            setTimeout(hideButtons, 200);
-                        }
-                    }
-
-                    // Ejecutar inmediatamente y después con retrasos
-                    hideButtons();
-                    setTimeout(hideButtons, 100);
-                    setTimeout(hideButtons, 500);
-                    setTimeout(hideButtons, 1000);
-                });
-                </script>';
-            }
-        }
-
-        return 0;
-    }
 
     /**
      * Hook para interceptar antes de guardar cambios en factura
