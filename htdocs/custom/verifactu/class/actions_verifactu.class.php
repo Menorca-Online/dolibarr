@@ -79,7 +79,48 @@ class ActionsVerifactu
 
                     // Verificar si la factura no está en estado borrador y mostrar alerta
                     if (isExistingInvoice && ' . ($object->status > 0 ? 'true' : 'false') . ') {
-                        alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
+                        //alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
+
+                        // DESHABILITAR EFECTIVAMENTE LOS BOTONES DE MODIFICAR Y ELIMINAR
+                        setTimeout(function() {
+                            // Buscar y deshabilitar botones de modificar y eliminar con múltiples selectores
+                            var buttonSelectors = [
+                                \'a[href*="action=edit"]\',
+                                \'a[href*="action=delete"]\',
+                                \'a.butAction[href*="edit"]\',
+                                \'a.butActionDelete[href*="delete"]\',
+                                \'input[name="edit"]\',
+                                \'input[name="delete"]\',
+                                \'input[value*="Modificar"]\',
+                                \'input[value*="Eliminar"]\',
+                                \'.butAction\',
+                                \'.butActionDelete\'
+                            ];
+
+                            var hiddenCount = 0;
+                            buttonSelectors.forEach(function(selector) {
+                                $(selector).each(function() {
+                                    var $this = $(this);
+                                    var href = $this.attr("href") || "";
+                                    var value = $this.attr("value") || "";
+                                    var text = $this.text() || "";
+
+                                    // Verificar si el botón es de editar o eliminar
+                                    if (href.includes("edit") || href.includes("delete") ||
+                                        value.includes("Modificar") || value.includes("Eliminar") ||
+                                        text.includes("Modificar") || text.includes("Eliminar") ||
+                                        text.includes("Edit") || text.includes("Delete")) {
+
+                                        $this.hide();
+                                        $this.prop("disabled", true);
+                                        hiddenCount++;
+                                        console.log("Verifactu: Ocultado botón:", text || value || href);
+                                    }
+                                });
+                            });
+
+                            console.log("Verifactu: Total de botones ocultados/deshabilitados:", hiddenCount);
+                        }, 100);
                     }
 
                     // Remover botones que permiten modificar fecha
@@ -401,27 +442,92 @@ class ActionsVerifactu
 
             // Solo aplicar en facturas existentes que NO son borrador
             if (($object->element == 'facture' || get_class($object) == 'Facture') && !empty($object->id) && $object->status > 0) {
-                // Intentar ocultar los botones directamente
+                // CSS más agresivo para ocultar botones
                 $this->resprints = '<style>
-                    .butAction[href*="action=edit"],
-                    .butAction[href*="action=delete"],
-                    .butActionDelete[href*="action=delete"],
+                    /* Ocultar botones de modificar y eliminar */
+                    a[href*="action=edit"],
+                    a[href*="&action=edit"],
+                    a[href*="?action=edit"],
+                    a[href*="action=delete"],
+                    a[href*="&action=delete"],
+                    a[href*="?action=delete"],
+                    .butAction[href*="edit"],
+                    .butActionDelete[href*="delete"],
+                    input[name="edit"],
+                    input[name="delete"],
+                    input[value*="Modificar"],
+                    input[value*="Eliminar"],
                     span.butAction:contains("Modificar"),
-                    span.butActionDelete:contains("Eliminar") {
+                    span.butAction:contains("Edit"),
+                    span.butActionDelete:contains("Eliminar"),
+                    span.butActionDelete:contains("Delete") {
                         display: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                        pointer-events: none !important;
                     }
                 </style>';
 
-                // Agregar también un script que se ejecutará al final del DOM
+                // JavaScript más robusto
                 $this->resprints .= '<script type="text/javascript">
                 document.addEventListener("DOMContentLoaded", function() {
-                    // Buscar y ocultar botones de modificar y eliminar
-                    var buttons = document.querySelectorAll(".butAction[href*=\'action=edit\'], .butAction[href*=\'action=delete\'], .butActionDelete");
-                    buttons.forEach(function(button) {
-                        button.style.display = "none";
-                    });
+                    var attempts = 0;
+                    var maxAttempts = 10;
 
-                    console.log("Verifactu: Se ocultaron " + buttons.length + " botones de modificar/eliminar");
+                    function hideButtons() {
+                        attempts++;
+
+                        // Selectores más amplios
+                        var selectors = [
+                            \'a[href*="action=edit"]\',
+                            \'a[href*="action=delete"]\',
+                            \'a.butAction[href*="edit"]\',
+                            \'a.butActionDelete[href*="delete"]\',
+                            \'input[name="edit"]\',
+                            \'input[name="delete"]\',
+                            \'input[value*="Modificar"]\',
+                            \'input[value*="Eliminar"]\',
+                            \'.butAction\',
+                            \'.butActionDelete\'
+                        ];
+
+                        var hiddenCount = 0;
+                        selectors.forEach(function(selector) {
+                            var elements = document.querySelectorAll(selector);
+                            elements.forEach(function(element) {
+                                var href = element.getAttribute("href") || "";
+                                var value = element.getAttribute("value") || "";
+                                var text = element.textContent || "";
+
+                                // Verificar si es botón de editar o eliminar
+                                if (href.includes("edit") || href.includes("delete") ||
+                                    value.includes("Modificar") || value.includes("Eliminar") ||
+                                    text.includes("Modificar") || text.includes("Eliminar") ||
+                                    text.includes("Edit") || text.includes("Delete")) {
+
+                                    element.style.display = "none";
+                                    element.style.visibility = "hidden";
+                                    element.style.opacity = "0";
+                                    element.style.pointerEvents = "none";
+                                    if (element.disabled !== undefined) element.disabled = true;
+                                    hiddenCount++;
+                                }
+                            });
+                        });
+
+                        console.log("Verifactu: Intento " + attempts + " - Botones ocultados: " + hiddenCount);
+
+                        // Reintentar si no se encontraron botones y no hemos llegado al límite
+                        if (hiddenCount === 0 && attempts < maxAttempts) {
+                            setTimeout(hideButtons, 200);
+                        }
+                    }
+
+                    // Ejecutar inmediatamente y después con retrasos
+                    hideButtons();
+                    setTimeout(hideButtons, 100);
+                    setTimeout(hideButtons, 500);
+                    setTimeout(hideButtons, 1000);
                 });
                 </script>';
             }
