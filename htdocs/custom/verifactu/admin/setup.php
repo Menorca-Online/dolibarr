@@ -138,8 +138,32 @@ $item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 $item->cssClass = 'minwidth500';
+
 $item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
 $item->helpText ='URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
+
+$item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
+$item->fieldParams['isMandatory'] = 1;
+$item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
+$item->cssClass = 'minwidth500';
+$item->helpText ='Ruta completa al certificado digital en formato PEM.';
+
+$arrayofcustomers = array();
+$sql = "SELECT rowid, nom FROM ".MAIN_DB_PREFIX."societe WHERE client = 1 AND entity = ".$conf->entity." ORDER BY nom";
+$result = $db->query($sql);
+if ($result) {
+    while ($obj = $db->fetch_object($result)) {
+        $arrayofcustomers[$obj->rowid] = $obj->nom;
+    }
+}
+
+$item = $formSetup->newItem('INVOICE_CLIENTE_GENERICO');
+$item->setAsSelect($arrayofcustomers);
+$item->helpText ='Cliente genérico para facturas simplificadas. Crear previamente el tercero con NIF 00000000T.';
+$item->fieldParams['isMandatory'] = 1;
+$item->cssClass = 'minwidth500';
+
+
 // // Setup conf for a selection of an Email template of type thirdparty
 // $formSetup->newItem('VERIFACTU_MYPARAM6')->setAsEmailTemplate('thirdparty');
 
