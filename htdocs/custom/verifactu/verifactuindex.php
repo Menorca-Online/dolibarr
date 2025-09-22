@@ -91,9 +91,7 @@ $offset = $limit * $page;
 
 // Filtros
 $search_ref = GETPOST('search_ref', 'alpha');
-$search_client = GETPOST('search_client', 'alpha');
 $search_hash = GETPOST('search_hash', 'alpha');
-$search_status = GETPOST('search_status', 'alpha');
 
 if (!$sortfield) $sortfield = 'f.datef';
 if (!$sortorder) $sortorder = 'DESC';
@@ -311,7 +309,6 @@ print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre_filter">';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth75" name="search_ref" value="'.$search_ref.'" placeholder="Referencia"></td>';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth75" name="search_client" value="'.$search_client.'" placeholder="Cliente"></td>';
 print '<td class="liste_titre center"></td>';
 print '<td class="liste_titre center"></td>';
 print '<td class="liste_titre center"></td>';
@@ -320,14 +317,6 @@ print '<select class="flat" name="search_hash">';
 print '<option value="">-- Hash --</option>';
 print '<option value="1"'.($search_hash == '1' ? ' selected' : '').'>Con Hash</option>';
 print '<option value="0"'.($search_hash == '0' ? ' selected' : '').'>Sin Hash</option>';
-print '</select>';
-print '</td>';
-print '<td class="liste_titre center">';
-print '<select class="flat" name="search_status">';
-print '<option value="">-- Estado --</option>';
-print '<option value="0"'.($search_status == '0' ? ' selected' : '').'>Borrador</option>';
-print '<option value="1"'.($search_status == '1' ? ' selected' : '').'>Validada</option>';
-print '<option value="2"'.($search_status == '2' ? ' selected' : '').'>Pagada</option>';
 print '</select>';
 print '</td>';
 print '<td class="liste_titre maxwidthsearch">';
@@ -339,17 +328,16 @@ print '</tr>';
 // Cabeceras de tabla
 print '<tr class="liste_titre">';
 print_liste_field_titre('Referencia', $_SERVER["PHP_SELF"], 'f.ref', '', '', '', $sortfield, $sortorder);
-print_liste_field_titre('Cliente', $_SERVER["PHP_SELF"], 's.nom', '', '', '', $sortfield, $sortorder);
 print_liste_field_titre('Fecha', $_SERVER["PHP_SELF"], 'f.datef', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Última Modif.', $_SERVER["PHP_SELF"], 'f.tms', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Total', $_SERVER["PHP_SELF"], 'f.total_ttc', '', '', 'right', $sortfield, $sortorder);
 print_liste_field_titre('Hash Verifactu', $_SERVER["PHP_SELF"], 'ef.hash', '', '', 'center', $sortfield, $sortorder);
-print_liste_field_titre('Estado', $_SERVER["PHP_SELF"], 'f.fk_statut', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Hash Anterior', $_SERVER["PHP_SELF"], 'ef.hash_anterior', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
 // Construir consulta con filtros
-$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash";
+$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, ef.hash_anterior";
 $sql .= " FROM ".MAIN_DB_PREFIX."facture f";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object";
@@ -360,9 +348,6 @@ $sql .= " AND f.fk_statut > 0"; // Excluir facturas borrador por defecto
 if ($search_ref) {
     $sql .= " AND f.ref LIKE '%".$db->escape($search_ref)."%'";
 }
-if ($search_client) {
-    $sql .= " AND s.nom LIKE '%".$db->escape($search_client)."%'";
-}
 if ($search_hash !== '') {
     if ($search_hash == '1') {
         $sql .= " AND ef.hash IS NOT NULL AND ef.hash != ''";
@@ -370,19 +355,12 @@ if ($search_hash !== '') {
         $sql .= " AND (ef.hash IS NULL OR ef.hash = '')";
     }
 }
-if ($search_status !== '') {
-    if ($search_status == '0') {
-        // Si específicamente buscan borradores, quitar el filtro de exclusión
-        $sql = str_replace(" AND f.fk_statut > 0", "", $sql);
-    }
-    $sql .= " AND f.fk_statut = ".(int)$search_status;
-}
 
 // Ordenamiento
 $sql .= $db->order($sortfield, $sortorder);
 
 // Contar total para paginación
-$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash', 'SELECT COUNT(f.rowid) as nb', $sql);
+$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, ef.hash_anterior', 'SELECT COUNT(f.rowid) as nb', $sql);
 $resqlcount = $db->query($sqlcount);
 if ($resqlcount) {
     $objcount = $db->fetch_object($resqlcount);
@@ -402,11 +380,9 @@ if ($resql) {
     // Mostrar información de paginación
     $param = '';
     if ($search_ref) $param .= '&search_ref='.urlencode($search_ref);
-    if ($search_client) $param .= '&search_client='.urlencode($search_client);
     if ($search_hash !== '') $param .= '&search_hash='.urlencode($search_hash);
-    if ($search_status !== '') $param .= '&search_status='.urlencode($search_status);
 
-    print '<tr><td colspan="8">';
+    print '<tr><td colspan="6">';
     print_barre_liste('', $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'bill', 0, '', '', $limit, 0, 0, 1);
     print '</td></tr>';
 
@@ -414,28 +390,10 @@ if ($resql) {
     while ($i < min($num, $limit)) {
         $obj = $db->fetch_object($resql);
 
-        // Estados de factura
-        $status_labels = array(
-            0 => 'Borrador',
-            1 => 'Validada',
-            2 => 'Pagada',
-            3 => 'Abandonada'
-        );
-
-        $status_colors = array(
-            0 => 'badge-secondary',
-            1 => 'badge-info',
-            2 => 'badge-success',
-            3 => 'badge-danger'
-        );
-
         print '<tr class="oddeven">';
 
         // Referencia
         print '<td><a href="'.DOL_URL_ROOT.'/compta/facture/card.php?facid='.$obj->rowid.'">'.$obj->ref.'</a></td>';
-
-        // Cliente
-        print '<td>'.$obj->client.'</td>';
 
         // Fecha
         print '<td class="center">'.dol_print_date($db->jdate($obj->datef), 'day').'</td>';
@@ -449,17 +407,37 @@ if ($resql) {
         // Hash
         print '<td class="center">';
         if (!empty($obj->hash)) {
-            print '<span class="badge badge-success" title="'.$obj->hash.'">✓ '.substr($obj->hash, 0, 8).'...</span>';
+            print '<span style="font-family: monospace; font-size: 11px;">'.$obj->hash.'</span>';
         } else {
             print '<span class="badge badge-warning">Sin Hash</span>';
         }
         print '</td>';
 
-        // Estado
+        // Hash Anterior con validación
         print '<td class="center">';
-        $status_label = isset($status_labels[$obj->fk_statut]) ? $status_labels[$obj->fk_statut] : 'Desconocido';
-        $status_color = isset($status_colors[$obj->fk_statut]) ? $status_colors[$obj->fk_statut] : 'badge-secondary';
-        print '<span class="badge '.$status_color.'">'.$status_label.'</span>';
+        if (!empty($obj->hash_anterior)) {
+            // Obtener el hash de la factura anterior para validar
+            $sql_prev = "SELECT ef.hash FROM ".MAIN_DB_PREFIX."facture f
+                        LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
+                        WHERE f.datef < '".$obj->datef."' AND f.fk_statut > 0 AND f.entity IN (".getEntity('invoice').")
+                        ORDER BY f.datef DESC LIMIT 1";
+            $res_prev = $db->query($sql_prev);
+            $hash_prev = null;
+            if ($res_prev && $db->num_rows($res_prev) > 0) {
+                $obj_prev = $db->fetch_object($res_prev);
+                $hash_prev = $obj_prev->hash;
+                $db->free($res_prev);
+            }
+
+            $is_valid = ($hash_prev && $obj->hash_anterior === $hash_prev);
+            $color = $is_valid ? 'green' : 'red';
+            print '<span style="font-family: monospace; font-size: 11px; color: '.$color.';">'.$obj->hash_anterior.'</span>';
+            if (!$is_valid) {
+                print '<br><small style="color: red;">⚠ No coincide</small>';
+            }
+        } else {
+            print '<span class="badge badge-secondary">Sin Hash Anterior</span>';
+        }
         print '</td>';
 
         // Acciones
@@ -472,12 +450,12 @@ if ($resql) {
     }
 
     if ($num == 0) {
-        print '<tr class="oddeven"><td colspan="8" class="center">No se encontraron facturas</td></tr>';
+        print '<tr class="oddeven"><td colspan="6" class="center">No se encontraron facturas</td></tr>';
     }
 
     $db->free($resql);
 } else {
-    print '<tr class="oddeven"><td colspan="8" class="center">Error en la consulta</td></tr>';
+    print '<tr class="oddeven"><td colspan="6" class="center">Error en la consulta</td></tr>';
 }
 
 print '</table>';

@@ -406,7 +406,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_VALIDATE':
-                var_dump($object->type);
+
                 // Verificar si es una factura rectificativa
                 $isRectificativa = ($object->type == 2);
                 $isAbono = ($object->type == 1);
