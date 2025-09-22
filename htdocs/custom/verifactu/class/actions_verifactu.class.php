@@ -93,34 +93,20 @@ class ActionsVerifactu
                             if (socid) {
                                 if (socid == clienteGenerico) {
                                     $("select[name*=\'options_fk_facture_type\']").val("2").change();
-                                    // // Cliente genérico: Factura Simplificada (F2)
-                                    // setTimeout(function() {
-                                    //     $("select[name*=\'options_fk_facture_type\']").val("2").change();
-                                    //     console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
-                                    // }, 500);
                                 } else {
-
-                                    // setTimeout(function() {
-                                        if (socid == -1) {  
-                                            $("select[name*=\'options_fk_facture_type\']").val("").change();
-                                        }else{
-                                            $("select[name*=\'options_fk_facture_type\']").val("1").change();
-                                        }
-                                    // }, 500);
+                                    if (socid == -1) {  
+                                        $("select[name*=\'options_fk_facture_type\']").val("").change();
+                                    }else{
+                                        $("select[name*=\'options_fk_facture_type\']").val("1").change();
+                                    }
                                 }
                             } else {
-                                // No hay cliente seleccionado: dejar el campo desmarcado
-                                setTimeout(function() {
                                     $("select[name*=\'options_fk_facture_type\']").val("").change();
-                                    console.log("Verifactu: No hay cliente seleccionado, campo de tipo de factura dejado desmarcado");
-                                }, 500);
                             }
                         } else {
-                            // No hay cliente genérico configurado: dejar el campo desmarcado
-                            setTimeout(function() {
+
                                 $("select[name*=\'options_fk_facture_type\']").val("").change();
-                                console.log("Verifactu: INVOICE_CLIENTE_GENERICO no configurado, campo de tipo de factura dejado desmarcado");
-                            }, 500);
+
                         }
                     }
 
@@ -452,18 +438,6 @@ class ActionsVerifactu
                             });
                         });
                     }
-
-                    // Monitorear cambios cada segundo SOLO para fecha (no para los campos hash)
-                    setInterval(function() {
-                        if (isExistingInvoice) {
-                            $("input[name=\'re\']").prop("readonly", true);
-                            $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']").prop("disabled", true);
-                        }
-                        // Reintentar deshabilitar anticipos periódicamente por si se cargan dinámicamente
-                        disableAdvanceInvoiceType();
-                        // Ya NO llamamos a blockHashFields() aquí para evitar alertas infinitas
-                        // Los campos hash se configuran una vez al inicio
-                    }, 1000);
 
                     // Interceptar envío del formulario
                     $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
