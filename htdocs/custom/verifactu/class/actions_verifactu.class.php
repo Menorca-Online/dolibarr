@@ -509,21 +509,21 @@ class ActionsVerifactu
                 });
                 </script>';
             }
+            $this->resprints .= '
+                <script type="text/javascript">
+                $(document).ready(function() {
+                    // === Mover campo "Tipo de factura" al inicio del formulario ===
+                    var fkTypeRow = $("tr:has(select[name*=\'options_fk_facture_type\'])");
+                    if (fkTypeRow.length) {
+                        var firstRow = $("form[name=\'add\'] tr, form[name=\'update\'] tr").first();
+                        if (firstRow.length) {
+                            fkTypeRow.detach().insertAfter(firstRow);
+                        }
+                    }
+                });
+                </script>';
         }
-		//lol, se ordena mediante javascript, porque el orden de los userfields solo aplica sobre los nuevo, no trabaja sobre los existentes
-		$this->resprints .= '
-		<script type="text/javascript">
-		$(document).ready(function() {
-			// === Mover campo "Tipo de factura" al inicio del formulario ===
-			var fkTypeRow = $("tr:has(select[name*=\'options_fk_facture_type\'])");
-			if (fkTypeRow.length) {
-				var firstRow = $("form[name=\'add\'] tr, form[name=\'update\'] tr").first();
-				if (firstRow.length) {
-					fkTypeRow.detach().insertAfter(firstRow);
-				}
-			}
-		});
-		</script>';
+		
         return 0;
     }
 
