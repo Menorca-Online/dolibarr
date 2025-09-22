@@ -2,7 +2,16 @@
 /* Copyright (C) 2025 SuperAdmin
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU General Public License as pub		if($TipoFactura) {
+            $result = $verifactuType->fetch($TipoFactura);
+            echo '<pre>';
+            var_dump('TipoFactura:', $TipoFactura);
+            var_dump('Fetch result:', $result);
+            var_dump('verifactuType->code:', $verifactuType->code);
+            var_dump('verifactuType->label:', $verifactuType->label);
+            echo '</pre>';
+            die();
+        } by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
@@ -168,12 +177,17 @@ class InterfaceVerifactu extends DolibarrTriggers
 		// 7.º Huella del registro de facturación anterior.
 		// 8.º Fecha, hora y huso horario de generación del registro.
 		// el tipo factura es el fk_facture_type  llx_verifactu_facture_types
-		$TipoFactura = $object->array_options['fk_facture_type'] ?? null;
+		$TipoFactura = $object->array_options['options_fk_facture_type'] ?? null;
+
+		require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 		require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 		$verifactuType = new VerifactuFactureType($this->db);
 
-		if($TipoFactura) $verifactuType->fetch($TipoFactura);
-		$tipo = $verifactuType->code ?? 'F1';
+
+		if($TipoFactura) {
+            $tipo = $verifactuType->fetchCommon($TipoFactura);
+        }
+		
 		$timestamp = dol_now();
 		$dt = new DateTime('@'.$timestamp);         // crea desde timestamp UTC
 		$dt->setTimezone(new DateTimeZone('Europe/Madrid')); // o la tz que necesites
@@ -227,7 +241,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 			'IDEmisorFactura' => $nif,
 			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
 			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
-			'TipoFactura' => $tipo, // Usamos el tipo que corresponde (normal o rectificativa)
+			'TipoFactura' => $tipo->code, // Usamos el tipo que corresponde (normal o rectificativa)
 			'CuotaTotal' => $object->total_tva,
 			'ImporteTotal' => $object->total_ttc,
 			'Huella' =>  $huellaAnterior,
