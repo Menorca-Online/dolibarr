@@ -276,10 +276,8 @@ class InterfaceVerifactu extends DolibarrTriggers
         // Convertir los datos a JSON y normalizar
         $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
 
-        // Concatenar con el hash anterior
-        $dataToHash = $previousHash . $jsonData;
+        $dataToHash = $jsonData;
 
-        // Generar hash SHA-256
         $newHash = hash('sha256', $dataToHash);
 
         return $newHash;
