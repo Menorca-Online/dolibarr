@@ -3,14 +3,13 @@
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as pub		if($TipoFactura) {
-            $result = $verifactuType->fetch($TipoFactura);
-            echo '<pre>';
-            var_dump('TipoFactura:', $TipoFactura);
-            var_dump('Fetch result:', $result);
-            var_dump('verifactuType->code:', $verifactuType->code);
-            var_dump('verifactuType->label:', $verifactuType->label);
-            echo '</pre>';
-            die();
+            try {
+                $tipoVerifactu = $verifactuType->fetchCommon($TipoFactura);
+                $tipo = $tipoVerifactu->code ?? $tipo;
+            } catch (Exception $e) {
+                // Log the exception
+                dol_syslog("Verifactu: Error fetching facture type: " . $e->getMessage(), LOG_ERR);
+            }
         } by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -190,9 +189,9 @@ class InterfaceVerifactu extends DolibarrTriggers
                 $tipoVerifactu = $verifactuType->fetchCommon($TipoFactura);
                 $tipo = $tipoVerifactu->code ?? $tipo;
             } catch (Exception $e) {
-                $result = 'EXCEPTION';
+                // Log the exception
+                dol_syslog("Verifactu: Error fetching facture type: " . $e->getMessage(), LOG_ERR);
             }
-
         }
 		$timestamp = dol_now();
 		$dt = new DateTime('@'.$timestamp);         // crea desde timestamp UTC
@@ -204,7 +203,14 @@ class InterfaceVerifactu extends DolibarrTriggers
 
 		global $conf;
 
-		$nif    = $conf->global->MAIN_INFO_TVAINTRA ?: $conf->global->MAIN_INFO_SIREN ?: $conf->global->MAIN_INFO_NIF;
+		$nif = '';
+		if (isset($conf->global->MAIN_INFO_TVAINTRA) && !empty($conf->global->MAIN_INFO_TVAINTRA)) {
+		    $nif = $conf->global->MAIN_INFO_TVAINTRA;
+		} elseif (isset($conf->global->MAIN_INFO_SIREN) && !empty($conf->global->MAIN_INFO_SIREN)) {
+		    $nif = $conf->global->MAIN_INFO_SIREN;
+		} elseif (isset($conf->global->MAIN_INFO_NIF) && !empty($conf->global->MAIN_INFO_NIF)) {
+		    $nif = $conf->global->MAIN_INFO_NIF;
+		}
 
 
 		// Verificar si la factura todavía tiene un número provisional
@@ -280,14 +286,130 @@ class InterfaceVerifactu extends DolibarrTriggers
     }
 
     /**
-     * Guarda los hashes en los campos extras de la factura
+     * Maneja la validación de facturas según normativa Verifactu
      *
-     * @param int $invoiceId ID de la factura
-     * @param string $newHash Nuevo hash generado
-     * @param string $previousHash Hash anterior
-     * @param array $data Datos utilizados para generar el hash
-     * @return bool True si se guardó correctamente, False en caso contrario
+     * @param CommonObject $object Objeto factura
+     * @param User $user Usuario que realiza la acción
+     * @param Translate $langs Objeto de traducciones
+     * @param Conf $conf Configuración de Dolibarr
+     * @return int Código de retorno (<0 error, 0 ok, >0 warning)
      */
+    private function handleBillValidate($object, $user, $langs, $conf)
+    {
+        // Verificar si es una factura rectificativa
+        $isRectificativa = ($object->type == 2);
+        $isAbono = ($object->type == 1);
+        $totalFactura = $object->total_ttc;
+        
+        $maxAmountSimplificadas = $conf->global->INVOICE_MAX_AMOUNT_SIMPLIFICADAS ?? 0;
+        $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO ?? -1000;
+        
+
+        //regla para facturas simplificadas
+        if (abs($totalFactura) >= $maxAmountSimplificadas && $object->socid == $clienteGenerico) {
+            dol_syslog("Verifactu: La factura ID: " . $object->id . " excede el límite de cantidad simplificada para el cliente Genérico");
+            setEventMessages("ADVERTENCIA: La factura excede el límite de cantidad simplificada", null, 'warnings');
+            return -1;
+        }
+        //regla para facturas nominativas, el cliente no es generico
+        if ($object->socid != $clienteGenerico){
+            $object->fetch_thirdparty();
+            //si el pais es ESPAÑA (ES), el cliente tiene que tener un NIF valido
+            if ($object->thirdparty->country == 'ES' && (empty($object->thirdparty->id) || empty($object->thirdparty->id) || empty($object->thirdparty->id))) {
+                dol_syslog("Verifactu: La factura ID: " . $object->id . " tiene un cliente sin NIF");
+                setEventMessages("ERROR: El cliente de la factura debe tener un NIF válido", null, 'errors');
+                return -1;
+            }
+
+                
+        }
+
+
+
+
+        if ($isRectificativa || $isAbono) {
+            dol_syslog("Verifactu: Detectada validación de factura rectificativa/nota de crédito - ID: " . $object->id);
+            // Para las facturas rectificativas no exigimos que la fecha sea hoy
+        } else {
+            // Para facturas normales, validar que la fecha de factura sea la actual
+            $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+            $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
+
+            if ($invoicedate != $today) {
+                setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
+                dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
+                          dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
+                return -1; // Bloquear validación
+            }
+        }
+
+        // Generar nuevo hash para la factura validada
+        try {
+            dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
+
+
+            if ($isRectificativa || $isAbono) {
+                dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
+                // Para facturas rectificativas, siempre limpiamos los hashes existentes
+                // que podrían haberse copiado de la factura original
+                $this->clearInvoiceHashes($object->id);
+                dol_syslog("Verifactu: Se han limpiado posibles hashes heredados para la factura rectificativa");
+            } else {
+                // Solo para facturas normales verificamos si ya tienen hash
+                $existingHash = $this->getInvoiceHash($object->id);
+                if (!empty($existingHash)) {
+                    dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
+                    setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
+                    return 1; // Ya tiene un hash, no necesitamos continuar
+                }
+            }                    // 1. Obtener el último hash conocido (hash_anterior)
+            $lastHash = $this->getLastInvoiceHash();
+            dol_syslog("Verifactu: Último hash encontrado: " . $lastHash);
+
+            // // Para facturas rectificativas, asegurarse de usar el último hash del sistema
+            // if ($isRectificativa || $isAbono) {
+            //     dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
+            //     if (empty($lastHash)) {
+            //         $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
+            //     }
+            // }
+
+            // 2. Obtener datos de esta factura para generar el nuevo hash
+            $invoiceData = $this->prepareInvoiceDataForHash($object);
+
+            // 3. Generar el nuevo hash
+            $newHash = $this->generateHash($invoiceData, $lastHash);
+            dol_syslog("Verifactu: Nuevo hash generado: " . $newHash);
+
+            // 4. Guardar el nuevo hash, el hash anterior y los datos utilizados para generar el hash en los campos extras
+            $result = $this->saveInvoiceHashes($object->id, $newHash, $lastHash, $invoiceData);
+
+            if ($result) {
+                dol_syslog("Verifactu: Hash guardado correctamente para factura ID: " . $object->id);
+                setEventMessages("Verificación de seguridad aplicada correctamente a la factura", null, 'mesgs');
+
+                // Log detallado para auditoria
+                $logDetails = "Factura: " . $object->ref . ", ID: " . $object->id;
+                $logDetails .= ", Hash: " . $newHash;
+                $logDetails .= ", Hash Anterior: " . $lastHash;
+                $logDetails .= ", Usuario: " . $user->login;
+                $logDetails .= ", Fecha: " . dol_print_date(dol_now(), 'dayhourtext');
+
+                dol_syslog("Verifactu AUDIT: " . $logDetails);
+            } else {
+                dol_syslog("Verifactu: ERROR al guardar hash en factura ID: " . $object->id, LOG_ERR);
+                setEventMessages("Error al aplicar verificación de seguridad a la factura", null, 'errors');
+                return -1; // Indicar error
+            }
+        } catch (Exception $e) {
+            dol_syslog("Verifactu: Excepción al generar hash - " . $e->getMessage(), LOG_ERR);
+            setEventMessages("Error en el proceso de verificación: " . $e->getMessage(), null, 'errors');
+            return -1; // Indicar error
+        }
+
+        dol_syslog("Verifactu: Factura validada correctamente con fecha actual");
+        return 0;
+    }
     private function saveInvoiceHashes($invoiceId, $newHash, $previousHash, $data = null)
     {
         // Convertir los datos a JSON para almacenarlos
@@ -409,94 +531,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_VALIDATE':
-
-                // Verificar si es una factura rectificativa
-                $isRectificativa = ($object->type == 2);
-                $isAbono = ($object->type == 1);
-                $totalFactura = $object->total_ttc;
-
-                if ($isRectificativa || $isAbono) {
-                    dol_syslog("Verifactu: Detectada validación de factura rectificativa/nota de crédito - ID: " . $object->id);
-                    // Para las facturas rectificativas no exigimos que la fecha sea hoy
-                } else {
-                    // Para facturas normales, validar que la fecha de factura sea la actual
-                    $today = dol_mktime(0, 0, 0, date('m'), date('d'), date('Y'));
-                    $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
-
-                    if ($invoicedate != $today) {
-                        setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
-                        dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
-                                  dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
-                        return -1; // Bloquear validación
-                    }
-                }
-
-                // Generar nuevo hash para la factura validada
-                try {
-                    dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
-
-
-                    if ($isRectificativa || $isAbono) {
-                        dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
-                        // Para facturas rectificativas, siempre limpiamos los hashes existentes
-                        // que podrían haberse copiado de la factura original
-                        $this->clearInvoiceHashes($object->id);
-                        dol_syslog("Verifactu: Se han limpiado posibles hashes heredados para la factura rectificativa");
-                    } else {
-                        // Solo para facturas normales verificamos si ya tienen hash
-                        $existingHash = $this->getInvoiceHash($object->id);
-                        if (!empty($existingHash)) {
-                            dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
-                            setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
-                            return 1; // Ya tiene un hash, no necesitamos continuar
-                        }
-                    }                    // 1. Obtener el último hash conocido (hash_anterior)
-                    $lastHash = $this->getLastInvoiceHash();
-                    dol_syslog("Verifactu: Último hash encontrado: " . $lastHash);
-
-                    // // Para facturas rectificativas, asegurarse de usar el último hash del sistema
-                    // if ($isRectificativa || $isAbono) {
-                    //     dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
-                    //     if (empty($lastHash)) {
-                    //         $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
-                    //     }
-                    // }
-
-                    // 2. Obtener datos de esta factura para generar el nuevo hash
-                    $invoiceData = $this->prepareInvoiceDataForHash($object);
-
-                    // 3. Generar el nuevo hash
-                    $newHash = $this->generateHash($invoiceData, $lastHash);
-                    dol_syslog("Verifactu: Nuevo hash generado: " . $newHash);
-
-                    // 4. Guardar el nuevo hash, el hash anterior y los datos utilizados para generar el hash en los campos extras
-                    $result = $this->saveInvoiceHashes($object->id, $newHash, $lastHash, $invoiceData);
-
-                    if ($result) {
-                        dol_syslog("Verifactu: Hash guardado correctamente para factura ID: " . $object->id);
-                        setEventMessages("Verificación de seguridad aplicada correctamente a la factura", null, 'mesgs');
-
-                        // Log detallado para auditoria
-                        $logDetails = "Factura: " . $object->ref . ", ID: " . $object->id;
-                        $logDetails .= ", Hash: " . $newHash;
-                        $logDetails .= ", Hash Anterior: " . $lastHash;
-                        $logDetails .= ", Usuario: " . $user->login;
-                        $logDetails .= ", Fecha: " . dol_print_date(dol_now(), 'dayhourtext');
-
-                        dol_syslog("Verifactu AUDIT: " . $logDetails);
-                    } else {
-                        dol_syslog("Verifactu: ERROR al guardar hash en factura ID: " . $object->id, LOG_ERR);
-                        setEventMessages("Error al aplicar verificación de seguridad a la factura", null, 'errors');
-                        return -1; // Indicar error
-                    }
-                } catch (Exception $e) {
-                    dol_syslog("Verifactu: Excepción al generar hash - " . $e->getMessage(), LOG_ERR);
-                    setEventMessages("Error en el proceso de verificación: " . $e->getMessage(), null, 'errors');
-                    return -1; // Indicar error
-                }
-
-                dol_syslog("Verifactu: Factura validada correctamente con fecha actual");
-                break;
+                return $this->handleBillValidate($object, $user, $langs, $conf);
 
             // Protección adicional para otros eventos que puedan modificar facturas
             case 'BILL_BUILDDOC':
