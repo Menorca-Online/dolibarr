@@ -565,7 +565,7 @@ class modVerifactu extends DolibarrModules
 		global $user;
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_facture_types (
-			id integer AUTO_INCREMENT PRIMARY KEY,
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
 			label varchar(255) NOT NULL,
 			api integer NOT NULL DEFAULT 0
@@ -640,7 +640,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"verifactu_facture_types:label:id" => null
+						"verifactu_facture_types:label:rowid" => null
 					]
 				]),
 				0,                                     // $alwayseditable

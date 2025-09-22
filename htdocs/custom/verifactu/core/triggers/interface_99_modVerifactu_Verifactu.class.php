@@ -183,11 +183,17 @@ class InterfaceVerifactu extends DolibarrTriggers
 		require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 		$verifactuType = new VerifactuFactureType($this->db);
 
+        $tipo = "F2";
 
 		if($TipoFactura) {
-            $tipo = $verifactuType->fetchCommon($TipoFactura);
+            try {
+                $tipoVerifactu = $verifactuType->fetchCommon($TipoFactura);
+                $tipo = $tipoVerifactu->code ?? $tipo;
+            } catch (Exception $e) {
+                $result = 'EXCEPTION';
+            }
+
         }
-		
 		$timestamp = dol_now();
 		$dt = new DateTime('@'.$timestamp);         // crea desde timestamp UTC
 		$dt->setTimezone(new DateTimeZone('Europe/Madrid')); // o la tz que necesites
@@ -241,7 +247,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 			'IDEmisorFactura' => $nif,
 			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
 			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
-			'TipoFactura' => $tipo->code, // Usamos el tipo que corresponde (normal o rectificativa)
+			'TipoFactura' => $tipo,
 			'CuotaTotal' => $object->total_tva,
 			'ImporteTotal' => $object->total_ttc,
 			'Huella' =>  $huellaAnterior,
