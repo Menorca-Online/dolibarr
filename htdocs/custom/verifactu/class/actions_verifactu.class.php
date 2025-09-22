@@ -98,6 +98,7 @@ class ActionsVerifactu
                                         console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
                                     }, 500);
                                 } else {
+                                    console.log("socid:", socid);
                                     // Cliente normal: Factura Estándar (F1)
                                     setTimeout(function() {
                                         $("select[name*=\'options_fk_facture_type\']").val("1").change();
