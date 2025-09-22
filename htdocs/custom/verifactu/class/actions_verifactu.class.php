@@ -77,6 +77,39 @@ class ActionsVerifactu
                     var isExistingInvoice = ' . ($isExistingInvoice ? 'true' : 'false') . ';
                     var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
 
+                    // Lógica de selección automática de tipo de factura basado en cliente
+                    if (isCreating) {
+                        var clienteGenerico = "' . $conf->global->INVOICE_CLIENTE_GENERICO . '";
+                        if (clienteGenerico) {
+                            // Obtener socid de la URL
+                            var urlParams = new URLSearchParams(window.location.search);
+                            var socid = urlParams.get("socid");
+                            
+                            // Si no está en URL, buscar en el formulario
+                            if (!socid) {
+                                socid = $("input[name=\'socid\']").val() || $("select[name=\'socid\']").val();
+                            }
+                            
+                            if (socid) {
+                                if (socid == clienteGenerico) {
+                                    // Cliente genérico: Factura Simplificada (F2)
+                                    setTimeout(function() {
+                                        $("select[name*=\'options_fk_facture_type\']").val("2").change();
+                                        console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
+                                    }, 500);
+                                } else {
+                                    // Cliente normal: Factura Estándar (F1)
+                                    setTimeout(function() {
+                                        $("select[name*=\'options_fk_facture_type\']").val("1").change();
+                                        console.log("Verifactu: Cliente normal detectado, seleccionado tipo F1 (Factura Estándar)");
+                                    }, 500);
+                                }
+                            }
+                        } else {
+                            console.log("Verifactu: INVOICE_CLIENTE_GENERICO no configurado, no se puede seleccionar tipo automáticamente");
+                        }
+                    }
+
                     // Verificar si la factura no está en estado borrador y mostrar alerta
                     if (isExistingInvoice && ' . ($object->status > 0 ? 'true' : 'false') . ') {
                         //alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
@@ -532,48 +565,6 @@ class ActionsVerifactu
 
 		return 0;
 	}
-
-    function formCreate($parameters, &$object, &$action, $hookmanager)
-    {
-        global $langs, $db, $conf;
-
-        //leemos INVOICE_CLIENTE_GENERICO
-        //$item = $formSetup->newItem('INVOICE_CLIENTE_GENERICO');
-        $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO;
-        if ($parameters['currentcontext'] == 'invoicecard') {
-            if (!empty($_REQUEST['socid'])) {
-                if (empty($clienteGenerico)) {
-                    setEventMessages($langs->trans("VerifactuErrorClienteGenericoNoDefinido"), null, 'errors');
-                    return -1;
-                }
-                $socid = (int) $_REQUEST['socid'];
-                if ($socid == $clienteGenerico) {
-                    //es un select, debemos forzar el valor seleccionado a 2 = Factura Simplificada
-                    //es un select que se llama options_fk_facture_type
-                    print '<script type="text/javascript">
-                    $(document).ready(function() {
-                        $("select[name*=\'options_fk_facture_type\']").val("2").change();
-                    });
-                    </script>';
-
-                }else {
-
-                    //es un select, debemos forzar el valor seleccionado a 1 = Factura Normal
-                    //es un select que se llama options_fk_facture_type
-                    print '<script type="text/javascript">
-                    $(document).ready(function() {
-                        $("select[name*=\'options_fk_facture_type\']").val("1").change();
-                    });
-                    </script>';
-                }
-
-
-            }
-        }
-
-        return 0;
-    }
-
 
     /**
      * Hook para interceptar antes de guardar cambios en factura

@@ -148,6 +148,8 @@ $item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
 $item->cssClass = 'minwidth500';
 $item->helpText ='Ruta completa al certificado digital en formato PEM.';
 
+
+
 $arrayofcustomers = array();
 $sql = "SELECT rowid, nom FROM ".MAIN_DB_PREFIX."societe WHERE client = 1 AND entity = ".$conf->entity." ORDER BY nom";
 $result = $db->query($sql);
