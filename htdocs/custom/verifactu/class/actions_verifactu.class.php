@@ -98,11 +98,13 @@ class ActionsVerifactu
                                         console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
                                     }, 500);
                                 } else {
-                                    console.log("socid:", socid);
-                                    // Cliente normal: Factura Estándar (F1)
+
                                     setTimeout(function() {
-                                        $("select[name*=\'options_fk_facture_type\']").val("1").change();
-                                        console.log("Verifactu: Cliente normal detectado, seleccionado tipo F1 (Factura Estándar)");
+                                        if (socid == -1) {  
+                                            $("select[name*=\'options_fk_facture_type\']").val("").change();
+                                        }else{
+                                            $("select[name*=\'options_fk_facture_type\']").val("1").change();
+                                        }
                                     }, 500);
                                 }
                             } else {
