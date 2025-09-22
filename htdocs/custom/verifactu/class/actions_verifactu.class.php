@@ -104,9 +104,19 @@ class ActionsVerifactu
                                         console.log("Verifactu: Cliente normal detectado, seleccionado tipo F1 (Factura Estándar)");
                                     }, 500);
                                 }
+                            } else {
+                                // No hay cliente seleccionado: dejar el campo desmarcado
+                                setTimeout(function() {
+                                    $("select[name*=\'options_fk_facture_type\']").val("").change();
+                                    console.log("Verifactu: No hay cliente seleccionado, campo de tipo de factura dejado desmarcado");
+                                }, 500);
                             }
                         } else {
-                            console.log("Verifactu: INVOICE_CLIENTE_GENERICO no configurado, no se puede seleccionar tipo automáticamente");
+                            // No hay cliente genérico configurado: dejar el campo desmarcado
+                            setTimeout(function() {
+                                $("select[name*=\'options_fk_facture_type\']").val("").change();
+                                console.log("Verifactu: INVOICE_CLIENTE_GENERICO no configurado, campo de tipo de factura dejado desmarcado");
+                            }, 500);
                         }
                     }
 
