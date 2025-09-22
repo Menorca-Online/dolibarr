@@ -533,7 +533,46 @@ class ActionsVerifactu
 		return 0;
 	}
 
+    function formCreate($parameters, &$object, &$action, $hookmanager)
+    {
+        global $langs, $db, $conf;
 
+        //leemos INVOICE_CLIENTE_GENERICO
+        //$item = $formSetup->newItem('INVOICE_CLIENTE_GENERICO');
+        $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO;
+        if ($parameters['currentcontext'] == 'invoicecard') {
+            if (!empty($_REQUEST['socid'])) {
+                if (empty($clienteGenerico)) {
+                    setEventMessages($langs->trans("VerifactuErrorClienteGenericoNoDefinido"), null, 'errors');
+                    return -1;
+                }
+                $socid = (int) $_REQUEST['socid'];
+                if ($socid == $clienteGenerico) {
+                    //es un select, debemos forzar el valor seleccionado a 2 = Factura Simplificada
+                    //es un select que se llama options_fk_facture_type
+                    print '<script type="text/javascript">
+                    $(document).ready(function() {
+                        $("select[name*=\'options_fk_facture_type\']").val("2").change();
+                    });
+                    </script>';
+
+                }else {
+
+                    //es un select, debemos forzar el valor seleccionado a 1 = Factura Normal
+                    //es un select que se llama options_fk_facture_type
+                    print '<script type="text/javascript">
+                    $(document).ready(function() {
+                        $("select[name*=\'options_fk_facture_type\']").val("1").change();
+                    });
+                    </script>';
+                }
+
+
+            }
+        }
+
+        return 0;
+    }
 
 
     /**
