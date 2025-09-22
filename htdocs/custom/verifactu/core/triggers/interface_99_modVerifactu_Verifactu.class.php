@@ -281,9 +281,9 @@ class InterfaceVerifactu extends DolibarrTriggers
                 $data['TipoFactura'] .
                 $data['ImporteTotal'] .
                 $data['CuotaTotal'] .
+                $data['FechaHoraHusoGenRegistro'] .
                 ($previousHash ?? '');
 
-            // Calcular SHA256 en minúsculas
             return hash('sha256', $stringToHash);
         }
 
