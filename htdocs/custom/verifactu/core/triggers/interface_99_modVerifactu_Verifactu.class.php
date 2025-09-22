@@ -271,17 +271,21 @@ class InterfaceVerifactu extends DolibarrTriggers
      * @param string $previousHash Hash de la factura anterior
      * @return string Nuevo hash generado
      */
-    private function generateHash($data, $previousHash)
-    {
-        // Convertir los datos a JSON y normalizar
-        $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
+        private function generateHash(array $data, ?string $previousHash = '')
+        {
+            // Concatenar los campos según especificación VeriFactu
+            $stringToHash =
+                $data['IDEmisorFactura'] .
+                $data['NumSerieFactura'] .
+                $data['FechaExpedicionFactura'] .
+                $data['TipoFactura'] .
+                $data['ImporteTotal'] .
+                $data['CuotaTotal'] .
+                ($previousHash ?? '');
 
-        $dataToHash = $jsonData;
-
-        $newHash = hash('sha256', $dataToHash);
-
-        return $newHash;
-    }
+            // Calcular SHA256 en minúsculas
+            return hash('sha256', $stringToHash);
+        }
 
     /**
      * Maneja la validación de facturas según normativa Verifactu
