@@ -92,20 +92,21 @@ class ActionsVerifactu
                             
                             if (socid) {
                                 if (socid == clienteGenerico) {
-                                    // Cliente genérico: Factura Simplificada (F2)
-                                    setTimeout(function() {
-                                        $("select[name*=\'options_fk_facture_type\']").val("2").change();
-                                        console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
-                                    }, 500);
+                                    $("select[name*=\'options_fk_facture_type\']").val("2").change();
+                                    // // Cliente genérico: Factura Simplificada (F2)
+                                    // setTimeout(function() {
+                                    //     $("select[name*=\'options_fk_facture_type\']").val("2").change();
+                                    //     console.log("Verifactu: Cliente genérico detectado, seleccionado tipo F2 (Factura Simplificada)");
+                                    // }, 500);
                                 } else {
 
-                                    setTimeout(function() {
+                                    // setTimeout(function() {
                                         if (socid == -1) {  
                                             $("select[name*=\'options_fk_facture_type\']").val("").change();
                                         }else{
                                             $("select[name*=\'options_fk_facture_type\']").val("1").change();
                                         }
-                                    }, 500);
+                                    // }, 500);
                                 }
                             } else {
                                 // No hay cliente seleccionado: dejar el campo desmarcado
