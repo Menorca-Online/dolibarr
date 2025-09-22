@@ -406,10 +406,12 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_VALIDATE':
+                var_dump($object->type);
                 // Verificar si es una factura rectificativa
                 $isRectificativa = ($object->type == 2);
+                $isAbono = ($object->type == 1);
 
-                if ($isRectificativa) {
+                if ($isRectificativa || $isAbono) {
                     dol_syslog("Verifactu: Detectada validación de factura rectificativa/nota de crédito - ID: " . $object->id);
                     // Para las facturas rectificativas no exigimos que la fecha sea hoy
                 } else {
@@ -429,10 +431,8 @@ class InterfaceVerifactu extends DolibarrTriggers
                 try {
                     dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
 
-                    // Comprobar si es una factura rectificativa (tipo = 2) o una nota de crédito
-                    $isRectificativa = ($object->type == 2);
 
-                    if ($isRectificativa) {
+                    if ($isRectificativa || $isAbono) {
                         dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
                         // Para facturas rectificativas, siempre limpiamos los hashes existentes
                         // que podrían haberse copiado de la factura original
@@ -450,13 +450,13 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $lastHash = $this->getLastInvoiceHash();
                     dol_syslog("Verifactu: Último hash encontrado: " . $lastHash);
 
-                    // Para facturas rectificativas, asegurarse de usar el último hash del sistema
-                    if ($isRectificativa) {
-                        dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
-                        if (empty($lastHash)) {
-                            $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
-                        }
-                    }
+                    // // Para facturas rectificativas, asegurarse de usar el último hash del sistema
+                    // if ($isRectificativa || $isAbono) {
+                    //     dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
+                    //     if (empty($lastHash)) {
+                    //         $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
+                    //     }
+                    // }
 
                     // 2. Obtener datos de esta factura para generar el nuevo hash
                     $invoiceData = $this->prepareInvoiceDataForHash($object);
