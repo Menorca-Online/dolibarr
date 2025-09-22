@@ -220,31 +220,14 @@ class InterfaceVerifactu extends DolibarrTriggers
 			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
 		}
 
-		// Determinar tipo de documento para el hash
-		$tipoDocumento = $tipo;
 
-		// Para facturas rectificativas, modificamos el tipo de documento
-		if ($object->type == 2) {
-		    // Aquí podemos usar un tipo específico para facturas rectificativas
-		    // Por ejemplo, si F1 es factura estándar, podríamos usar R1 para rectificativas
-		    $tipoDocumento = 'R1'; // R para Rectificativa
-
-		    // O si tenemos un tipo específico en la configuración
-		    if ($tipo == 'F1') {
-		        $tipoDocumento = 'R1';
-		    } elseif ($tipo == 'F2') {
-		        $tipoDocumento = 'R2';
-		    }
-
-		    dol_syslog("Verifactu: Usando tipo especial para factura rectificativa: " . $tipoDocumento);
-		}
 
 		// Preparar datos según especificaciones Verifactu
 		$data = array(
 			'IDEmisorFactura' => $nif,
 			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
 			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
-			'TipoFactura' => $tipoDocumento, // Usamos el tipo que corresponde (normal o rectificativa)
+			'TipoFactura' => $tipo, // Usamos el tipo que corresponde (normal o rectificativa)
 			'CuotaTotal' => $object->total_tva,
 			'ImporteTotal' => $object->total_ttc,
 			'Huella' =>  $huellaAnterior,
@@ -410,6 +393,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 // Verificar si es una factura rectificativa
                 $isRectificativa = ($object->type == 2);
                 $isAbono = ($object->type == 1);
+                $totalFactura = $object->total_ttc;
 
                 if ($isRectificativa || $isAbono) {
                     dol_syslog("Verifactu: Detectada validación de factura rectificativa/nota de crédito - ID: " . $object->id);
