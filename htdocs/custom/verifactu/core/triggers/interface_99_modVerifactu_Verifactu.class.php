@@ -336,7 +336,7 @@ class InterfaceVerifactu extends DolibarrTriggers
             $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
 
             if ($invoicedate != $today) {
-                setEventMessages($langs->trans('VerifactuErrorFechaDebeSerHoy'), null, 'errors');
+                setEventMessages("La fecha de la factura debe ser la fecha actual según normativa Verifactu", null, 'errors');
                 dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
                           dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
                 return -1; // Bloquear validación
