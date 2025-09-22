@@ -266,6 +266,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 
     /**
      * Genera un nuevo hash basado en los datos de la factura y el hash anterior
+     * REVISAR CON VERFICATU C# SI ESTA BIEN GENERADO O NO, ALLI LOS CONCATENABAN CON & COMO URL
      *
      * @param array $data Datos de la factura
      * @param string $previousHash Hash de la factura anterior
