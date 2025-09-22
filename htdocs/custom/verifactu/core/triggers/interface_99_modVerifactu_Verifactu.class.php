@@ -307,8 +307,10 @@ class InterfaceVerifactu extends DolibarrTriggers
 
         //regla para facturas simplificadas
         if (abs($totalFactura) >= $maxAmountSimplificadas && $object->socid == $clienteGenerico) {
+            $errorMsg = "ADVERTENCIA: La factura excede el límite de cantidad simplificada";
             dol_syslog("Verifactu: La factura ID: " . $object->id . " excede el límite de cantidad simplificada para el cliente Genérico");
-            setEventMessages("ADVERTENCIA: La factura excede el límite de cantidad simplificada", null, 'warnings');
+            setEventMessages($errorMsg, null, 'warnings');
+            $object->error = $errorMsg;
             return -1;
         }
         //regla para facturas nominativas, el cliente no es generico
@@ -316,8 +318,10 @@ class InterfaceVerifactu extends DolibarrTriggers
             $object->fetch_thirdparty();
             //si el pais es ESPAÑA (ES), el cliente tiene que tener un NIF valido
             if ($object->thirdparty->country == 'ES' && (empty($object->thirdparty->id) || empty($object->thirdparty->id) || empty($object->thirdparty->id))) {
+                $errorMsg = "ERROR: El cliente de la factura debe tener un NIF válido";
                 dol_syslog("Verifactu: La factura ID: " . $object->id . " tiene un cliente sin NIF");
-                setEventMessages("ERROR: El cliente de la factura debe tener un NIF válido", null, 'errors');
+                setEventMessages($errorMsg, null, 'errors');
+                $object->error = $errorMsg;
                 return -1;
             }
 
@@ -336,7 +340,9 @@ class InterfaceVerifactu extends DolibarrTriggers
             $invoicedate = dol_mktime(0, 0, 0, date('m', $object->date), date('d', $object->date), date('Y', $object->date));
 
             if ($invoicedate != $today) {
-                setEventMessages("La fecha de la factura debe ser la fecha actual según normativa Verifactu", null, 'errors');
+                $errorMsg = "La fecha de la factura debe ser la fecha actual según normativa Verifactu";
+                setEventMessages($errorMsg, null, 'errors');
+                $object->error = $errorMsg;
                 dol_syslog("Verifactu: Validación bloqueada - fecha incorrecta. Esperada: " .
                           dol_print_date($today) . ", Actual: " . dol_print_date($invoicedate));
                 return -1; // Bloquear validación
@@ -399,11 +405,13 @@ class InterfaceVerifactu extends DolibarrTriggers
             } else {
                 dol_syslog("Verifactu: ERROR al guardar hash en factura ID: " . $object->id, LOG_ERR);
                 setEventMessages("Error al aplicar verificación de seguridad a la factura", null, 'errors');
+                $object->error = "Error al aplicar verificación de seguridad a la factura";
                 return -1; // Indicar error
             }
         } catch (Exception $e) {
             dol_syslog("Verifactu: Excepción al generar hash - " . $e->getMessage(), LOG_ERR);
             setEventMessages("Error en el proceso de verificación: " . $e->getMessage(), null, 'errors');
+            $object->error = "Error en el proceso de verificación: " . $e->getMessage();
             return -1; // Indicar error
         }
 
