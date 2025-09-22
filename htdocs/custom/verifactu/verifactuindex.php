@@ -417,10 +417,11 @@ if ($resql) {
         print '<td class="center">';
         if (!empty($obj->hash_anterior)) {
             // Obtener el hash de la factura anterior para validar
+            // En Verifactu, el hash_anterior debe ser el hash de la factura inmediatamente anterior
             $sql_prev = "SELECT ef.hash FROM ".MAIN_DB_PREFIX."facture f
                         LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
-                        WHERE f.datef < '".$obj->datef."' AND f.fk_statut > 0 AND f.entity IN (".getEntity('invoice').")
-                        ORDER BY f.datef DESC LIMIT 1";
+                        WHERE f.rowid < ".$obj->rowid." AND f.fk_statut > 0 AND f.entity IN (".getEntity('invoice').")
+                        ORDER BY f.rowid DESC LIMIT 1";
             $res_prev = $db->query($sql_prev);
             $hash_prev = null;
             if ($res_prev && $db->num_rows($res_prev) > 0) {
@@ -433,7 +434,9 @@ if ($resql) {
             $color = $is_valid ? 'green' : 'red';
             print '<span style="font-family: monospace; font-size: 11px; color: '.$color.';">'.$obj->hash_anterior.'</span>';
             if (!$is_valid) {
-                print '<br><small style="color: red;">⚠ No coincide</small>';
+                // Debug temporal
+                $debug_info = "Factura: ".$obj->ref." | Hash anterior: '".trim($obj->hash_anterior)."' | Hash prev: '".trim($hash_prev)."' | Longitud ant: ".strlen($obj->hash_anterior)." | Longitud prev: ".strlen($hash_prev);
+                print '<br><small style="color: red; font-size: 9px;" title="'.$debug_info.'">⚠ No coincide</small>';
             }
         } else {
             print '<span class="badge badge-secondary">Sin Hash Anterior</span>';
