@@ -476,4 +476,6 @@ class VerifactuXML
         $element->appendChild($dom->createTextNode($value));
         $parent->appendChild($element);
     }
+
+    
 }

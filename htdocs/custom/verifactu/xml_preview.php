@@ -103,13 +103,40 @@ try {
 
 // Download action
 if ($action == 'download' && !empty($xml_content)) {
-	$filename = 'verifactu_' . $object->ref . '_' . date('Y-m-d_H-i-s') . '.xml';
+        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: RegFactuSistemaFacturacion"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_content);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+ 
+        curl_setopt($ch, CURLOPT_SSLCERT, '/var/www/html/documents/verifactu/certs/cert.pem');
+        curl_setopt($ch, CURLOPT_SSLKEY, '/var/www/html/documents/verifactu/certs/key.pem');
+ 
+        // Debug si quieres ver errores SSL
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+ 
+        $response = curl_exec($ch);
+        if ($response === false) {
+			var_dump(curl_error($ch));
+			die();
+        } else {
+			var_dump($response);
+			die();
+        }
+ 
+        curl_close($ch);
 
-	header('Content-Type: application/xml');
-	header('Content-Disposition: attachment; filename="' . $filename . '"');
-	header('Content-Length: ' . strlen($xml_content));
+	// $filename = 'verifactu_' . $object->ref . '_' . date('Y-m-d_H-i-s') . '.xml';
 
-	echo $xml_content;
+	// header('Content-Type: application/xml');
+	// header('Content-Disposition: attachment; filename="' . $filename . '"');
+	// header('Content-Length: ' . strlen($xml_content));
+
+	// echo $xml_content;
 	exit;
 }
 

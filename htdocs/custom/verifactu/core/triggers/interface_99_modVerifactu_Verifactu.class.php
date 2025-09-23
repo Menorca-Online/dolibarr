@@ -260,10 +260,10 @@ class InterfaceVerifactu extends DolibarrTriggers
 		$data = array(
 			'IDEmisorFactura' => $nif,
 			'NumSerieFactura' => $numFactura, // Usamos el número definitivo
-			'FechaExpedicionFactura' => date('Y-m-d', $object->date),
+			'FechaExpedicionFactura' => date('d-m-Y', $object->date),
 			'TipoFactura' => $tipo,
-			'CuotaTotal' => $object->total_tva,
-			'ImporteTotal' => $object->total_ttc,
+			'CuotaTotal' => number_format($object->total_tva, 2, '.', ''),
+			'ImporteTotal' => number_format($object->total_ttc, 2, '.', ''),
 			'Huella' =>  $huellaAnterior,
 			'FechaHoraHusoGenRegistro' => $fechaHora,
 		);
