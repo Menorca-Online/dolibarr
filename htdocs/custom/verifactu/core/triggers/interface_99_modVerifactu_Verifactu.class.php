@@ -184,30 +184,29 @@ class InterfaceVerifactu extends DolibarrTriggers
 		// 7.º Huella del registro de facturación anterior.
 		// 8.º Fecha, hora y huso horario de generación del registro.
 		// el tipo factura es el fk_facture_type  llx_verifactu_facture_types
-		$TipoFactura = $object->array_options['options_fk_facture_type'] ?? null;
+
+
 
 		require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 		require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
-		$verifactuType = new VerifactuFactureType($this->db);
 
+
+
+        $tipoId = $object->array_options['options_fk_facture_type'] ?? null;
         $tipo = "F2";
-
-		if($TipoFactura) {
-            try {
-                $tipoVerifactu = $verifactuType->fetchCommon($TipoFactura);
-                $tipo = $tipoVerifactu->code ?? $tipo;
-            } catch (Exception $e) {
-                // Log the exception
-                dol_syslog("Verifactu: Error fetching facture type: " . $e->getMessage(), LOG_ERR);
+        if ($tipoId) {
+            $verifactuType = new VerifactuFactureType($this->db);
+            if ($verifactuType->fetchCommon($tipoId) > 0) {
+                $tipo = $verifactuType->code;
             }
         }
+
+
 		$timestamp = dol_now();
 		$dt = new DateTime('@'.$timestamp);         // crea desde timestamp UTC
 		$dt->setTimezone(new DateTimeZone('Europe/Madrid')); // o la tz que necesites
 		$fechaHora = $dt->format('Y-m-d\TH:i:sP'); // 2025-09-19T10:29:58+02:00
 		$huellaAnterior = $this->getLastInvoiceHash();
-
-		// Obtener información del emisor (empresa)
 
 		global $conf;
 
@@ -248,7 +247,6 @@ class InterfaceVerifactu extends DolibarrTriggers
 			}
 		}
 
-		// Si todavía tenemos un número provisional, generar un mensaje de advertencia
 		if (preg_match('/^\(PROV/i', $numFactura)) {
 			dol_syslog("Verifactu ADVERTENCIA: No se pudo obtener el número definitivo de factura. Usando: " . $numFactura, LOG_WARNING);
 			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
@@ -268,7 +266,6 @@ class InterfaceVerifactu extends DolibarrTriggers
 			'FechaHoraHusoGenRegistro' => $fechaHora,
 		);
 
-        // Devolver los datos preparados para la generación del hash
         return $data;
     }
 
