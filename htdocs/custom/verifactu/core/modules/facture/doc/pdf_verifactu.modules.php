@@ -304,6 +304,11 @@ class pdf_crabe_verifactu extends pdf_crabe
 		// Llamar a la cabecera original
 		$result = parent::_pagehead($pdf, $object, $showaddress, $outputlangs, $outputlangsbis, $titlekey);
 		
+		// Mejorar el área del emisor para mostrar el CIF
+		if ($showaddress) {
+			$this->enhanceSenderArea($pdf, $object, $outputlangs);
+		}
+		
 		// Para factura simplificada, sobrescribir el área del destinatario
 		if ($isFacturaSimplificada) {
 			$this->overrideRecipientArea($pdf, $outputlangs);
@@ -315,6 +320,88 @@ class pdf_crabe_verifactu extends pdf_crabe
 		}
 		
 		return $result;
+	}
+
+	/**
+	 * Mejorar el área del emisor para asegurar que se muestre el CIF
+	 */
+	private function enhanceSenderArea(&$pdf, $object, $outputlangs)
+	{
+		global $conf;
+		
+		$default_font_size = pdf_getPDFFontSize($outputlangs);
+		
+		// Calcular posición del área del emisor (igual que en pdf_crabe)
+		$top_shift = 0; // Ajustar si hay objetos enlazados
+		$posy = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 40 : 42;
+		$posy += $top_shift;
+		$posx = $this->marge_gauche;
+		if (getDolGlobalString('MAIN_INVERT_SENDER_RECIPIENT')) {
+			$posx = $this->page_largeur - $this->marge_droite - 80;
+		}
+		
+		$hautcadre = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 38 : 40;
+		$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 82;
+		
+		// Construir información del emisor con CIF explícito
+		$carac_emetteur_enhanced = '';
+		
+		// Agregar CIF/NIF si existe
+		if (!empty($this->emetteur->idprof1)) {
+			$carac_emetteur_enhanced .= 'CIF: ' . $this->emetteur->idprof1 . "\n";
+		}
+		
+		// Agregar dirección
+		if (!empty($this->emetteur->address)) {
+			$carac_emetteur_enhanced .= $this->emetteur->address . "\n";
+		}
+		
+		// Agregar código postal y ciudad
+		$cp_ciudad = '';
+		if (!empty($this->emetteur->zip)) {
+			$cp_ciudad .= $this->emetteur->zip;
+		}
+		if (!empty($this->emetteur->town)) {
+			$cp_ciudad .= ($cp_ciudad ? ' ' : '') . $this->emetteur->town;
+		}
+		if ($cp_ciudad) {
+			$carac_emetteur_enhanced .= $cp_ciudad . "\n";
+		}
+		
+		// Agregar país si no es España
+		if (!empty($this->emetteur->country_code) && $this->emetteur->country_code != 'ES') {
+			$carac_emetteur_enhanced .= $this->emetteur->country_code . "\n";
+		}
+		
+		// Limpiar el área del emisor existente
+		$pdf->SetFillColor(255, 255, 255);
+		$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'F');
+		
+		// Redibujar el marco del emisor
+		if (!getDolGlobalString('MAIN_PDF_NO_SENDER_FRAME')) {
+			$pdf->SetTextColor(0, 0, 0);
+			$pdf->SetFont('', '', $default_font_size - 2);
+			$pdf->SetXY($posx, $posy - 5);
+			$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("BillFrom"), 0, 'L');
+			$pdf->SetXY($posx, $posy);
+			$pdf->SetFillColor(230, 230, 230);
+			$pdf->RoundedRect($posx, $posy, $widthrecbox, $hautcadre, $this->corner_radius, '1234', 'F');
+			$pdf->SetTextColor(0, 0, 60);
+		}
+		
+		// Mostrar nombre del emisor
+		if (!getDolGlobalString('MAIN_PDF_HIDE_SENDER_NAME')) {
+			$pdf->SetXY($posx + 2, $posy + 3);
+			$pdf->SetFont('', 'B', $default_font_size);
+			$pdf->MultiCell($widthrecbox - 2, 4, $outputlangs->convToOutputCharset($this->emetteur->name), 0, 'L');
+			$posy = $pdf->getY();
+		}
+		
+		// Mostrar información mejorada del emisor (con CIF)
+		$pdf->SetXY($posx + 2, $posy);
+		$pdf->SetFont('', '', $default_font_size - 1);
+		$pdf->SetTextColor(0, 0, 0);
+		$pdf->MultiCell($widthrecbox - 2, 4, $carac_emetteur_enhanced, 0, 'L');
 	}
 
 	/**
