@@ -392,6 +392,24 @@ class modVerifactu extends DolibarrModules
 		*/
 		/* END MODULEBUILDER LEFTMENU MYOBJECT */
 
+		// Agregar menú para enlace directo a la AEAT
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Consultar AEAT',
+			'prefix' => img_picto('', 'globe', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_aeat_consulta',
+			'url' => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			#'url' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '1', // Accesible para todos los usuarios con acceso al módulo
+			'target' => '_blank', // Abrir en nueva ventana
+			'user' => 2, // Para usuarios internos y externos
+		);
+
 
 		// Exports profiles provided by this module
 		$r = 0;
@@ -556,8 +574,11 @@ class modVerifactu extends DolibarrModules
 	 */
 	public function remove($options = '')
 	{
-		$this->_remove_maestros();
-		$this->_remove_extra_fields();
+
+		//COMENTAMOS DE MOMENTO PARA NO PERDER LOS HASHES.
+		//$this->_remove_maestros();
+		//$this->_remove_extra_fields();
+
 		$this->_remove_pdf_template(); // Eliminar plantilla PDF
 		$sql = array();
 		return $this->_remove($sql, $options);
@@ -590,13 +611,25 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		//instertamos un hash vacio 00000000000000000000000000000000000000000000000000000000000000
-		$sql = "INSERT INTO " . MAIN_DB_PREFIX . "verifactu_last_hash (hash) VALUES ('00000000000000000000000000000000000000000000000000000000000000')";
+		//MIRAR PRIMERO SI HAY REGISTROS, SI HAY NO HACER NADA
+		$sql = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "verifactu_last_hash";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
 			return -1;
-		}	
+		}
+		$obj = $this->db->fetch_row($resql);
+		if ($obj[0] == 0) {
+			//instertamos un hash vacio 00000000000000000000000000000000000000000000000000000000000000
+			$sql = "INSERT INTO " . MAIN_DB_PREFIX . "verifactu_last_hash (hash) VALUES ('00000000000000000000000000000000000000000000000000000000000000')";
+			$resql = $this->db->query($sql);
+			if (! $resql) {
+				dol_print_error($this->db);
+				return -1;
+			}	
+		}
+
+		
 
 		$types = array(
 			array('code' => 'F1', 'label' => 'F1 - Factura Estandar', 'api' => 1),

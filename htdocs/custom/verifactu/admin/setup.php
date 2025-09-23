@@ -253,12 +253,96 @@ if ($tmpobjectkey && !array_key_exists($tmpobjectkey, $myTmpObjects)) {
  * Actions
  */
 
+// Crear carpetas necesarias para Verifactu
+$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
+$outbox_dir = $verifactu_dir.'/OUTBOX';
+$inbox_dir = $verifactu_dir.'/INBOX';
+
+// Crear directorio principal de verifactu si no existe
+if (!is_dir($verifactu_dir)) {
+	if (dol_mkdir($verifactu_dir) < 0) {
+		setEventMessages('Error creando directorio '.$verifactu_dir, null, 'errors');
+	} else {
+		setEventMessages('Directorio '.$verifactu_dir.' creado correctamente', null, 'mesgs');
+	}
+}
+
+// Crear directorio OUTBOX si no existe
+if (!is_dir($outbox_dir)) {
+	if (dol_mkdir($outbox_dir) < 0) {
+		setEventMessages('Error creando directorio OUTBOX: '.$outbox_dir, null, 'errors');
+	} else {
+		setEventMessages('Directorio OUTBOX creado correctamente: '.$outbox_dir, null, 'mesgs');
+	}
+}
+
+// Crear directorio INBOX si no existe
+if (!is_dir($inbox_dir)) {
+	if (dol_mkdir($inbox_dir) < 0) {
+		setEventMessages('Error creando directorio INBOX: '.$inbox_dir, null, 'errors');
+	} else {
+		setEventMessages('Directorio INBOX creado correctamente: '.$inbox_dir, null, 'mesgs');
+	}
+}
+
 // For retrocompatibility Dolibarr < 15.0
 if (versioncompare(explode('.', DOL_VERSION), array(15)) < 0 && $action == 'update' && !empty($user->admin)) {
 	$formSetup->saveConfFromPost();
 }
 
 include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
+
+// Acción para crear carpetas manualmente
+if ($action == 'create_folders') {
+	$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
+	$outbox_dir = $verifactu_dir.'/OUTBOX';
+	$inbox_dir = $verifactu_dir.'/INBOX';
+	
+	$errors = 0;
+	$messages = array();
+	
+	// Crear directorio principal
+	if (!is_dir($verifactu_dir)) {
+		if (dol_mkdir($verifactu_dir) < 0) {
+			$errors++;
+			$messages[] = 'Error creando directorio principal: '.$verifactu_dir;
+		} else {
+			$messages[] = 'Directorio principal creado: '.$verifactu_dir;
+		}
+	} else {
+		$messages[] = 'Directorio principal ya existe: '.$verifactu_dir;
+	}
+	
+	// Crear OUTBOX
+	if (!is_dir($outbox_dir)) {
+		if (dol_mkdir($outbox_dir) < 0) {
+			$errors++;
+			$messages[] = 'Error creando OUTBOX: '.$outbox_dir;
+		} else {
+			$messages[] = 'Directorio OUTBOX creado: '.$outbox_dir;
+		}
+	} else {
+		$messages[] = 'Directorio OUTBOX ya existe: '.$outbox_dir;
+	}
+	
+	// Crear INBOX
+	if (!is_dir($inbox_dir)) {
+		if (dol_mkdir($inbox_dir) < 0) {
+			$errors++;
+			$messages[] = 'Error creando INBOX: '.$inbox_dir;
+		} else {
+			$messages[] = 'Directorio INBOX creado: '.$inbox_dir;
+		}
+	} else {
+		$messages[] = 'Directorio INBOX ya existe: '.$inbox_dir;
+	}
+	
+	if ($errors > 0) {
+		setEventMessages($messages, null, 'errors');
+	} else {
+		setEventMessages($messages, null, 'mesgs');
+	}
+}
 
 if ($action == 'updateMask') {
 	$maskconst = GETPOST('maskconst', 'aZ09');
@@ -398,6 +482,51 @@ if (!empty($formSetup->items)) {
 	print $formSetup->generateOutput(true);
 	print '<br>';
 }
+
+// Sección de gestión de carpetas Verifactu
+print load_fiche_titre($langs->trans("VerifactuFolders"), '', '');
+
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<th>'.$langs->trans("Folder").'</th>';
+print '<th>'.$langs->trans("Path").'</th>';
+print '<th class="center">'.$langs->trans("Status").'</th>';
+print '</tr>';
+
+$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
+$outbox_dir = $verifactu_dir.'/OUTBOX';
+$inbox_dir = $verifactu_dir.'/INBOX';
+
+// Mostrar estado de las carpetas
+$folders = array(
+	'Verifactu' => $verifactu_dir,
+	'OUTBOX' => $outbox_dir,
+	'INBOX' => $inbox_dir
+);
+
+foreach ($folders as $name => $path) {
+	print '<tr class="oddeven">';
+	print '<td>'.$name.'</td>';
+	print '<td><code>'.$path.'</code></td>';
+	print '<td class="center">';
+	if (is_dir($path)) {
+		print '<span class="badge badge-status4 badge-status">'.$langs->trans("Exists").'</span>';
+	} else {
+		print '<span class="badge badge-status8 badge-status">'.$langs->trans("NotExists").'</span>';
+	}
+	print '</td>';
+	print '</tr>';
+}
+
+print '</table>';
+print '</div>';
+
+// Botón para crear carpetas
+print '<div class="tabsAction">';
+print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=create_folders&token='.newToken().'">'.$langs->trans("CreateFolders").'</a>';
+print '</div>';
+print '<br>';
 
 
 foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
