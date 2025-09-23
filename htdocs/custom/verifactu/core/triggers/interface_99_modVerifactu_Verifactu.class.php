@@ -126,20 +126,32 @@ class InterfaceVerifactu extends DolibarrTriggers
 
     private function getLastInvoiceHash()
     {
-        // Buscar la última factura con hash en orden descendente
-        $sql = "SELECT f.hash FROM " . MAIN_DB_PREFIX . "facture_extrafields f";
-        $sql .= " WHERE f.hash IS NOT NULL AND f.hash != '1'";
-        $sql .= " ORDER BY f.fk_object DESC"; // Ordenar por ID de factura descendente (más reciente)
-        $sql .= " LIMIT 1";
-
+        // Leer el último hash de la tabla dedicada
+        $sql = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_last_hash ORDER BY rowid DESC LIMIT 1";
         $result = $this->db->query($sql);
         if ($result && $this->db->num_rows($result) > 0) {
             $obj = $this->db->fetch_object($result);
+            $this->db->free($result);
+            if ($obj->hash == '00000000000000000000000000000000000000000000000000000000000000') return "";
             return $obj->hash;
         }
 
-        // Si no hay facturas previas, devolver un valor inicial (64 ceros = hash SHA-256 inicial)
+        // Si no hay registros, devolver cadena vacía (se inicializará con el primer hash)
         return "";
+    }
+
+    /**
+     * Actualiza el último hash en la tabla dedicada
+     *
+     * @param string $newHash Nuevo hash a almacenar
+     * @return bool True si se actualizó correctamente
+     */
+    private function updateLastHash($newHash)
+    {
+        // Actualizar el registro más reciente (asumiendo tabla con un solo registro activo)
+        $sql = "UPDATE " . MAIN_DB_PREFIX . "verifactu_last_hash SET hash = '" . $this->db->escape($newHash) . "' ORDER BY rowid DESC LIMIT 1";
+        $result = $this->db->query($sql);
+        return ($result ? true : false);
     }
 
     /**
@@ -363,6 +375,8 @@ class InterfaceVerifactu extends DolibarrTriggers
         try {
             dol_syslog("Verifactu: Iniciando proceso de generación de hash para factura ID: " . $object->id . ", tipo: " . $object->type);
 
+            // Iniciar transacción para asegurar atomicidad
+            $this->db->begin();
 
             if ($isRectificativa || $isAbono) {
                 dol_syslog("Verifactu: Factura ID: " . $object->id . " es una factura rectificativa o nota de crédito");
@@ -376,19 +390,14 @@ class InterfaceVerifactu extends DolibarrTriggers
                 if (!empty($existingHash)) {
                     dol_syslog("Verifactu: La factura ID: " . $object->id . " ya tiene un hash: " . $existingHash);
                     setEventMessages("Esta factura ya tiene un hash de verificación", null, 'warnings');
+                    $this->db->rollback();
                     return 1; // Ya tiene un hash, no necesitamos continuar
                 }
-            }                    // 1. Obtener el último hash conocido (hash_anterior)
+            }
+
+            // 1. Obtener el último hash conocido (hash_anterior) - OPERACIÓN ATÓMICA
             $lastHash = $this->getLastInvoiceHash();
             dol_syslog("Verifactu: Último hash encontrado: " . $lastHash);
-
-            // // Para facturas rectificativas, asegurarse de usar el último hash del sistema
-            // if ($isRectificativa || $isAbono) {
-            //     dol_syslog("Verifactu: Asegurando la cadena de hashes correcta para factura rectificativa");
-            //     if (empty($lastHash)) {
-            //         $lastHash = str_repeat('0', 64); // Hash inicial si no hay hash previo
-            //     }
-            // }
 
             // 2. Obtener datos de esta factura para generar el nuevo hash
             $invoiceData = $this->prepareInvoiceDataForHash($object);
@@ -401,6 +410,19 @@ class InterfaceVerifactu extends DolibarrTriggers
             $result = $this->saveInvoiceHashes($object->id, $newHash, $lastHash, $invoiceData);
 
             if ($result) {
+                // 5. Actualizar el último hash en la tabla dedicada - OPERACIÓN ATÓMICA
+                $updateResult = $this->updateLastHash($newHash);
+                if (!$updateResult) {
+                    dol_syslog("Verifactu: ERROR al actualizar último hash en tabla dedicada", LOG_ERR);
+                    $this->db->rollback();
+                    setEventMessages("Error al actualizar el registro de hash de seguridad", null, 'errors');
+                    $object->error = "Error al actualizar el registro de hash de seguridad";
+                    return -1;
+                }
+
+                // Confirmar transacción
+                $this->db->commit();
+
                 dol_syslog("Verifactu: Hash guardado correctamente para factura ID: " . $object->id);
                 setEventMessages("Verificación de seguridad aplicada correctamente a la factura", null, 'mesgs');
 
@@ -414,11 +436,14 @@ class InterfaceVerifactu extends DolibarrTriggers
                 dol_syslog("Verifactu AUDIT: " . $logDetails);
             } else {
                 dol_syslog("Verifactu: ERROR al guardar hash en factura ID: " . $object->id, LOG_ERR);
+                $this->db->rollback();
                 setEventMessages("Error al aplicar verificación de seguridad a la factura", null, 'errors');
                 $object->error = "Error al aplicar verificación de seguridad a la factura";
                 return -1; // Indicar error
             }
         } catch (Exception $e) {
+            // En caso de excepción, hacer rollback
+            $this->db->rollback();
             dol_syslog("Verifactu: Excepción al generar hash - " . $e->getMessage(), LOG_ERR);
             setEventMessages("Error en el proceso de verificación: " . $e->getMessage(), null, 'errors');
             $object->error = "Error en el proceso de verificación: " . $e->getMessage();
