@@ -289,7 +289,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 	}
 	
 	/**
-	 * Sobrescribir el método para agregar QR en la cabecera
+	 * Sobrescribir el método para agregar QR en la cabecera y manejar facturas simplificadas
 	 */
 	protected function _pagehead(&$pdf, $object, $showaddress, $outputlangs, $outputlangsbis = null, $titlekey = "PdfInvoiceTitle")
 	{
@@ -297,16 +297,16 @@ class pdf_crabe_verifactu extends pdf_crabe
 		$isFacturaSimplificada = $this->isFacturaSimplificada($object);
 		
 		if ($isFacturaSimplificada) {
-			$titlekey = "PdfInvoiceSimplificadaTitle"; // Cambiar el título
-			$showaddress = 0; // No mostrar dirección del cliente
+			// Para facturas simplificadas, mantenemos showaddress = 1 pero modificaremos el contenido
+			// $titlekey = "PdfInvoiceSimplificadaTitle"; // Podemos cambiar el título si queremos
 		}
 		
-		// Llamar a la cabecera original con los parámetros modificados
+		// Llamar a la cabecera original
 		$result = parent::_pagehead($pdf, $object, $showaddress, $outputlangs, $outputlangsbis, $titlekey);
 		
-		// Para factura simplificada, agregar texto "FACTURA SIMPLIFICADA"
+		// Para factura simplificada, sobrescribir el área del destinatario
 		if ($isFacturaSimplificada) {
-			$this->addFacturaSimplificadaText($pdf);
+			$this->overrideRecipientArea($pdf, $outputlangs);
 		}
 		
 		// Agregar código QR si tenemos datos (después de la cabecera)
@@ -364,33 +364,58 @@ class pdf_crabe_verifactu extends pdf_crabe
 	}
 
 	/**
-	 * Agregar texto "FACTURA SIMPLIFICADA" para facturas con cliente genérico
+	 * Sobrescribir el área del destinatario para mostrar "FACTURA SIMPLIFICADA"
+	 */
+	private function overrideRecipientArea(&$pdf, $outputlangs)
+	{
+		global $conf;
+		
+		$default_font_size = pdf_getPDFFontSize($outputlangs);
+		
+		// Calcular posición del área del destinatario (igual que en pdf_crabe)
+		$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 100;
+		if ($this->page_largeur < 210) {
+			$widthrecbox = 84; // Para formato US executive
+		}
+		$posy = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 40 : 42;
+		$posx = $this->page_largeur - $this->marge_droite - $widthrecbox;
+		if (getDolGlobalString('MAIN_INVERT_SENDER_RECIPIENT')) {
+			$posx = $this->marge_gauche;
+		}
+		
+		// Altura del marco (similar a pdf_crabe)
+		$hautcadre = 40;
+		
+		// Sobrescribir con un rectángulo blanco para limpiar el contenido anterior
+		$pdf->SetFillColor(255, 255, 255);
+		$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'F');
+		
+		// Redibujar el marco del destinatario
+		if (!getDolGlobalString('MAIN_PDF_NO_RECIPENT_FRAME')) {
+			$pdf->SetTextColor(0, 0, 0);
+			$pdf->SetFont('', '', $default_font_size - 2);
+			$pdf->SetXY($posx + 2, $posy - 5);
+			$pdf->MultiCell($widthrecbox - 2, 5, $outputlangs->transnoentities("BillTo"), 0, 'L');
+			$pdf->RoundedRect($posx, $posy, $widthrecbox, $hautcadre, $this->corner_radius, '1234', 'D');
+		}
+		
+		// Agregar texto "FACTURA SIMPLIFICADA" centrado en el área del destinatario
+		$pdf->SetXY($posx -10, $posy + 8);
+		$pdf->SetFont('', 'B', $default_font_size + 1);
+		$pdf->SetTextColor(200, 0, 0); // Color rojo
+		$pdf->MultiCell($widthrecbox - 4, 6, "FACTURA\nSIMPLIFICADA", 0, 'C');
+		
+		
+	}
+
+	/**
+	 * Agregar texto "FACTURA SIMPLIFICADA" para facturas con cliente genérico (método anterior)
 	 */
 	private function addFacturaSimplificadaText(&$pdf)
 	{
-		// Guardar estado actual
-		$pdf->StartTransform();
-		
-		// Posición del texto "FACTURA SIMPLIFICADA"
-		$x = $this->marge_gauche + 10;
-		$y = 90; // Debajo de los datos de la empresa
-		
-		// Configurar fuente para el texto destacado
-		$pdf->SetFont('helvetica', 'B', 14);
-		$pdf->SetTextColor(200, 0, 0); // Color rojo
-		
-		// Agregar el texto
-		$pdf->SetXY($x, $y);
-		$pdf->Cell(100, 8, 'FACTURA SIMPLIFICADA', 0, 1, 'L');
-		
-		// Agregar texto explicativo
-		$pdf->SetFont('helvetica', '', 9);
-		$pdf->SetTextColor(0, 0, 0); // Volver a negro
-		$pdf->SetXY($x, $y + 6);
-		$pdf->Cell(150, 4, 'Factura emitida sin identificación del destinatario', 0, 1, 'L');
-		
-		// Restaurar estado
-		$pdf->StopTransform();
+		// Este método ya no se usa para facturas simplificadas,
+		// pero lo mantenemos por compatibilidad
+		return;
 	}
 
 	/**
