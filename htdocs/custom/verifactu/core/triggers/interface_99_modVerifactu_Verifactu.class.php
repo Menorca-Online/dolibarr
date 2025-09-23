@@ -274,16 +274,16 @@ class InterfaceVerifactu extends DolibarrTriggers
      */
         private function generateHash(array $data, ?string $previousHash = '')
         {
-            // Concatenar los campos según especificación VeriFactu
-            $stringToHash =
-                $data['IDEmisorFactura'] .
-                $data['NumSerieFactura'] .
-                $data['FechaExpedicionFactura'] .
-                $data['TipoFactura'] .
-                $data['ImporteTotal'] .
-                $data['CuotaTotal'] .
-                $data['FechaHoraHusoGenRegistro'] .
-                ($previousHash ?? '');
+
+             $stringToHash =
+                "IDEmisorFactura=" . $data['IDEmisorFactura'] .
+                "&NumSerieFactura=" . $data['NumSerieFactura'] .
+                "&FechaExpedicionFactura=" . $data['FechaExpedicionFactura'] .
+                "&TipoFactura=" . $data['TipoFactura'] .
+                "&CuotaTotal=" . $data['CuotaTotal'] .
+                "&ImporteTotal=" . $data['ImporteTotal'] .
+                "&Huella=" . ($previousHash ?? '') .
+                "&FechaHoraHusoGenRegistro=" . $data['FechaHoraHusoGenRegistro'];
 
             return hash('sha256', $stringToHash);
         }
