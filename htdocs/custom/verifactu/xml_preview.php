@@ -117,7 +117,8 @@ if ($action == 'download' && !empty($xml_content)) {
 
 llxHeader("", "XML Verifactu - " . $object->ref, '');
 if ($action == 'send' && !empty($xml_content)) {
-	$response = $xmlGenerator->send();
+	// Usar el nuevo método que vincula archivos automáticamente
+	$response = $xmlGenerator->enviarYVincular();
 	 // Intentar formatear el XML
     $formattedResponse = $response;
     if (trim($response) !== '') {

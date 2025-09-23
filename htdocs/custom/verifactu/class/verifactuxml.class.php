@@ -24,6 +24,8 @@ class VerifactuXML
 
     public $xml;
 
+    private $facture;
+
     /**
      * @var array Configuración del módulo
      */
@@ -96,6 +98,7 @@ class VerifactuXML
         if (!$facture || !$facture->id) {
             throw new Exception('Factura no válida para generar XML Verifactu');
         }
+        $this->facture = $facture;
 
         // Cargar datos completos de la factura
         $facture->fetch_lines();
@@ -483,7 +486,12 @@ class VerifactuXML
     public function send()
     {
         global $conf;
-
+	    $verifactu_dir = DOL_DATA_ROOT.'/verifactu';
+        $outbox_dir = $verifactu_dir.'/OUTBOX';
+	    $inbox_dir = $verifactu_dir.'/INBOX';
+        //guardamos el xml a enviar en OUTBOX con el nombre de la factura
+        $file = $outbox_dir.'/'.$this->facture->ref.'.xml';
+        file_put_contents($file, $this->xml);
         $return = "";
         $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
         $ch = curl_init($url);
@@ -507,12 +515,210 @@ class VerifactuXML
         $response = curl_exec($ch);
         if ($response === false) {
             $return = 'Error en cURL: ' . curl_error($ch);
+            // Guardar error en INBOX
+            $errorFile = $inbox_dir.'/'.$this->facture->ref.'_error.txt';
+            file_put_contents($errorFile, $return);
         } else {
             $return = $response;
+            // Guardar respuesta en INBOX
+            $responseFile = $inbox_dir.'/'.$this->facture->ref.'_response.xml';
+            file_put_contents($responseFile, $response);
         }
 
         curl_close($ch);
         return $return;
+    }
+
+    /**
+     * Vincula los archivos generados como documentos relacionados de la factura
+     * 
+     * @param string $xmlFile Ruta del archivo XML generado
+     * @param string $responseFile Ruta del archivo de respuesta (opcional)
+     * @param string $errorFile Ruta del archivo de error (opcional)
+     * @return bool True si se vinculó correctamente
+     */
+    public function linkFilesToInvoice($xmlFile = null, $responseFile = null, $errorFile = null)
+    {
+        if (!$this->facture) {
+            return false;
+        }
+
+        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
+        
+        $result = true;
+        
+        // Vincular archivo XML de envío
+        if ($xmlFile && file_exists($xmlFile)) {
+            $result &= $this->addFileToInvoice($xmlFile, 'Verifactu XML');
+        }
+        
+        // Vincular archivo de respuesta
+        if ($responseFile && file_exists($responseFile)) {
+            $result &= $this->addFileToInvoice($responseFile, 'Verifactu Response');
+        }
+        
+        // Vincular archivo de error
+        if ($errorFile && file_exists($errorFile)) {
+            $result &= $this->addFileToInvoice($errorFile, 'Verifactu Error');
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Añade un archivo específico como documento relacionado de la factura
+     * 
+     * @param string $filePath Ruta completa del archivo
+     * @param string $description Descripción del archivo
+     * @return bool True si se añadió correctamente
+     */
+    private function addFileToInvoice($filePath, $description = '')
+    {
+        global $conf, $user;
+        
+        if (!file_exists($filePath)) {
+            return false;
+        }
+        
+        $fileName = basename($filePath);
+        $fileSize = filesize($filePath);
+        
+        // Directorio de destino para documentos de la factura
+        $upload_dir = $conf->facture->multidir_output[$this->facture->entity].'/'.$this->facture->ref;
+        
+        // Crear directorio si no existe
+        if (!is_dir($upload_dir)) {
+            if (dol_mkdir($upload_dir) < 0) {
+                return false;
+            }
+        }
+        
+        // Copiar archivo al directorio de documentos de la factura
+        $destFile = $upload_dir.'/'.$fileName;
+        if (!copy($filePath, $destFile)) {
+            return false;
+        }
+        
+        // Registrar el archivo en la base de datos
+        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
+        $ecmfile = new EcmFiles($this->db);
+        
+        $ecmfile->filepath = $this->facture->ref;
+        $ecmfile->filename = $fileName;
+        $ecmfile->label = $description;
+        $ecmfile->fullpath_orig = $filePath;
+        $ecmfile->gen_or_uploaded = 'uploaded';
+        $ecmfile->description = $description;
+        $ecmfile->keywords = 'verifactu';
+        $ecmfile->cover = 0;
+        $ecmfile->position = 0;
+        $ecmfile->acl = '';
+        $ecmfile->date_c = dol_now();
+        $ecmfile->date_m = dol_now();
+        $ecmfile->fk_user_c = $user->id;
+        $ecmfile->fk_user_m = $user->id;
+        $ecmfile->src_object_type = 'facture';
+        $ecmfile->src_object_id = $this->facture->id;
+        
+        return $ecmfile->create($user) > 0;
+    }
+
+    /**
+     * Envía el XML a la AEAT y vincula todos los archivos generados a la factura
+     * 
+     * @return string Respuesta del envío
+     */
+    public function enviarYVincular()
+    {
+        global $conf;
+        
+        // Generar rutas de archivos
+        $verifactu_dir = DOL_DATA_ROOT.'/verifactu';
+        $outbox_dir = $verifactu_dir.'/OUTBOX';
+        $inbox_dir = $verifactu_dir.'/INBOX';
+        
+        $xmlFile = $outbox_dir.'/'.$this->facture->ref.'.xml';
+        $responseFile = $inbox_dir.'/'.$this->facture->ref.'_response.xml';
+        $errorFile = $inbox_dir.'/'.$this->facture->ref.'_error.txt';
+        
+        // Enviar XML
+        $response = $this->send();
+        
+        // Determinar qué archivos se generaron
+        $files = array();
+        if (file_exists($xmlFile)) {
+            $files['xml'] = $xmlFile;
+        }
+        if (file_exists($responseFile)) {
+            $files['response'] = $responseFile;
+        }
+        if (file_exists($errorFile)) {
+            $files['error'] = $errorFile;
+        }
+        
+        // Vincular archivos a la factura
+        $this->linkFilesToInvoice(
+            isset($files['xml']) ? $files['xml'] : null,
+            isset($files['response']) ? $files['response'] : null,
+            isset($files['error']) ? $files['error'] : null
+        );
+        
+        return $response;
+    }
+
+    /**
+     * Obtiene la lista de archivos Verifactu vinculados a la factura
+     * 
+     * @return array Lista de archivos vinculados
+     */
+    public function getLinkedFiles()
+    {
+        if (!$this->facture) {
+            return array();
+        }
+
+        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
+        
+        $sql = "SELECT filepath, filename, label, date_c, fk_user_c";
+        $sql .= " FROM ".MAIN_DB_PREFIX."ecm_files";
+        $sql .= " WHERE src_object_type = 'facture'";
+        $sql .= " AND src_object_id = ".$this->facture->id;
+        $sql .= " AND (keywords LIKE '%verifactu%' OR filename LIKE '%".$this->facture->ref."%')";
+        $sql .= " ORDER BY date_c DESC";
+        
+        $result = $this->db->query($sql);
+        $files = array();
+        
+        if ($result) {
+            while ($obj = $this->db->fetch_object($result)) {
+                $files[] = array(
+                    'filepath' => $obj->filepath,
+                    'filename' => $obj->filename,
+                    'label' => $obj->label,
+                    'date_c' => $obj->date_c,
+                    'fk_user_c' => $obj->fk_user_c
+                );
+            }
+        }
+        
+        return $files;
+    }
+
+    /**
+     * Obtiene la URL de descarga de un archivo vinculado a la factura
+     * 
+     * @param string $filename Nombre del archivo
+     * @return string URL de descarga
+     */
+    public function getDownloadUrl($filename)
+    {
+        if (!$this->facture) {
+            return '';
+        }
+        
+        global $conf;
+        
+        return DOL_URL_ROOT.'/document.php?modulepart=facture&file='.urlencode($this->facture->ref.'/'.$filename);
     }
 
 }
