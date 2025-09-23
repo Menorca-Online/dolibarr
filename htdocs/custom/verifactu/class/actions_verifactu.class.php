@@ -612,11 +612,63 @@ class ActionsVerifactu
     }
 
     /**
-     * Hook para interceptar antes de guardar cambios en factura o contacto
+     * Hook para interceptar antes de guardar cambios en factura, contacto o tercero/cliente
      */
     public function doActions($parameters, &$object, &$action, $hookmanager)
     {
         global $langs, $user;
+
+        // Validación de terceros/clientes
+        if ($parameters['currentcontext'] === 'thirdpartycard') {
+            $langs->load("verifactu@verifactu");
+            
+            dol_syslog("Verifactu: doActions EJECUTADO para tercero - Contexto: " . ($parameters['currentcontext'] ?? 'N/A') . ", Acción: " . $action . ", Elemento: " . ($object->element ?? 'N/A'));
+
+            // Validar cuando se crea un cliente (solo cuando se envía el formulario)
+            if (($action == 'add' || $action == 'create') && $_SERVER['REQUEST_METHOD'] == 'POST') {
+                $errors = array();
+
+                // Validar dirección obligatoria
+                $address = trim($_POST['address'] ?? '');
+                if (empty($address)) {
+                    $errors[] = "La dirección es obligatoria para clientes según normativa Verifactu";
+                }
+
+                // Validar CIF/NIF obligatorio
+                $cif = trim($_POST['idprof1'] ?? '');
+                if (empty($cif)) {
+                    $errors[] = "El CIF/NIF es obligatorio para clientes según normativa Verifactu";
+                } elseif (!$this->validarCIF($cif)) {
+                    $errors[] = "El CIF/NIF proporcionado no es válido";
+                }
+
+                // Validar código postal obligatorio
+                $zip = trim($_POST['zipcode'] ?? $_POST['zip'] ?? '');
+                if (empty($zip)) {
+                    $errors[] = "El código postal es obligatorio para clientes según normativa Verifactu";
+                }
+
+                // Validar población obligatoria
+                $town = trim($_POST['town'] ?? '');
+                if (empty($town)) {
+                    $errors[] = "La población es obligatoria para clientes según normativa Verifactu";
+                }
+
+                // Si hay errores, mostrarlos y bloquear la creación
+                if (!empty($errors)) {
+                    foreach ($errors as $error) {
+                        setEventMessages($error, null, 'errors');
+                    }
+                    dol_syslog("Verifactu: Validación de cliente fallida en doActions: " . implode(", ", $errors));
+                    
+                    // Cambiar la acción para volver al formulario sin redirección
+                    $action = 'create';
+                    return -1; // Retornar error para bloquear el guardado
+                }
+
+                dol_syslog("Verifactu: Validación de cliente exitosa en doActions");
+            }
+        }
 
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
@@ -678,6 +730,73 @@ class ActionsVerifactu
                         }
                     }
                 }
+            }
+        }
+
+        if ($parameters['currentcontext'] === 'thirdpartycard' || $parameters['currentcontext'] === 'thirdparty') {
+            $langs->load("verifactu@verifactu");
+
+            // Solo aplicar en terceros/clientes
+            if ($object->element == 'societe' || get_class($object) == 'Societe') {
+
+                dol_syslog("Verifactu: formObjectOptions EJECUTADO para tercero - Contexto: " . ($parameters['currentcontext'] ?? 'N/A') . ", Elemento: " . ($object->element ?? 'N/A'));
+
+                $this->resprints .= '
+                <script type="text/javascript">
+                $(document).ready(function() {
+                    console.log("Verifactu: JavaScript de validación de clientes cargado");
+                    console.log("Verifactu: Contexto actual:", "' . ($parameters['currentcontext'] ?? 'N/A') . '");
+                    console.log("Verifactu: Elemento del objeto:", "' . ($object->element ?? 'N/A') . '");
+
+                    // Interceptar envío del formulario de cliente/tercero
+                    $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
+                        console.log("Verifactu: Interceptando envío de formulario de cliente");
+
+                        var errors = [];
+
+                        // Validar dirección obligatoria
+                        var address = $(\'input[name="address"]\').val() || "";
+                        if (!address.trim()) {
+                            errors.push("La dirección es obligatoria para clientes según normativa Verifactu");
+                        }
+
+                        // Validar CIF/NIF obligatorio
+                        var cif = $(\'input[name="idprof1"]\').val() || "";
+                        if (!cif.trim()) {
+                            errors.push("El CIF/NIF es obligatorio para clientes según normativa Verifactu");
+                        } else {
+                            // Validar formato CIF básico
+                            var cifRegex = /^[ABCDEFGHJNPQRSUVW]{1}\d{7}[0-9A-J]$/i;
+                            if (!cifRegex.test(cif.toUpperCase())) {
+                                errors.push("El CIF/NIF proporcionado no tiene un formato válido");
+                            }
+                        }
+
+                        // Validar código postal obligatorio
+                        var zip = $(\'input[name="zipcode"], input[name="zip"]\').val() || "";
+                        if (!zip.trim()) {
+                            errors.push("El código postal es obligatorio para clientes según normativa Verifactu");
+                        }
+
+                        // Validar población obligatoria
+                        var town = $(\'input[name="town"]\').val() || "";
+                        if (!town.trim()) {
+                            errors.push("La población es obligatoria para clientes según normativa Verifactu");
+                        }
+
+                        // Si hay errores, mostrarlos y prevenir envío
+                        if (errors.length > 0) {
+                            console.log("Verifactu: Errores de validación encontrados:", errors);
+                            alert("Errores de validación:\n\n" + errors.join("\n"));
+                            e.preventDefault();
+                            return false;
+                        }
+
+                        console.log("Verifactu: Validación de cliente exitosa, permitiendo envío");
+                        return true;
+                    });
+                });
+                </script>';
             }
         }
 

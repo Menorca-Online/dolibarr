@@ -125,7 +125,10 @@ class modVerifactu extends DolibarrModules
 				'invoicelist',
 				'loadTablesExtraFields',
 				'invoicereccard',
-				'globalcard'
+				'globalcard',
+				'thirdpartycard',
+				'contactcard',
+				'contact'
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
 			// Set this to 1 if features of module are opened to external users
