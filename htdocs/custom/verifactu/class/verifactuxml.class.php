@@ -50,10 +50,10 @@ class VerifactuXML
             'emisor_nif' => $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
                            $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
                            $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
-            'emisor_nombre' => $this->getConfigValue($conf, 'MAIN_INFO_SOCIETE', ''),
+            'emisor_nombre' => $this->getConfigValue($conf, 'MAIN_INFO_SOCIETE_NOM', ''),
 
             // Información del sistema informático
-            'sistema_nombre' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NOMBRE', 'DOLIBARR ERP CRM'),
+            'sistema_nombre' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NOMBRE', 'MENORCAONLINE S.L.'),
             'sistema_nif' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NIF') ?:
                             $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
                             $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
@@ -166,8 +166,12 @@ class VerifactuXML
         $descripcion = $this->getDescripcionOperacion($facture);
         $this->addElement($dom, $registroAlta, 'sum1:DescripcionOperacion', $descripcion);
 
-        // 7. Destinatarios
-        $this->addDestinatarios($dom, $registroAlta, $facture);
+
+        if ($this->getTipoFactura($facture) != 'F2') {
+            // 7. Destinatarios
+            $this->addDestinatarios($dom, $registroAlta, $facture);            
+        }
+
 
         // 8. Desglose
         $this->addDesglose($dom, $registroAlta, $facture);
@@ -178,10 +182,10 @@ class VerifactuXML
         // 10. ImporteTotal
         $this->addElement($dom, $registroAlta, 'sum1:ImporteTotal', number_format($facture->total_ttc, 2, '.', ''));
 
-        // 11. Encadenamiento (si hay hash anterior)
-        if (!empty($hashData['hash_anterior'])) {
-            $this->addEncadenamiento($dom, $registroAlta, $hashData);
-        }
+
+        // 11. Encadenamiento
+        $this->addEncadenamiento($dom, $registroAlta, $hashData);
+
 
         // 12. SistemaInformatico
         $this->addSistemaInformatico($dom, $registroAlta);
@@ -261,19 +265,21 @@ class VerifactuXML
             }
         }
 
-        // Determinar tipo por defecto según el tipo de factura de Dolibarr
-        switch ($facture->type) {
-            case 0: // Factura estándar
-                return 'F1';
-            case 1: // Factura de sustitución
-                return 'F2';
-            case 2: // Nota de crédito
-                return 'R1';
-            case 3: // Anticipo
-                return 'F4';
-            default:
-                return 'F1';
-        }
+        return '';
+
+        // // Determinar tipo por defecto según el tipo de factura de Dolibarr
+        // switch ($facture->type) {
+        //     case 0: // Factura estándar
+        //         return 'F1';
+        //     case 1: // Factura de sustitución
+        //         return 'F2';
+        //     case 2: // Nota de crédito
+        //         return 'R1';
+        //     case 3: // Anticipo
+        //         return 'F4';
+        //     default:
+        //         return 'F1';
+        // }
     }
 
     /**
@@ -393,20 +399,21 @@ class VerifactuXML
     private function addEncadenamiento($dom, $parent, $hashData)
     {
         $encadenamiento = $dom->createElement('sum1:Encadenamiento');
-
-        $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
-
-        // Obtener datos de la factura anterior a partir del hash anterior
         $facturaAnterior = $this->getFacturaAnterior($hashData['hash_anterior']);
 
+
         if ($facturaAnterior) {
+            $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
             $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
             $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $facturaAnterior['ref']);
             $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $facturaAnterior['fecha']);
             $this->addElement($dom, $registroAnterior, 'sum1:Huella', $hashData['hash_anterior']);
+            $encadenamiento->appendChild($registroAnterior);
+        }else {
+            // Si no se encuentra la factura anterior, crear un nodo vacío
+            $primerRegistro = $dom->createElement('sum1:PrimerRegistro', 'S');
+            $encadenamiento->appendChild($primerRegistro);
         }
-
-        $encadenamiento->appendChild($registroAnterior);
         $parent->appendChild($encadenamiento);
     }
 

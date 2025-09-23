@@ -170,6 +170,12 @@ $item->fieldAttr['type'] = 'number';
 $item->fieldAttr['step'] = '0.01';
 $item->fieldParams['isMandatory'] = 1;
 
+$item = $formSetup->newItem('VERIFACTU_SISTEMA_NOMBRE');
+$item->fieldParams['isMandatory'] = 1;
+$item->fieldAttr['placeholder'] = 'MENORCAONLINE S.L.';
+$item->helpText ='Nombre del sistema informático que emite la factura electrónica. Por defecto, MENORCAONLINE S.L.';
+
+
 // // Setup conf for a selection of an Email template of type thirdparty
 // $formSetup->newItem('VERIFACTU_MYPARAM6')->setAsEmailTemplate('thirdparty');
 
