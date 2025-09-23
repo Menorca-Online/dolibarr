@@ -203,6 +203,31 @@ if ($total_facturas > 0) {
 print '</table>';
 print '</div>';
 
+// Último hash generado
+print '<div class="div-table-responsive-no-min" style="margin-top: 20px;">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<th colspan="2">Último Hash Generado</th>';
+print "</tr>\n";
+
+$sql_last_hash = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_last_hash ORDER BY id DESC LIMIT 1";
+$resql_last = $db->query($sql_last_hash);
+if ($resql_last) {
+    $obj_last = $db->fetch_object($resql_last);
+    $last_hash = $obj_last ? $obj_last->hash : 'No disponible';
+    $db->free($resql_last);
+} else {
+    $last_hash = 'Error consultando';
+}
+
+print '<tr class="oddeven">';
+print '<td>Hash SHA-256</td>';
+print '<td class="center"><span style="font-family: monospace; font-size: 12px; word-break: break-all;">'.$last_hash.'</span></td>';
+print '</tr>';
+
+print '</table>';
+print '</div>';
+
 print '</div><div class="fichetwothirdright">';
 
 // Lista de facturas recientes sin hash
