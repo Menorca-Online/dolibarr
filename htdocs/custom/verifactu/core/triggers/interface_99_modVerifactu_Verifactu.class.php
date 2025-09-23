@@ -274,7 +274,14 @@ class InterfaceVerifactu extends DolibarrTriggers
      */
         private function generateHash(array $data, ?string $previousHash = '')
         {
-
+            if (!isset($data['IDEmisorFactura'])) { // es una factura anulada
+                 $stringToHash =
+                "IDEmisorFacturaAnulada=" . $data['IDEmisorFacturaAnulada'] .
+                "&NumSerieFacturaAnulada=" . $data['NumSerieFacturaAnulada'] .
+                "&FechaExpedicionFacturaAnulada=" . $data['FechaExpedicionFacturaAnulada'] .
+                "&Huella=" . ($previousHash ?? '') .
+                "&FechaHoraHusoGenRegistro=" . $data['FechaHoraHusoGenRegistro'];
+            }else{
              $stringToHash =
                 "IDEmisorFactura=" . $data['IDEmisorFactura'] .
                 "&NumSerieFactura=" . $data['NumSerieFactura'] .
@@ -284,6 +291,10 @@ class InterfaceVerifactu extends DolibarrTriggers
                 "&ImporteTotal=" . $data['ImporteTotal'] .
                 "&Huella=" . ($previousHash ?? '') .
                 "&FechaHoraHusoGenRegistro=" . $data['FechaHoraHusoGenRegistro'];
+            }
+            
+
+
 
             return hash('sha256', $stringToHash);
         }
