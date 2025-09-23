@@ -618,11 +618,9 @@ class ActionsVerifactu
     {
         global $langs, $user;
 
-        // Validación para facturas
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
 
-            // Solo aplicar en facturas existentes
             if (($object->element == 'facture' || get_class($object) == 'Facture') && !empty($object->id)) {
 
                 // Si se está intentando modificar la fecha en una factura existente
@@ -683,55 +681,8 @@ class ActionsVerifactu
             }
         }
 
-        // Validación para contactos de tipo cliente
-        if ($parameters['currentcontext'] === 'contactcard') {
-            $langs->load("verifactu@verifactu");
-
-            // Solo validar al crear un nuevo contacto
-            if (($action == 'add' || $action == 'create') && ($object->element == 'contact' || get_class($object) == 'Contact')) {
-
-                $errors = array();
-
-                // Validar dirección obligatoria
-                $address = trim($_POST['address'] ?? '');
-                if (empty($address)) {
-                    $errors[] = "La dirección es obligatoria para contactos de tipo cliente";
-                }
-
-                // Validar código postal obligatorio
-                $zip = trim($_POST['zipcode'] ?? '');
-                if (empty($zip)) {
-                    $errors[] = "El código postal es obligatorio para contactos de tipo cliente";
-                }
-
-                // Validar población obligatoria
-                $town = trim($_POST['town'] ?? '');
-                if (empty($town)) {
-                    $errors[] = "La población es obligatoria para contactos de tipo cliente";
-                }
-
-                // Validar CIF si el país es España
-                $country = $_POST['country_id'] ?? $_POST['country'] ?? '';
-                $cif = trim($_POST['idprof1'] ?? ''); // CIF/NIF normalmente está en idprof1
-
-                if ($country == '1' || strtoupper($country) == 'ES') { // ID de España en Dolibarr es 1
-                    if (empty($cif)) {
-                        $errors[] = "El CIF/NIF es obligatorio para contactos españoles";
-                    } elseif (!$this->validarCIF($cif)) {
-                        $errors[] = "El CIF/NIF proporcionado no es válido";
-                    }
-                }
-
-                // Si hay errores, mostrarlos y bloquear la creación
-                if (!empty($errors)) {
-                    foreach ($errors as $error) {
-                        setEventMessages($error, null, 'errors');
-                    }
-                    dol_syslog("Verifactu: Validación de contacto fallida: " . implode(", ", $errors));
-                    return -1; // Bloquear la creación
-                }
-            }
-        }
-
         return 0;
-    }}
+    }
+
+
+}
