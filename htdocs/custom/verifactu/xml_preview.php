@@ -121,7 +121,6 @@ if ($action == 'send' && !empty($xml_content)) {
 	print '</pre>';
 	print '</div>';
 	print '</div>';
-	print '</div>';
 	llxFooter();
 
 }
