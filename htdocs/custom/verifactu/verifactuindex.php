@@ -210,14 +210,14 @@ print '<tr class="liste_titre">';
 print '<th colspan="2">Último Hash Generado</th>';
 print "</tr>\n";
 
-$sql_last_hash = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_last_hash ORDER BY id DESC LIMIT 1";
+$sql_last_hash = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_last_hash ORDER BY rowid DESC LIMIT 1";
 $resql_last = $db->query($sql_last_hash);
 if ($resql_last) {
     $obj_last = $db->fetch_object($resql_last);
     $last_hash = $obj_last ? $obj_last->hash : 'No disponible';
     $db->free($resql_last);
 } else {
-    $last_hash = 'Error consultando';
+    $last_hash = 'Error: ' . $db->lasterror();
 }
 
 print '<tr class="oddeven">';
