@@ -267,12 +267,47 @@ class pdf_crabe_verifactu extends pdf_crabe
 	}
 	
 	/**
+	 * Verificar si la factura es simplificada (cliente genérico)
+	 */
+	private function isFacturaSimplificada($object)
+	{
+		$clienteGenerico = getDolGlobalString('INVOICE_CLIENTE_GENERICO', '');
+		
+		if (!empty($clienteGenerico) && isset($object->socid)) {
+			// Cargar el cliente para verificar su ID
+			require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
+			$thirdparty = new Societe($this->db);
+			if ($thirdparty->fetch($object->socid) > 0) {
+				// Verificar si es el cliente genérico (por ID o por nombre)
+				if ($object->socid == $clienteGenerico || $thirdparty->name == $clienteGenerico) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Sobrescribir el método para agregar QR en la cabecera
 	 */
 	protected function _pagehead(&$pdf, $object, $showaddress, $outputlangs, $outputlangsbis = null, $titlekey = "PdfInvoiceTitle")
 	{
-		// Llamar a la cabecera original
+		// Verificar si es cliente genérico para factura simplificada
+		$isFacturaSimplificada = $this->isFacturaSimplificada($object);
+		
+		if ($isFacturaSimplificada) {
+			$titlekey = "PdfInvoiceSimplificadaTitle"; // Cambiar el título
+			$showaddress = 0; // No mostrar dirección del cliente
+		}
+		
+		// Llamar a la cabecera original con los parámetros modificados
 		$result = parent::_pagehead($pdf, $object, $showaddress, $outputlangs, $outputlangsbis, $titlekey);
+		
+		// Para factura simplificada, agregar texto "FACTURA SIMPLIFICADA"
+		if ($isFacturaSimplificada) {
+			$this->addFacturaSimplificadaText($pdf);
+		}
 		
 		// Agregar código QR si tenemos datos (después de la cabecera)
 		if (!empty($this->qrData)) {
@@ -326,6 +361,36 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->SetXY(120, 60);
 			$pdf->Cell(70, 4, 'QR no disponible: ' . substr($this->qrData, 0, 50), 0, 0, 'L');
 		}
+	}
+
+	/**
+	 * Agregar texto "FACTURA SIMPLIFICADA" para facturas con cliente genérico
+	 */
+	private function addFacturaSimplificadaText(&$pdf)
+	{
+		// Guardar estado actual
+		$pdf->StartTransform();
+		
+		// Posición del texto "FACTURA SIMPLIFICADA"
+		$x = $this->marge_gauche + 10;
+		$y = 90; // Debajo de los datos de la empresa
+		
+		// Configurar fuente para el texto destacado
+		$pdf->SetFont('helvetica', 'B', 14);
+		$pdf->SetTextColor(200, 0, 0); // Color rojo
+		
+		// Agregar el texto
+		$pdf->SetXY($x, $y);
+		$pdf->Cell(100, 8, 'FACTURA SIMPLIFICADA', 0, 1, 'L');
+		
+		// Agregar texto explicativo
+		$pdf->SetFont('helvetica', '', 9);
+		$pdf->SetTextColor(0, 0, 0); // Volver a negro
+		$pdf->SetXY($x, $y + 6);
+		$pdf->Cell(150, 4, 'Factura emitida sin identificación del destinatario', 0, 1, 'L');
+		
+		// Restaurar estado
+		$pdf->StopTransform();
 	}
 
 	/**
