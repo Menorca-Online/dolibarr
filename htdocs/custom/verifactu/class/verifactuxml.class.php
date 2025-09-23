@@ -22,6 +22,8 @@ class VerifactuXML
      */
     public $db;
 
+    public $xml;
+
     /**
      * @var array Configuración del módulo
      */
@@ -203,7 +205,8 @@ class VerifactuXML
         $huella = !empty($hashData['hash']) ? $hashData['hash'] : 'HASH_NO_GENERADO';
         $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
 
-        return $dom->saveXML();
+        $this->xml = $dom->saveXML();
+        return $this->xml;
     }
 
     /**
@@ -477,5 +480,38 @@ class VerifactuXML
         $parent->appendChild($element);
     }
 
-    
+    public function send()
+    {
+        $return = "";
+        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: RegFactuSistemaFacturacion"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+ 
+        curl_setopt($ch, CURLOPT_SSLCERT, '/var/www/html/documents/verifactu/certs/cert.pem');
+        curl_setopt($ch, CURLOPT_SSLKEY, '/var/www/html/documents/verifactu/certs/key.pem');
+ 
+        // Debug si quieres ver errores SSL
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+ 
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $return = 'Error en cURL: ' . curl_error($ch);
+        } else {
+            $return = $response;
+        }
+
+        curl_close($ch);
+        return $return;
+    }
+
 }
+
+
+
+

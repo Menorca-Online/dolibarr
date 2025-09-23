@@ -103,43 +103,18 @@ try {
 
 // Download action
 if ($action == 'download' && !empty($xml_content)) {
-        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Content-Type: text/xml; charset=utf-8",
-            "SOAPAction: RegFactuSistemaFacturacion"
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_content);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
- 
-        curl_setopt($ch, CURLOPT_SSLCERT, '/var/www/html/documents/verifactu/certs/cert.pem');
-        curl_setopt($ch, CURLOPT_SSLKEY, '/var/www/html/documents/verifactu/certs/key.pem');
- 
-        // Debug si quieres ver errores SSL
-        curl_setopt($ch, CURLOPT_VERBOSE, true);
- 
-        $response = curl_exec($ch);
-        if ($response === false) {
-			var_dump(curl_error($ch));
-			die();
-        } else {
-			var_dump($response);
-			die();
-        }
- 
-        curl_close($ch);
-
-	// $filename = 'verifactu_' . $object->ref . '_' . date('Y-m-d_H-i-s') . '.xml';
-
-	// header('Content-Type: application/xml');
-	// header('Content-Disposition: attachment; filename="' . $filename . '"');
-	// header('Content-Length: ' . strlen($xml_content));
-
-	// echo $xml_content;
+	$filename = 'verifactu_' . $object->ref . '_' . date('Y-m-d_H-i-s') . '.xml';
+	header('Content-Type: application/xml');
+	header('Content-Disposition: attachment; filename="' . $filename . '"');
+	header('Content-Length: ' . strlen($xml_content));
+	echo $xml_content;
 	exit;
 }
+if ($action == 'send' && !empty($xml_content)) {
+	$response = $xmlGenerator->send();
 
+	exit;
+}
 /*
  * View
  */
@@ -161,7 +136,7 @@ print '</div>';
 
 print '<div class="fichecenter">';
 
-// Show error if any
+
 if (!empty($error_message)) {
 	print '<div class="error">' . $error_message . '</div>';
 }
@@ -176,6 +151,8 @@ if (!empty($xml_formatted)) {
 	print '<i class="fa fa-download"></i> Descargar XML</a>';
 	print '<a class="butAction" href="javascript:void(0)" onclick="copyXmlToClipboard()">';
 	print '<i class="fa fa-copy"></i> Copiar al portapapeles</a>';
+	print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=send">';
+	print '<i class="fa fa-paper-plane"></i> Enviar XML</a>';
 	print '</div>';
 
 	// XML content with syntax highlighting
@@ -401,7 +378,7 @@ if ($object->entity != $conf->entity) {
 
 $xml_content = '';
 $error_message = '';
-
+$xmlGenerator = null;
 try {
 	// Generate XML using our VerifactuXML class
 	$xmlGenerator = new VerifactuXML($db);
