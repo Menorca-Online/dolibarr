@@ -112,8 +112,18 @@ if ($action == 'download' && !empty($xml_content)) {
 }
 if ($action == 'send' && !empty($xml_content)) {
 	$response = $xmlGenerator->send();
+	llxHeader("", "XML Verifactu RESPONSE - " . $object->ref, '');
+	print '<div class="fichecenter">';
+	print '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0;">';
+	print '<h3 style="margin-top: 0;"><i class="fa fa-code"></i> Respuesta del servicio Verifactu</h3>';
+	print '<pre style="background: #fff; border: 1px solid #ccc; padding: 15px; border-radius: 3px; overflow: auto; max-height: 600px; font-family: monospace; font-size: 12px; line-height: 1.4;">';
+	print htmlspecialchars($response, ENT_QUOTES, 'UTF-8');
+	print '</pre>';
+	print '</div>';
+	print '</div>';
+	print '</div>';
+	llxFooter();
 
-	exit;
 }
 /*
  * View
