@@ -90,11 +90,7 @@ class InterfaceVerifactu extends DolibarrTriggers
         return "";
     }
 
-    /**
-     * Obtiene el último hash generado en el sistema
-     *
-     * @return string Último hash o una cadena con ceros si no hay facturas previas
-     */
+
     /**
      * Limpia los hashes de una factura específica
      * Útil para facturas rectificativas que podrían haber heredado hashes de la original

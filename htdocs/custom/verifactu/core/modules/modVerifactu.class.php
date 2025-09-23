@@ -774,33 +774,32 @@ class modVerifactu extends DolibarrModules
 				array(),            // $moreparams
 				''                  // $aiprompt
 			);
-			if (!isset($existing['fechaHoraHusoGenRegistro'])) {
-						$result5 = $extrafields->addExtraField(
-							'fechaHoraHusoGenRegistro',             // $attrname
-							'Fecha y Hora de Generación del Registro Verifactu',             // $label
-							'varchar',          // $type
-							110,                // $pos
-							'255',              // $size
-							'facture',          // $elementtype
-							0,                  // $unique
-							0,                  // $required
-							'',                 // $default_value
-							'',                 // $param
-							0,                  // $alwayseditable
-							'',                 // $perms
-							1,                  // $list
-							'',                 // $help
-							'',                 // $computed
-							'',                 // $entity
-							'',                 // $langfile
-							'1',                // $enabled
-							0,                  // $totalizable
-							1,                  // $printable
-							array(),            // $moreparams
-							''                  // $aiprompt
-						);
-					}
-
+		}
+		if (!isset($existing['fechaHoraHusoGenRegistro'])) {
+			$result5 = $extrafields->addExtraField(
+				'fechaHoraHusoGenRegistro',             // $attrname
+				'Fecha y Hora de Generación del Registro Verifactu',             // $label
+				'varchar',          // $type
+				110,                // $pos
+				'255',              // $size
+				'facture',          // $elementtype
+				0,                  // $unique
+				0,                  // $required
+				'',                 // $default_value
+				'',                 // $param
+				0,                  // $alwayseditable
+				'',                 // $perms
+				1,                  // $list
+				'',                 // $help
+				'',                 // $computed
+				'',                 // $entity
+				'',                 // $langfile
+				'1',                // $enabled
+				0,                  // $totalizable
+				1,                  // $printable
+				array(),            // $moreparams
+				''                  // $aiprompt
+			);
 		}
 
 		// Verificar los resultados de la creación de los nuevos campos
