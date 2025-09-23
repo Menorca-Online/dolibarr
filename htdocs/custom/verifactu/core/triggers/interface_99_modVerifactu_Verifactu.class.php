@@ -304,7 +304,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 
 
 
-            return hash('sha256', $stringToHash);
+            return strtoupper(hash('sha256', $stringToHash));
         }
 
     /**
