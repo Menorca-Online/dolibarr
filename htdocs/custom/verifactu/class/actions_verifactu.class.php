@@ -634,12 +634,18 @@ class ActionsVerifactu
                     $errors[] = "La dirección es obligatoria para clientes según normativa Verifactu";
                 }
 
-                // Validar CIF/NIF obligatorio
+                // Validar CIF/NIF solo si el país es España
+                $country = $_POST['country_id'] ?? $_POST['country'] ?? '';
                 $cif = trim($_POST['idprof1'] ?? '');
-                if (empty($cif)) {
-                    $errors[] = "El CIF/NIF es obligatorio para clientes según normativa Verifactu";
-                } elseif (!$this->validarCIF($cif)) {
-                    $errors[] = "El CIF/NIF proporcionado no es válido";
+                
+                dol_syslog("Verifactu: País seleccionado: $country, CIF: $cif");
+                
+                if ($country == '1' || $country == '75' || strtoupper($country) == 'ES' || strtoupper($country) == 'ESPAÑA') {
+                    if (empty($cif)) {
+                        $errors[] = "El CIF/NIF es obligatorio para clientes españoles según normativa Verifactu";
+                    } elseif (!$this->validarCIF($cif)) {
+                        $errors[] = "El CIF/NIF proporcionado no es válido";
+                    }
                 }
 
                 // Validar código postal obligatorio
@@ -760,15 +766,21 @@ class ActionsVerifactu
                             errors.push("La dirección es obligatoria para clientes según normativa Verifactu");
                         }
 
-                        // Validar CIF/NIF obligatorio
+                        // Validar CIF/NIF solo si el país es España
+                        var country = $(\'select[name="country_id"]\').val() || $(\'select[name="country"]\').val() || "";
                         var cif = $(\'input[name="idprof1"]\').val() || "";
-                        if (!cif.trim()) {
-                            errors.push("El CIF/NIF es obligatorio para clientes según normativa Verifactu");
-                        } else {
-                            // Validar formato CIF básico
-                            var cifRegex = /^[ABCDEFGHJNPQRSUVW]{1}\d{7}[0-9A-J]$/i;
-                            if (!cifRegex.test(cif.toUpperCase())) {
-                                errors.push("El CIF/NIF proporcionado no tiene un formato válido");
+
+                        console.log("Verifactu: País seleccionado:", country, "CIF:", cif);
+
+                        if (country == "1" || country == "75" || country.toUpperCase() == "ES" || country.toUpperCase() == "ESPAÑA") {
+                            if (!cif.trim()) {
+                                errors.push("El CIF/NIF es obligatorio para clientes españoles según normativa Verifactu");
+                            } else {
+                                // Validar formato CIF básico
+                                var cifRegex = /^[ABCDEFGHJNPQRSUVW]{1}\d{7}[0-9A-J]$/i;
+                                if (!cifRegex.test(cif.toUpperCase())) {
+                                    errors.push("El CIF/NIF proporcionado no tiene un formato válido");
+                                }
                             }
                         }
 
