@@ -577,6 +577,24 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			hash varchar(64) DEFAULT NULL
+		) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		//instertamos un hash vacio 00000000000000000000000000000000000000000000000000000000000000
+		$sql = "INSERT INTO " . MAIN_DB_PREFIX . "verifactu_last_hash (hash) VALUES ('00000000000000000000000000000000000000000000000000000000000000')";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}	
+
 		$types = array(
 			array('code' => 'F1', 'label' => 'F1 - Factura Estandar', 'api' => 1),
 			array('code' => 'F2', 'label' => 'F2 - Factura Simplificada', 'api' => 1),
