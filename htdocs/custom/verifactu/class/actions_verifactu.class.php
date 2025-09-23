@@ -54,6 +54,63 @@ class ActionsVerifactu
     }
 
     /**
+     * Valida un CIF/NIF español
+     *
+     * @param string $cif CIF/NIF a validar
+     * @return bool True si es válido
+     */
+    private function validarCIF($cif)
+    {
+        if (empty($cif)) {
+            return false;
+        }
+
+        $cif = strtoupper(trim($cif));
+
+        // Verificar longitud
+        if (strlen($cif) != 9) {
+            return false;
+        }
+
+        // Verificar primer carácter (tipo de documento)
+        $primerCaracter = $cif[0];
+        if (!preg_match('/^[ABCDEFGHJNPQRSUVW]{1}$/', $primerCaracter)) {
+            return false;
+        }
+
+        // Verificar que los siguientes 7 caracteres sean dígitos
+        if (!preg_match('/^\d{7}$/', substr($cif, 1, 7))) {
+            return false;
+        }
+
+        // Calcular dígito de control
+        $letras = 'JABCDEFGHI';
+        $numeros = array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        $suma = 0;
+
+        for ($i = 1; $i < 8; $i++) {
+            $digito = (int)$cif[$i];
+            if ($i % 2 == 0) {
+                $suma += $digito;
+            } else {
+                $doble = $digito * 2;
+                $suma += ($doble >= 10) ? $doble - 9 : $doble;
+            }
+        }
+
+        $resto = $suma % 10;
+        $digitoControl = ($resto == 0) ? 0 : 10 - $resto;
+
+        // Para CIF, el dígito de control puede ser número o letra
+        $ultimoCaracter = $cif[8];
+        if (is_numeric($ultimoCaracter)) {
+            return ((int)$ultimoCaracter == $digitoControl);
+        } else {
+            return ($ultimoCaracter == $letras[$digitoControl]);
+        }
+    }
+
+    /**
      * Hook: formObjectOptions
      * Permite añadir campos al formulario de facturas y aplicar normativa Verifactu
      */
@@ -551,16 +608,17 @@ class ActionsVerifactu
 			}
 		}
 
-		return 0;
-	}
+        return 0;
+    }
 
     /**
-     * Hook para interceptar antes de guardar cambios en factura
+     * Hook para interceptar antes de guardar cambios en factura o contacto
      */
     public function doActions($parameters, &$object, &$action, $hookmanager)
     {
         global $langs, $user;
 
+        // Validación para facturas
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
 
@@ -625,6 +683,55 @@ class ActionsVerifactu
             }
         }
 
+        // Validación para contactos de tipo cliente
+        if ($parameters['currentcontext'] === 'contactcard') {
+            $langs->load("verifactu@verifactu");
+
+            // Solo validar al crear un nuevo contacto
+            if (($action == 'add' || $action == 'create') && ($object->element == 'contact' || get_class($object) == 'Contact')) {
+
+                $errors = array();
+
+                // Validar dirección obligatoria
+                $address = trim($_POST['address'] ?? '');
+                if (empty($address)) {
+                    $errors[] = "La dirección es obligatoria para contactos de tipo cliente";
+                }
+
+                // Validar código postal obligatorio
+                $zip = trim($_POST['zipcode'] ?? '');
+                if (empty($zip)) {
+                    $errors[] = "El código postal es obligatorio para contactos de tipo cliente";
+                }
+
+                // Validar población obligatoria
+                $town = trim($_POST['town'] ?? '');
+                if (empty($town)) {
+                    $errors[] = "La población es obligatoria para contactos de tipo cliente";
+                }
+
+                // Validar CIF si el país es España
+                $country = $_POST['country_id'] ?? $_POST['country'] ?? '';
+                $cif = trim($_POST['idprof1'] ?? ''); // CIF/NIF normalmente está en idprof1
+
+                if ($country == '1' || strtoupper($country) == 'ES') { // ID de España en Dolibarr es 1
+                    if (empty($cif)) {
+                        $errors[] = "El CIF/NIF es obligatorio para contactos españoles";
+                    } elseif (!$this->validarCIF($cif)) {
+                        $errors[] = "El CIF/NIF proporcionado no es válido";
+                    }
+                }
+
+                // Si hay errores, mostrarlos y bloquear la creación
+                if (!empty($errors)) {
+                    foreach ($errors as $error) {
+                        setEventMessages($error, null, 'errors');
+                    }
+                    dol_syslog("Verifactu: Validación de contacto fallida: " . implode(", ", $errors));
+                    return -1; // Bloquear la creación
+                }
+            }
+        }
+
         return 0;
-    }
-}
+    }}
