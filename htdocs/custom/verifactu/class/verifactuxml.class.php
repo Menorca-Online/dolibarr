@@ -482,6 +482,8 @@ class VerifactuXML
 
     public function send()
     {
+        global $conf;
+
         $return = "";
         $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
         $ch = curl_init($url);
@@ -493,9 +495,12 @@ class VerifactuXML
         curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
  
-        curl_setopt($ch, CURLOPT_SSLCERT, '/var/www/html/documents/verifactu/certs/cert.pem');
-        curl_setopt($ch, CURLOPT_SSLKEY, '/var/www/html/documents/verifactu/certs/key.pem');
- 
+        $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
+        $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
+
+        curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
+        curl_setopt($ch, CURLOPT_SSLKEY, $keyPath);
+
         // Debug si quieres ver errores SSL
         curl_setopt($ch, CURLOPT_VERBOSE, true);
  

@@ -110,26 +110,41 @@ if ($action == 'download' && !empty($xml_content)) {
 	echo $xml_content;
 	exit;
 }
-if ($action == 'send' && !empty($xml_content)) {
-	$response = $xmlGenerator->send();
-	llxHeader("", "XML Verifactu RESPONSE - " . $object->ref, '');
-	print '<div class="fichecenter">';
-	print '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0;">';
-	print '<h3 style="margin-top: 0;"><i class="fa fa-code"></i> Respuesta del servicio Verifactu</h3>';
-	print '<pre style="background: #fff; border: 1px solid #ccc; padding: 15px; border-radius: 3px; overflow: auto; max-height: 600px; font-family: monospace; font-size: 12px; line-height: 1.4;">';
-	print htmlspecialchars($response, ENT_QUOTES, 'UTF-8');
-	print '</pre>';
-	print '</div>';
-	print '</div>';
-	llxFooter();
 
-}
 /*
  * View
  */
 
 llxHeader("", "XML Verifactu - " . $object->ref, '');
+if ($action == 'send' && !empty($xml_content)) {
+	$response = $xmlGenerator->send();
+	 // Intentar formatear el XML
+    $formattedResponse = $response;
+    if (trim($response) !== '') {
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        if ($dom->loadXML($response)) {
+            $formattedResponse = $dom->saveXML();
+        } else {
+            // Si no es XML válido, lo dejamos tal cual
+            $formattedResponse = $response;
+        }
+        libxml_clear_errors();
+    }
+	print '<div class="fichecenter">';
+	print '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0;">';
+	print '<h3 style="margin-top: 0;"><i class="fa fa-code"></i> Respuesta del servicio Verifactu</h3>';
+	print '<pre style="background: #fff; border: 1px solid #ccc; padding: 15px; border-radius: 3px; overflow: auto; max-height: 600px; font-family: monospace; font-size: 12px; line-height: 1.4;">';
 
+	print htmlspecialchars($formattedResponse, ENT_QUOTES, 'UTF-8');
+	print '</pre>';
+	print '</div>';
+	print '</div>';
+
+
+}
 // Simple header
 print '<div class="fiche">';
 print '<div class="fichetitle">';
