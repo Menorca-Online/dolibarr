@@ -625,7 +625,7 @@ class ActionsVerifactu
             dol_syslog("Verifactu: doActions EJECUTADO para tercero - Contexto: " . ($parameters['currentcontext'] ?? 'N/A') . ", Acción: " . $action . ", Elemento: " . ($object->element ?? 'N/A'));
 
             // Validar cuando se crea un cliente (solo cuando se envía el formulario)
-            if (($action == 'add' || $action == 'create') && $_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (($action == 'add' || $action == 'create' || $action == 'update') && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 $errors = array();
 
                 // Validar dirección obligatoria
@@ -638,14 +638,20 @@ class ActionsVerifactu
                 $country = $_POST['country_id'] ?? $_POST['country'] ?? '';
                 $cif = trim($_POST['idprof1'] ?? '');
                 
+
                 dol_syslog("Verifactu: País seleccionado: $country, CIF: $cif");
                 
-                if ($country == '1' || $country == '75' || strtoupper($country) == 'ES' || strtoupper($country) == 'ESPAÑA') {
+                if ($country == '4'  || strtoupper($country) == 'ES' || strtoupper($country) == 'ESPAÑA') {
                     if (empty($cif)) {
                         $errors[] = "El CIF/NIF es obligatorio para clientes españoles según normativa Verifactu";
                     } elseif (!$this->validarCIF($cif)) {
                         $errors[] = "El CIF/NIF proporcionado no es válido";
                     }
+                }else{
+                    if (empty($_POST['typent_id']))
+                        $errors[] = "Tipo de tercero es obligatorio para clientes no españoles";
+                    if ($_POST['typent_id'] != 8 ) // Si es tipo 5 (NIF extranjero) el CIF/NIF es obligatorio
+                        $errors[] = "Tipo de tercero debe ser 'Particular' para emitir facturas con IVA al prestarse el servicio en España";
                 }
 
                 // Validar código postal obligatorio
