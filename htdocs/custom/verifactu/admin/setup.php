@@ -297,10 +297,10 @@ if ($action == 'create_folders') {
 	$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
 	$outbox_dir = $verifactu_dir.'/OUTBOX';
 	$inbox_dir = $verifactu_dir.'/INBOX';
-	
+
 	$errors = 0;
 	$messages = array();
-	
+
 	// Crear directorio principal
 	if (!is_dir($verifactu_dir)) {
 		if (dol_mkdir($verifactu_dir) < 0) {
@@ -312,7 +312,7 @@ if ($action == 'create_folders') {
 	} else {
 		$messages[] = 'Directorio principal ya existe: '.$verifactu_dir;
 	}
-	
+
 	// Crear OUTBOX
 	if (!is_dir($outbox_dir)) {
 		if (dol_mkdir($outbox_dir) < 0) {
@@ -324,7 +324,7 @@ if ($action == 'create_folders') {
 	} else {
 		$messages[] = 'Directorio OUTBOX ya existe: '.$outbox_dir;
 	}
-	
+
 	// Crear INBOX
 	if (!is_dir($inbox_dir)) {
 		if (dol_mkdir($inbox_dir) < 0) {
@@ -336,7 +336,7 @@ if ($action == 'create_folders') {
 	} else {
 		$messages[] = 'Directorio INBOX ya existe: '.$inbox_dir;
 	}
-	
+
 	if ($errors > 0) {
 		setEventMessages($messages, null, 'errors');
 	} else {

@@ -32,6 +32,7 @@ use Luracast\Restler\Data\Arr;
 include_once DOL_DOCUMENT_ROOT . '/core/modules/DolibarrModules.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveoperacion.class.php';
 
 
 /**
@@ -261,43 +262,53 @@ class modVerifactu extends DolibarrModules
 		'langs' => 'verifactu@verifactu',
 		'tabname' => array(
 			MAIN_DB_PREFIX . "c_verifactu_facture_types",
-			MAIN_DB_PREFIX . "c_verifactu_clave_regimen"
+			MAIN_DB_PREFIX . "c_verifactu_clave_regimen",
+			MAIN_DB_PREFIX . "c_verifactu_clave_operacion"
 		),
 		'tablib' => array(
 			"Tipos de Factura Verifactu",
-			"Claves de Régimen Verifactu"
+			"Claves de Régimen Verifactu",
+			"Claves de Operación Verifactu"
 		),
 		'tabsql' => array(
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f'
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f',
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operacion as f'
 		),
 		'tabsqlsort' => array(
+			"code ASC",
 			"code ASC",
 			"code ASC"
 		),
 		'tabfield' => array(
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabfieldvalue' => array(
+			"code,label,active",
 			"code,label,active",
 			"code,label,active"
 		),
 		'tabfieldinsert' => array(
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabrowid' => array(
+			"rowid",
 			"rowid",
 			"rowid"
 		),
 		'tabcond' => array(
 			isModEnabled('verifactu'),
+			isModEnabled('verifactu'),
 			isModEnabled('verifactu')
 		),
 		'tabhelp' => array(
 			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
+			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+			array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
 		)
 	);
 
@@ -636,7 +647,7 @@ class modVerifactu extends DolibarrModules
 	public function _create_maestros()
 	{
 		global $user;
-		
+
 		// Incluir las clases necesarias
 		require_once __DIR__ . '/../../class/verifactufacturetype.class.php';
 		require_once __DIR__ . '/../../class/verifactuclaveregimen.class.php';
@@ -654,7 +665,21 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		//Clave que identificará el tipo de régimen del impuesto o una operación con trascendencia tributaria.
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
+		) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		//Clave de la operación sujeta y no exenta o de la operación no sujeta.
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_operacion (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
 			label varchar(255) NOT NULL,
@@ -667,7 +692,18 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-
+		//Campo que especifica la causa de exención.
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_exencion (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
+		) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
@@ -686,18 +722,37 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
-		$obj = $this->db->fetch_row($resql);
-		if ($obj[0] == 0) {
+		$obj = $this->db->fetch_array($resql);
+		if ($obj && $obj[0] == 0) {
 			//instertamos un hash vacio 00000000000000000000000000000000000000000000000000000000000000
 			$sql = "INSERT INTO " . MAIN_DB_PREFIX . "verifactu_last_hash (hash) VALUES ('00000000000000000000000000000000000000000000000000000000000000')";
 			$resql = $this->db->query($sql);
 			if (! $resql) {
 				dol_print_error($this->db);
 				return -1;
-			}	
+			}
 		}
 
-		
+
+		//L10
+		$claveExencion = array(
+			array('code' => 'E1', 'label' => 'Exenta por el artículo 20'),
+			array('code' => 'E2', 'label' => 'Exenta por el artículo 21'),
+			array('code' => 'E3', 'label' => 'Exenta por el artículo 22'),
+			array('code' => 'E4', 'label' => 'Exenta por el artículo 23 y 24'),
+			array('code' => 'E5', 'label' => 'Exenta por el artículo 25'),
+			array('code' => 'E6', 'label' => 'Exenta por otros'),
+		);
+
+		//L9
+		$claveOperacion = array(
+			array('code' => 'S1', 'label' => 'Operación Sujeta y No exenta - Sin inversión del sujeto pasivo.'),
+			array('code' => 'S2', 'label' => 'Operación Sujeta y No exenta - Con Inversión del sujeto pasivo.'),
+			array('code' => 'N1', 'label' => 'Operación No Sujeta artículo 7, 14, otros.'),
+			array('code' => 'N2', 'label' => 'Operación No Sujeta por Reglas de localización.')
+		);
+
+		//L8
 		$regimens = array(
 			array('code' => '01', 'label' => 'Operación de régimen general.'),
 			array('code' => '02', 'label' => 'Exportación.'),
@@ -746,16 +801,37 @@ class modVerifactu extends DolibarrModules
 
 		foreach ($regimens as $regimen) {
 			// Verificar si ya existe
-			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen WHERE code = '" . $this->db->escape($regimen['code']) . "'";
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen WHERE code = '" . $this->db->escape($regimen['code']) . "'";
 			$resql_check = $this->db->query($sql_check);
-			$obj = $this->db->fetch_row($resql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
 
-			if ($obj[0] == 0) { // Solo crear si no existe
-				$regimenObj = new VerifactuClaveRegimen($this->db);
-				$regimenObj->code = $regimen['code'];
-				$regimenObj->label = $regimen['label'];
-				$regimenObj->active = 1;	
-				$regimenObj->create($user);
+				if ($count == 0) { // Solo crear si no existe
+					$regimenObj = new VerifactuClaveRegimen($this->db);
+					$regimenObj->code = $regimen['code'];
+					$regimenObj->label = $regimen['label'];
+					$regimenObj->active = 1;
+					$regimenObj->create($user);
+				}
+			}
+		}
+
+		foreach ($claveOperacion as $operacion) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_operacion WHERE code = '" . $this->db->escape($operacion['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
+
+				if ($count == 0) { // Solo crear si no existe
+					$operacionObj = new VerifactuClaveOperacion($this->db);
+					$operacionObj->code = $operacion['code'];
+					$operacionObj->label = $operacion['label'];
+					$operacionObj->active = 1;
+					$operacionObj->create($user);
+				}
 			}
 		}
 		return 1;
@@ -777,8 +853,14 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
-		
+
 		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_operacion";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
