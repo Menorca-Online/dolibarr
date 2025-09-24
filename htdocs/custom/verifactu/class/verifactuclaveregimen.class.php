@@ -13,7 +13,7 @@ class VerifactuClaveRegimen extends CommonObject
     public $rowid;
     public $code;
     public $label;
-
+    public $active;
 
     /**
      * Constructor
@@ -26,6 +26,8 @@ class VerifactuClaveRegimen extends CommonObject
             'rowid'    => array('type' => 'integer', 'label' => 'ID', 'enabled' => 1, 'visible' => -2, 'notnull' => 1, 'index' => true),
             'code'  => array('type' => 'string',  'label' => 'Code',  'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'length' => '50'),
             'label' => array('type' => 'string',  'label' => 'Label', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'length' => '255'),
+            'active'   => array('type' => 'integer', 'label' => 'Active',   'enabled' => 1, 'visible' => 1, 'notnull' => 1)
+
         );
     }
 

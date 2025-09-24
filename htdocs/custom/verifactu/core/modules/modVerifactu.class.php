@@ -256,7 +256,52 @@ class modVerifactu extends DolibarrModules
 		 );
 		 */
 		/* BEGIN MODULEBUILDER DICTIONARIES */
-		$this->dictionaries = array();
+		/* BEGIN MODULEBUILDER DICTIONARIES */
+	$this->dictionaries = array(
+		'langs' => 'verifactu@verifactu',
+		'tabname' => array(
+			MAIN_DB_PREFIX . "c_verifactu_facture_types",
+			MAIN_DB_PREFIX . "c_verifactu_clave_regimen"
+		),
+		'tablib' => array(
+			"Tipos de Factura Verifactu",
+			"Claves de Régimen Verifactu"
+		),
+		'tabsql' => array(
+			'SELECT f.rowid as rowid, f.code, f.label  FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
+			'SELECT f.rowid as rowid, f.code, f.label  FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f'
+		),
+		'tabsqlsort' => array(
+			"code ASC",
+			"code ASC"
+		),
+		'tabfield' => array(
+			"code,label",
+			"code,label"
+		),
+		'tabfieldvalue' => array(
+			"code,label",
+			"code,label"
+		),
+		'tabfieldinsert' => array(
+			"code,label",
+			"code,label"
+		),
+		'tabrowid' => array(
+			"rowid",
+			"rowid"
+		),
+		'tabcond' => array(
+			isModEnabled('verifactu'),
+			isModEnabled('verifactu')
+		),
+		'tabhelp' => array(
+			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción')),
+			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'))
+		)
+	);
+
+
 		/* END MODULEBUILDER DICTIONARIES */
 
 		// Boxes/Widgets
@@ -580,8 +625,8 @@ class modVerifactu extends DolibarrModules
 	{
 
 		//COMENTAMOS DE MOMENTO PARA NO PERDER LOS HASHES.
-		//$this->_remove_maestros();
-		//$this->_remove_extra_fields();
+		$this->_remove_maestros();
+		$this->_remove_extra_fields();
 
 		$this->_remove_pdf_template(); // Eliminar plantilla PDF
 		$sql = array();
@@ -591,12 +636,16 @@ class modVerifactu extends DolibarrModules
 	public function _create_maestros()
 	{
 		global $user;
+		
+		// Incluir las clases necesarias
+		require_once __DIR__ . '/../../class/verifactufacturetype.class.php';
+		require_once __DIR__ . '/../../class/verifactuclaveregimen.class.php';
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_facture_types (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
 			label varchar(255) NOT NULL,
-			api integer NOT NULL DEFAULT 0
+			active tinyint(1) DEFAULT 1
 		) ENGINE=innodb;";
 
 		$resql = $this->db->query($sql);
@@ -608,7 +657,8 @@ class modVerifactu extends DolibarrModules
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
-			label varchar(255) NOT NULL
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
 		) ENGINE=innodb;";
 
 		$resql = $this->db->query($sql);
@@ -685,12 +735,10 @@ class modVerifactu extends DolibarrModules
 			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "c_verifactu_facture_types WHERE code = '" . $this->db->escape($type['code']) . "'";
 			$resql_check = $this->db->query($sql_check);
 			$obj = $this->db->fetch_row($resql_check);
-
 			if ($obj[0] == 0) { // Solo crear si no existe
 				$typeObj = new VerifactuFactureType($this->db);
 				$typeObj->code = $type['code'];
 				$typeObj->label = $type['label'];
-				$typeObj->api = $type['api'];
 				$typeObj->create($user);
 			}
 		}
