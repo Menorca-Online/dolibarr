@@ -268,24 +268,24 @@ class modVerifactu extends DolibarrModules
 			"Claves de Régimen Verifactu"
 		),
 		'tabsql' => array(
-			'SELECT f.rowid as rowid, f.code, f.label  FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
-			'SELECT f.rowid as rowid, f.code, f.label  FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f'
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f'
 		),
 		'tabsqlsort' => array(
 			"code ASC",
 			"code ASC"
 		),
 		'tabfield' => array(
-			"code,label",
-			"code,label"
+			"code,label,active",
+			"code,label,active"
 		),
 		'tabfieldvalue' => array(
-			"code,label",
-			"code,label"
+			"code,label,active",
+			"code,label,active"
 		),
 		'tabfieldinsert' => array(
-			"code,label",
-			"code,label"
+			"code,label,active",
+			"code,label,active"
 		),
 		'tabrowid' => array(
 			"rowid",
@@ -296,8 +296,8 @@ class modVerifactu extends DolibarrModules
 			isModEnabled('verifactu')
 		),
 		'tabhelp' => array(
-			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción')),
-			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'))
+			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
 		)
 	);
 
@@ -739,6 +739,7 @@ class modVerifactu extends DolibarrModules
 				$typeObj = new VerifactuFactureType($this->db);
 				$typeObj->code = $type['code'];
 				$typeObj->label = $type['label'];
+				$typeObj->active = 1;
 				$typeObj->create($user);
 			}
 		}
@@ -753,6 +754,7 @@ class modVerifactu extends DolibarrModules
 				$regimenObj = new VerifactuClaveRegimen($this->db);
 				$regimenObj->code = $regimen['code'];
 				$regimenObj->label = $regimen['label'];
+				$regimenObj->active = 1;	
 				$regimenObj->create($user);
 			}
 		}
