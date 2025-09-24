@@ -26,8 +26,12 @@
  *  \ingroup    verifactu
  *  \brief      Description and activation file for module Verifactu
  */
+
+use Luracast\Restler\Data\Arr;
+
 include_once DOL_DOCUMENT_ROOT . '/core/modules/DolibarrModules.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.class.php';
 
 
 /**
@@ -588,7 +592,7 @@ class modVerifactu extends DolibarrModules
 	{
 		global $user;
 
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_facture_types (
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_facture_types (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
 			label varchar(255) NOT NULL,
@@ -600,6 +604,20 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
+
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL
+		) ENGINE=innodb;";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
@@ -630,6 +648,26 @@ class modVerifactu extends DolibarrModules
 		}
 
 		
+		$regimens = array(
+			array('code' => '01', 'label' => 'Operación de régimen general.'),
+			array('code' => '02', 'label' => 'Exportación.'),
+			array('code' => '03', 'label' => 'Operaciones a las que se aplique el régimen especial de bienes usados, objetos de arte, antigüedades y objetos de colección.'),
+			array('code' => '04', 'label' => 'Régimen especial del oro de inversión.'),
+			array('code' => '05', 'label' => 'Régimen especial de las agencias de viajes.'),
+			array('code' => '06', 'label' => 'Régimen especial grupo de entidades en IVA (Nivel Avanzado)'),
+			array('code' => '07', 'label' => 'Régimen especial del criterio de caja.'),
+			array('code' => '08', 'label' => 'Operaciones sujetas al IPSI  / IGIC (Impuesto sobre la Producción, los Servicios y la Importación  / Impuesto General Indirecto Canario).'),
+			array('code' => '09', 'label' => 'Facturación de las prestaciones de servicios de agencias de viaje que actúan como mediadoras en nombre y por cuenta ajena (D.A.4ª RD1619/2012)'),
+			array('code' => '10', 'label' => 'Cobros por cuenta de terceros de honorarios profesionales o de derechos derivados de la propiedad industrial, de autor u otros por cuenta de sus socios, asociados o colegiados efectuados por sociedades, asociaciones, colegios profesionales u otras entidades que realicen estas funciones de cobro.'),
+			array('code' => '11', 'label' => 'Operaciones de arrendamiento de local de negocio.'),
+			array('code' => '14', 'label' => 'Factura con IVA pendiente de devengo en certificaciones de obra cuyo destinatario sea una Administración Pública.'),
+			array('code' => '15', 'label' => 'Factura con IVA pendiente de devengo en operaciones de tracto sucesivo.'),
+			array('code' => '17', 'label' => 'Operación acogida a alguno de los regímenes previstos en el Capítulo XI del Título IX (OSS e IOSS)'),
+			array('code' => '18', 'label' => 'Recargo de equivalencia.'),
+			array('code' => '19', 'label' => 'Operaciones de actividades incluidas en el Régimen Especial de Agricultura, Ganadería y Pesca (REAGYP)'),
+			array('code' => '20', 'label' => 'Régimen simplificado'),
+		);
+
 
 		$types = array(
 			array('code' => 'F1', 'label' => 'F1 - Factura Estandar', 'api' => 1),
@@ -644,7 +682,7 @@ class modVerifactu extends DolibarrModules
 
 		foreach ($types as $type) {
 			// Verificar si ya existe
-			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "verifactu_facture_types WHERE code = '" . $this->db->escape($type['code']) . "'";
+			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "c_verifactu_facture_types WHERE code = '" . $this->db->escape($type['code']) . "'";
 			$resql_check = $this->db->query($sql_check);
 			$obj = $this->db->fetch_row($resql_check);
 
@@ -657,12 +695,25 @@ class modVerifactu extends DolibarrModules
 			}
 		}
 
+		foreach ($regimens as $regimen) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen WHERE code = '" . $this->db->escape($regimen['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			$obj = $this->db->fetch_row($resql_check);
+
+			if ($obj[0] == 0) { // Solo crear si no existe
+				$regimenObj = new VerifactuClaveRegimen($this->db);
+				$regimenObj->code = $regimen['code'];
+				$regimenObj->label = $regimen['label'];
+				$regimenObj->create($user);
+			}
+		}
 		return 1;
 	}
 
 	public function _remove_maestros()
 	{
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_facture_types";
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_facture_types";
 
 		$resql = $this->db->query($sql);
 		if (! $resql) {
@@ -677,6 +728,12 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 		
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimen";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
 
 		return 1;
 	}
@@ -702,7 +759,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"verifactu_facture_types:label:rowid" => null
+						"c_verifactu_facture_types:label:rowid" => null
 					]
 				]),
 				0,                                     // $alwayseditable

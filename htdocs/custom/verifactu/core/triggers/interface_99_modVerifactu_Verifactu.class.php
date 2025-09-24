@@ -183,7 +183,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 		// 6.º Importe total.
 		// 7.º Huella del registro de facturación anterior.
 		// 8.º Fecha, hora y huso horario de generación del registro.
-		// el tipo factura es el fk_facture_type  llx_verifactu_facture_types
+
 
 
 
