@@ -1081,6 +1081,112 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		// Añadir campos extra para líneas de facturas (facturedet)
+		$existing_det = $extrafields->fetch_name_optionals_label('facturedet');
+
+		// Campo fk_clave_regimen
+		if (!isset($existing_det['fk_clave_regimen'])) {
+			$result6 = $extrafields->addExtraField(
+				'fk_clave_regimen',                    // $attrname
+				'Clave Régimen',                      // $label
+				'sellist',                            // $type
+				10,                                   // $pos
+				'',                                   // $size
+				'facturedet',                         // $elementtype
+				0,                                    // $unique
+				0,                                    // $required
+				'',                                   // $default_value
+				serialize([                           // $param
+					"options" => [
+						"c_verifactu_clave_regimenes:label:rowid" => null
+					]
+				]),
+				1,                                    // $alwayseditable
+				'',                                   // $perms
+				1,                                    // $list
+				'Seleccione la clave de régimen según Verifactu', // $help
+				'',                                   // $computed
+				'',                                   // $entity
+				'',                                   // $langfile
+				'1',                                  // $enabled
+				0,                                    // $totalizable
+				1                                     // $printable
+			);
+		}
+
+		// Campo fk_clave_operacion
+		if (!isset($existing_det['fk_clave_operacion'])) {
+			$result7 = $extrafields->addExtraField(
+				'fk_clave_operacion',                  // $attrname
+				'Clave Operación',                    // $label
+				'sellist',                            // $type
+				20,                                   // $pos
+				'',                                   // $size
+				'facturedet',                         // $elementtype
+				0,                                    // $unique
+				0,                                    // $required
+				'',                                   // $default_value
+				serialize([                           // $param
+					"options" => [
+						"c_verifactu_clave_operaciones:label:rowid" => null
+					]
+				]),
+				1,                                    // $alwayseditable
+				'',                                   // $perms
+				1,                                    // $list
+				'Seleccione la clave de operación según Verifactu', // $help
+				'',                                   // $computed
+				'',                                   // $entity
+				'',                                   // $langfile
+				'1',                                  // $enabled
+				0,                                    // $totalizable
+				1                                     // $printable
+			);
+		}
+
+		// Campo fk_clave_exencion
+		if (!isset($existing_det['fk_clave_exencion'])) {
+			$result8 = $extrafields->addExtraField(
+				'fk_clave_exencion',                   // $attrname
+				'Clave Exención',                     // $label
+				'sellist',                            // $type
+				30,                                   // $pos
+				'',                                   // $size
+				'facturedet',                         // $elementtype
+				0,                                    // $unique
+				0,                                    // $required
+				'',                                   // $default_value
+				serialize([                           // $param
+					"options" => [
+						"c_verifactu_clave_exenciones:label:rowid" => null
+					]
+				]),
+				1,                                    // $alwayseditable
+				'',                                   // $perms
+				1,                                    // $list
+				'Seleccione la clave de exención según Verifactu', // $help
+				'',                                   // $computed
+				'',                                   // $entity
+				'',                                   // $langfile
+				'1',                                  // $enabled
+				0,                                    // $totalizable
+				1                                     // $printable
+			);
+		}
+
+		// Verificar los resultados de la creación de los nuevos campos de líneas
+		if (isset($result6) && $result6 < 0) {
+			return -1;
+		}
+
+		if (isset($result7) && $result7 < 0) {
+			return -1;
+		}
+
+		if (isset($result8) && $result8 < 0) {
+			return -1;
+		}
+
 		return 1;
 	}
 
@@ -1194,6 +1300,22 @@ class modVerifactu extends DolibarrModules
 		// Eliminar campo fechaHoraHusoGenRegistro
 		$result5 = $extrafields->delete('fechaHoraHusoGenRegistro', 'facture');
 		if ($result5 < 0) {
+			return -1;
+		}
+
+		// Eliminar campos de líneas de facturas (facturedet)
+		$result6 = $extrafields->delete('fk_clave_regimen', 'facturedet');
+		if ($result6 < 0) {
+			return -1;
+		}
+
+		$result7 = $extrafields->delete('fk_clave_operacion', 'facturedet');
+		if ($result7 < 0) {
+			return -1;
+		}
+
+		$result8 = $extrafields->delete('fk_clave_exencion', 'facturedet');
+		if ($result8 < 0) {
 			return -1;
 		}
 
