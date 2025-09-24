@@ -360,13 +360,13 @@ class VerifactuXML
             $this->addElement($dom, $detalleDesglose, 'sum1:Impuesto', '01'); // IVA
             $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', $data['claveRegimen']);
             $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['calificacion']);
-            if (!empty($data['operacionExenta'])) {
-                $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['operacionExenta']);
-                $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 2, '.', ''));
-                $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
-            }
-
+            $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['operacionExenta']);
+            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 2, '.', ''));
             $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['base'], 2, '.', ''));
+            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
+
+
+
 
             $desglose->appendChild($detalleDesglose);
         }
