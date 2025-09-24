@@ -4,7 +4,7 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 class VerifactuClaveOperacion extends CommonObject
 {
     public $element       = 'verifactuclaveoperacion';       // Identificador interno
-    public $table_element = 'c_verifactu_clave_operacion';    // Nombre de la tabla (sin prefijo)
+    public $table_element = 'c_verifactu_clave_operaciones';    // Nombre de la tabla (sin prefijo)
     public $picto         = 'generic';                    // Icono genérico
 
     public $pk_name       = 'rowid';                         // <--- Clave primaria real

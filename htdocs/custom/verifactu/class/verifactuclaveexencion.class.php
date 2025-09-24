@@ -4,7 +4,7 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 class VerifactuClaveExencion extends CommonObject
 {
     public $element       = 'verifactuclaveexencion';       // Identificador interno
-    public $table_element = 'c_verifactu_clave_exencion';    // Nombre de la tabla (sin prefijo)
+    public $table_element = 'c_verifactu_clave_exenciones';    // Nombre de la tabla (sin prefijo)
     public $picto         = 'generic';                    // Icono genérico
 
     public $pk_name       = 'rowid';                         // <--- Clave primaria real
