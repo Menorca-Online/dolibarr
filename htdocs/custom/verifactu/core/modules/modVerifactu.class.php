@@ -263,19 +263,23 @@ class modVerifactu extends DolibarrModules
 		'tabname' => array(
 			MAIN_DB_PREFIX . "c_verifactu_facture_types",
 			MAIN_DB_PREFIX . "c_verifactu_clave_regimen",
-			MAIN_DB_PREFIX . "c_verifactu_clave_operacion"
+			MAIN_DB_PREFIX . "c_verifactu_clave_operacion",
+			MAIN_DB_PREFIX . "c_verifactu_clave_exencion"
 		),
 		'tablib' => array(
 			"Tipos de Factura Verifactu",
 			"Claves de Régimen Verifactu",
-			"Claves de Operación Verifactu"
+			"Claves de Operación Verifactu",
+			"Claves de Exención Verifactu"
 		),
 		'tabsql' => array(
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimen as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operacion as f'
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operacion as f',
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exencion as f'
 		),
 		'tabsqlsort' => array(
+			"code ASC",
 			"code ASC",
 			"code ASC",
 			"code ASC"
@@ -283,9 +287,11 @@ class modVerifactu extends DolibarrModules
 		'tabfield' => array(
 			"code,label,active",
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabfieldvalue' => array(
+			"code,label,active",
 			"code,label,active",
 			"code,label,active",
 			"code,label,active"
@@ -293,9 +299,11 @@ class modVerifactu extends DolibarrModules
 		'tabfieldinsert' => array(
 			"code,label,active",
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabrowid' => array(
+			"rowid",
 			"rowid",
 			"rowid",
 			"rowid"
@@ -303,12 +311,14 @@ class modVerifactu extends DolibarrModules
 		'tabcond' => array(
 			isModEnabled('verifactu'),
 			isModEnabled('verifactu'),
+			isModEnabled('verifactu'),
 			isModEnabled('verifactu')
 		),
 		'tabhelp' => array(
 			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
+			array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+			array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 		)
 	);
 
@@ -834,6 +844,23 @@ class modVerifactu extends DolibarrModules
 				}
 			}
 		}
+		foreach ($claveExencion as $exencion) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_exencion WHERE code = '" . $this->db->escape($exencion['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
+
+				if ($count == 0) { // Solo crear si no existe
+					$exencionObj = new VerifactuClaveExencion($this->db);
+					$exencionObj->code = $exencion['code'];
+					$exencionObj->label = $exencion['label'];
+					$exencionObj->active = 1;
+					$exencionObj->create($user);
+				}
+			}
+		}
 		return 1;
 	}
 
@@ -861,6 +888,12 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_operacion";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_exencion";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
