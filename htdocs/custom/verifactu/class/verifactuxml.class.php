@@ -273,19 +273,6 @@ class VerifactuXML
 
         return '';
 
-        // // Determinar tipo por defecto según el tipo de factura de Dolibarr
-        // switch ($facture->type) {
-        //     case 0: // Factura estándar
-        //         return 'F1';
-        //     case 1: // Factura de sustitución
-        //         return 'F2';
-        //     case 2: // Nota de crédito
-        //         return 'R1';
-        //     case 3: // Anticipo
-        //         return 'F4';
-        //     default:
-        //         return 'F1';
-        // }
     }
 
     /**
@@ -331,16 +318,32 @@ class VerifactuXML
         $nombreDestinatario = $facture->thirdparty->name ?: $facture->thirdparty->nom;
         $this->addElement($dom, $idDestinatario, 'sum1:NombreRazon', $nombreDestinatario);
 
-        // NIF del destinatario
-        $nifDestinatario = $facture->thirdparty->tva_intra ?: $facture->thirdparty->idprof1;
-        if (!empty($nifDestinatario)) {
-            $this->addElement($dom, $idDestinatario, 'sum1:NIF', $nifDestinatario);
+        //si el pais es <> 'ES' hay que añadir IDOtro
+        $countryCode = $facture->thirdparty->country_code ?? '';
+        if ($countryCode !== 'ES') {
+            //creamos un nodo IDOtro ad Destinatario
+            $idOtro = $dom->createElement('sum1:IDOtro');
+            $idDestinatario->appendChild($idOtro);
+            //añadimos el CodigoPais
+            $this->addElement($dom, $idOtro, 'sum1:CodigoPais', $countryCode);
+            //añadimos el IDType
+            $this->addElement($dom, $idOtro, 'sum1:IDType', '04'); 
+            //añadimos el ID
+            $this->addElement($dom, $idOtro, 'sum1:ID', $facture->thirdparty->idprof1 ?: $facture->thirdparty->tva_intra ?: 'NIF_NO_PROPORCIONADO');
+        }else{
+            $nifDestinatario = $facture->thirdparty->tva_intra ?: $facture->thirdparty->idprof1;
+            if (!empty($nifDestinatario)) {
+                $this->addElement($dom, $idDestinatario, 'sum1:NIF', $nifDestinatario);
+            }
         }
+
+        
 
         $destinatarios->appendChild($idDestinatario);
         $parent->appendChild($destinatarios);
     }
 
+   
     /**
      * Agrega elemento Desglose al XML
      */
@@ -352,14 +355,18 @@ class VerifactuXML
         $desgloseData = $this->agruparPorTipoIVA($facture);
 
         foreach ($desgloseData as $tipoIva => $data) {
-            $detalleDesglose = $dom->createElement('sum1:DetalleDesglose');
 
+            $detalleDesglose = $dom->createElement('sum1:DetalleDesglose');
             $this->addElement($dom, $detalleDesglose, 'sum1:Impuesto', '01'); // IVA
-            $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', '01'); // Régimen general
-            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $this->getCalificacionOperacion($tipoIva));
-            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 0));
+            $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', $data['claveRegimen']);
+            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['calificacion']);
+            if (!empty($data['operacionExenta'])) {
+                $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['operacionExenta']);
+                $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 2, '.', ''));
+                $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
+            }
+
             $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['base'], 2, '.', ''));
-            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
 
             $desglose->appendChild($detalleDesglose);
         }
@@ -369,24 +376,82 @@ class VerifactuXML
 
     /**
      * Agrupa las líneas de factura por tipo de IVA
+     * L9
+    Valores	Descripción
+    S1	Operación Sujeta y No exenta - Sin inversión del sujeto pasivo.
+    S2	Operación Sujeta y No exenta - Con Inversión del sujeto pasivo.
+    N1	Operación No Sujeta artículo 7, 14, otros.
+    N2	Operación No Sujeta por Reglas de localización.
      */
-    private function agruparPorTipoIVA($facture)
-    {
-        $desglose = array();
+private function agruparPorTipoIVA($facture)
+{
+    $desglose = array();
+    $soc = $facture->thirdparty;
+    $countryCode = $soc->country_code ?? '';
+    $tvaIntra = trim($soc->tva_intra);
 
-        foreach ($facture->lines as $line) {
-            $tipoIva = $line->tva_tx;
+    foreach ($facture->lines as $line) {
+        $tipoIva = (float) $line->tva_tx;
 
-            if (!isset($desglose[$tipoIva])) {
-                $desglose[$tipoIva] = array('base' => 0, 'cuota' => 0);
-            }
-
-            $desglose[$tipoIva]['base'] += $line->total_ht;
-            $desglose[$tipoIva]['cuota'] += $line->total_tva;
+        if (!isset($desglose[$tipoIva])) {
+            $desglose[$tipoIva] = array(
+                'base' => 0,
+                'cuota' => 0,
+                'claveRegimen' => null,
+                'calificacion' => null,
+                'operacionExenta' => null
+            );
         }
 
-        return $desglose;
+        $desglose[$tipoIva]['base'] += $line->total_ht;
+        $desglose[$tipoIva]['cuota'] += $line->total_tva;
     }
+
+    // Añadir régimen y calificación según reglas AEAT
+    foreach ($desglose as $tipoIva => &$data) {
+
+        if ($tipoIva > 0) {
+            // Con IVA -> sujeta y no exenta
+            $data['claveRegimen'] = '01'; // Régimen general
+            $data['calificacion'] = 'S1';
+            $data['operacionExenta'] = null; // no aplica
+        } else {
+
+            if ($countryCode === 'ES') {
+                // Exenta nacional (ej: art. 20 LIVA)
+                $data['claveRegimen'] = '01';
+                $data['calificacion'] = 'S1'; // sigue siendo sujeta
+                $data['operacionExenta'] = 'E1'; // por art. 20
+            } elseif (!empty($tvaIntra) && in_array($countryCode, array(
+                'DE','FR','IT','PT','NL','BE','LU','AT','IE','DK','SE','FI','PL','CZ','SK',
+                'HU','RO','BG','HR','SI','EE','LV','LT','CY','MT','GR'
+            ))) {
+                // Cliente UE con VAT válido -> no sujeta por localización
+                $data['claveRegimen'] = '01';
+                $data['calificacion'] = 'N2';
+                $data['operacionExenta'] = null;
+            } elseif (in_array($countryCode, array(
+                'DE','FR','IT','PT','NL','BE','LU','AT','IE','DK','SE','FI','PL','CZ','SK',
+                'HU','RO','BG','HR','SI','EE','LV','LT','CY','MT','GR'
+            ))) {
+                // Cliente UE sin VAT -> debería llevar IVA español
+                $data['claveRegimen'] = '01';
+                $data['calificacion'] = 'S1';
+                $data['operacionExenta'] = null;
+            } else {
+                // Exportaciones -> exentas por art. 21 LIVA
+                $data['claveRegimen'] = '02';
+                $data['calificacion'] = 'S1'; // sujeta, pero exenta
+                $data['operacionExenta'] = 'E2';
+            }
+        }
+    }
+
+    return $desglose;
+}
+
+
+
 
     /**
      * Obtiene la calificación de la operación según el tipo de IVA

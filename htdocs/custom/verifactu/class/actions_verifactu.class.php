@@ -674,7 +674,11 @@ class ActionsVerifactu
                     dol_syslog("Verifactu: Validación de cliente fallida en doActions: " . implode(", ", $errors));
                     
                     // Cambiar la acción para volver al formulario sin redirección
-                    $action = 'create';
+                    if ($action = 'create') {
+                        $action = 'add';
+                    } elseif ($action = 'update') {
+                        $action = 'edit';
+                    }
                     return -1; // Retornar error para bloquear el guardado
                 }
 
