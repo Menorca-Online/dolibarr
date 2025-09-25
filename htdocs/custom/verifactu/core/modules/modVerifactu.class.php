@@ -34,6 +34,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.c
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveoperacion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 
 
 /**
@@ -589,16 +590,6 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		// Create extrafields during init
-		//include_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
-		//$extrafields = new ExtraFields($this->db);
-		//$result0=$extrafields->addExtraField('verifactu_separator1', "Separator 1", 'separator', 1,  0, 'thirdparty',   0, 0, '', array('options'=>array(1=>1)), 1, '', 1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-		//$result1=$extrafields->addExtraField('verifactu_myattr1', "New Attr 1 label", 'boolean', 1,  3, 'thirdparty',   0, 0, '', '', 1, '', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-		//$result2=$extrafields->addExtraField('verifactu_myattr2', "New Attr 2 label", 'varchar', 1, 10, 'project',      0, 0, '', '', 1, '', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-		//$result3=$extrafields->addExtraField('verifactu_myattr3', "New Attr 3 label", 'varchar', 1, 10, 'bank_account', 0, 0, '', '', 1, '', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-		//$result4=$extrafields->addExtraField('verifactu_myattr4', "New Attr 4 label", 'select',  1,  3, 'thirdparty',   0, 1, '', array('options'=>array('code1'=>'Val1','code2'=>'Val2','code3'=>'Val3')), 1,'', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-		//$result5=$extrafields->addExtraField('verifactu_myattr5', "New Attr 5 label", 'text',    1, 10, 'user',         0, 0, '', '', 1, '', -1, 0, '', '', 'verifactu@verifactu', 'isModEnabled("verifactu")');
-
 		$sql = array();
 
 		// Document templates
@@ -715,10 +706,12 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
-
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash (
+		//Campo que especifica los estados de registros.
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_estados (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
-			hash varchar(64) DEFAULT NULL
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
 		) ENGINE=innodb;";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
@@ -726,22 +719,22 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		//MIRAR PRIMERO SI HAY REGISTROS, SI HAY NO HACER NADA
-		$sql = "SELECT COUNT(*) FROM " . MAIN_DB_PREFIX . "verifactu_last_hash";
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			factureid integer NOT NULL,
+			hash varchar(64) DEFAULT NULL,
+			hash_data text DEFAULT NULL,
+			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			estado integer DEFAULT 1,
+			msg_error text DEFAULT NULL,
+			csv_line text DEFAULT NULL,
+			operation varchar(20) DEFAULT NULL,
+		) ENGINE=innodb;";
+
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
 			return -1;
-		}
-		$obj = $this->db->fetch_array($resql);
-		if ($obj && $obj[0] == 0) {
-			//instertamos un hash vacio 00000000000000000000000000000000000000000000000000000000000000
-			$sql = "INSERT INTO " . MAIN_DB_PREFIX . "verifactu_last_hash (hash) VALUES ('00000000000000000000000000000000000000000000000000000000000000')";
-			$resql = $this->db->query($sql);
-			if (! $resql) {
-				dol_print_error($this->db);
-				return -1;
-			}
 		}
 
 
@@ -794,6 +787,14 @@ class modVerifactu extends DolibarrModules
 			array('code' => 'R3', 'label' => 'R3 - Modificación de la base imponible por crédito incobrable (art. 80 Cuatro LIVA)', 'api' => 1),
 			array('code' => 'R4', 'label' => 'R4 - Factura rectificativa por otras causas distintas de las anteriores, o datos no monetarios erróneamente consignados', 'api' => 1),
 			array('code' => 'R5', 'label' => 'R5 - Rectificativa Simplificada', 'api' => 1),
+		);
+
+		$registroEstados = array(
+			array('code' => '1', 'label' => '1 - Sin enviar'),
+			array('code' => '2', 'label' => '2 - Enviada'),
+			array('code' => '3', 'label' => '3 - Rechazada'),
+			array('code' => '4', 'label' => '4 - Aceptada'),
+			array('code' => '5', 'label' => '5 - Con errores'),
 		);
 
 		foreach ($types as $type) {
@@ -862,6 +863,24 @@ class modVerifactu extends DolibarrModules
 				}
 			}
 		}
+
+		foreach( $registroEstados as $estado) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_registro_estados WHERE code = '" . $this->db->escape($estado['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
+
+				if ($count == 0) { // Solo crear si no existe
+					$estadoObj = new VerifactuRegistroEstado($this->db);
+					$estadoObj->code = $estado['code'];
+					$estadoObj->label = $estado['label'];
+					$estadoObj->active = 1;
+					$estadoObj->create($user);
+				}
+			}
+		}
 		return 1;
 	}
 
@@ -895,6 +914,13 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_exenciones";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_estados";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
@@ -951,135 +977,13 @@ class modVerifactu extends DolibarrModules
 			dol_syslog("Verifactu: Actualizada posición del extrafield fk_facture_type a -10");
 		}
 
-		// Añadir campo hash si no existe
-		if (!isset($existing['hash'])) {
-			$result2 = $extrafields->addExtraField(
-				'hash',             // $attrname
-				'Hash',             // $label
-				'varchar',          // $type
-				110,                // $pos
-				'255',              // $size
-				'facture',          // $elementtype
-				0,                  // $unique
-				0,                  // $required
-				'',                 // $default_value
-				'',                 // $param
-				0,                  // $alwayseditable
-				'',                 // $perms
-				1,                  // $list
-				'',                 // $help
-				'',                 // $computed
-				'',                 // $entity
-				'',                 // $langfile
-				'1',                // $enabled
-				0,                  // $totalizable
-				1,                  // $printable
-				array(),            // $moreparams
-				''                  // $aiprompt
-			);
-		}
 
-		// Añadir campo hash_anterior si no existe
-		if (!isset($existing['hash_anterior'])) {
-			$result3 = $extrafields->addExtraField(
-				'hash_anterior',             // $attrname
-				'Hash Anterior',             // $label
-				'varchar',          // $type
-				110,                // $pos
-				'255',              // $size
-				'facture',          // $elementtype
-				0,                  // $unique
-				0,                  // $required
-				'',                 // $default_value
-				'',                 // $param
-				0,                  // $alwayseditable
-				'',                 // $perms
-				1,                  // $list
-				'',                 // $help
-				'',                 // $computed
-				'',                 // $entity
-				'',                 // $langfile
-				'1',                // $enabled
-				0,                  // $totalizable
-				1,                  // $printable
-				array(),            // $moreparams
-				''                  // $aiprompt
-			);
-		}
-
-		// Añadir campo hash_data si no existe (para almacenar los datos usados para generar el hash)
-		if (!isset($existing['hash_data'])) {
-			$result4 = $extrafields->addExtraField(
-				'hash_data',             // $attrname
-				'Hash Data',             // $label
-				'text',                  // $type
-				130,                     // $pos
-				'',                      // $size
-				'facture',          // $elementtype
-				0,                  // $unique
-				0,                  // $required
-				'',                 // $default_value
-				'',                 // $param
-				0,                  // $alwayseditable
-				'',                 // $perms
-				0,                  // $list
-				'Datos utilizados para generar el hash',                 // $help
-				'',                 // $computed
-				'',                 // $entity
-				'',                 // $langfile
-				'1',                // $enabled
-				0,                  // $totalizable
-				1,                  // $printable
-				array(),            // $moreparams
-				''                  // $aiprompt
-			);
-		}
-		if (!isset($existing['fechaHoraHusoGenRegistro'])) {
-			$result5 = $extrafields->addExtraField(
-				'fechaHoraHusoGenRegistro',             // $attrname
-				'Fecha y Hora de Generación del Registro Verifactu',             // $label
-				'varchar',          // $type
-				110,                // $pos
-				'255',              // $size
-				'facture',          // $elementtype
-				0,                  // $unique
-				0,                  // $required
-				'',                 // $default_value
-				'',                 // $param
-				0,                  // $alwayseditable
-				'',                 // $perms
-				1,                  // $list
-				'',                 // $help
-				'',                 // $computed
-				'',                 // $entity
-				'',                 // $langfile
-				'1',                // $enabled
-				0,                  // $totalizable
-				1,                  // $printable
-				array(),            // $moreparams
-				''                  // $aiprompt
-			);
-		}
 
 		// Verificar los resultados de la creación de los nuevos campos
 		if (isset($result1) && $result1 < 0) {
 			return -1;
 		}
 
-		if (isset($result2) && $result2 < 0) {
-			return -1;
-		}
-
-		if (isset($result3) && $result3 < 0) {
-			return -1;
-		}
-
-		if (isset($result4) && $result4 < 0) {
-			return -1;
-		}
-		if (isset($result5) && $result5 < 0) {
-			return -1;
-		}
 
 		// Añadir campos extra para líneas de facturas (facturedet)
 		$existing_det = $extrafields->fetch_name_optionals_label('facturedet');
@@ -1195,34 +1099,7 @@ class modVerifactu extends DolibarrModules
 	 */
 	public function _update_extrafields_positions()
 	{
-		// Actualizar posición del campo fk_facture_type para que aparezca primero
-		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
-				SET pos = -10
-				WHERE name = 'fk_facture_type'
-				AND elementtype = 'facture'";
-		$this->db->query($sql);
-
-		// Actualizar posiciones de otros campos para mantener el orden
-		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
-				SET pos = 100
-				WHERE name = 'hash'
-				AND elementtype = 'facture'";
-		$this->db->query($sql);
-
-		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
-				SET pos = 110
-				WHERE name = 'hash_anterior'
-				AND elementtype = 'facture'";
-		$this->db->query($sql);
-
-		$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
-				SET pos = 120
-				WHERE name = 'hash_data'
-				AND elementtype = 'facture'";
-		$this->db->query($sql);
-
-		dol_syslog("Verifactu: Actualizadas posiciones de extrafields - fk_facture_type ahora en posición -10");
-
+		
 		return 1;
 	}
 
@@ -1280,29 +1157,7 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		// Eliminar campo hash
-		$result2 = $extrafields->delete('hash', 'facture');
-		if ($result2 < 0) {
-			return -1;
-		}
-
-		// Eliminar campo hash_anterior
-		$result3 = $extrafields->delete('hash_anterior', 'facture');
-		if ($result3 < 0) {
-			return -1;
-		}
-
-		// Eliminar campo hash_data
-		$result4 = $extrafields->delete('hash_data', 'facture');
-		if ($result4 < 0) {
-			return -1;
-		}
-		// Eliminar campo fechaHoraHusoGenRegistro
-		$result5 = $extrafields->delete('fechaHoraHusoGenRegistro', 'facture');
-		if ($result5 < 0) {
-			return -1;
-		}
-
+		
 		// Eliminar campos de líneas de facturas (facturedet)
 		$result6 = $extrafields->delete('fk_clave_regimen', 'facturedet');
 		if ($result6 < 0) {
