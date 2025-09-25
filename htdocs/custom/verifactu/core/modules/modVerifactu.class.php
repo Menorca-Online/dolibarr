@@ -291,25 +291,25 @@ class modVerifactu extends DolibarrModules
 			"code ASC"
 		),
 		'tabfield' => array(
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active"
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label"
 		),
 		'tabfieldvalue' => array(
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active"
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label"
 		),
 		'tabfieldinsert' => array(
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active",
-			"code,label,active"
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label",
+			"code,label"
 		),
 		'tabrowid' => array(
 			"rowid",
