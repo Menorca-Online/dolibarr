@@ -747,41 +747,41 @@ class modVerifactu extends DolibarrModules
 
 		//L10
 		$claveExencion = array(
-			array('code' => 'E1', 'label' => 'Exenta por el artículo 20'),
-			array('code' => 'E2', 'label' => 'Exenta por el artículo 21'),
-			array('code' => 'E3', 'label' => 'Exenta por el artículo 22'),
-			array('code' => 'E4', 'label' => 'Exenta por el artículo 23 y 24'),
-			array('code' => 'E5', 'label' => 'Exenta por el artículo 25'),
-			array('code' => 'E6', 'label' => 'Exenta por otros'),
+			array('code' => 'E1', 'label' => 'E1: Exenta por el artículo 20'),
+			array('code' => 'E2', 'label' => 'E2: Exenta por el artículo 21'),
+			array('code' => 'E3', 'label' => 'E3: Exenta por el artículo 22'),
+			array('code' => 'E4', 'label' => 'E4: Exenta por el artículo 23 y 24'),
+			array('code' => 'E5', 'label' => 'E5: Exenta por el artículo 25'),
+			array('code' => 'E6', 'label' => 'E6: Exenta por otros'),
 		);
 
 		//L9
 		$claveOperacion = array(
-			array('code' => 'S1', 'label' => 'Operación Sujeta y No exenta - Sin inversión del sujeto pasivo.'),
-			array('code' => 'S2', 'label' => 'Operación Sujeta y No exenta - Con Inversión del sujeto pasivo.'),
-			array('code' => 'N1', 'label' => 'Operación No Sujeta artículo 7, 14, otros.'),
-			array('code' => 'N2', 'label' => 'Operación No Sujeta por Reglas de localización.')
+			array('code' => 'S1', 'label' => 'S1: Operación Sujeta y No exenta - Sin inversión del sujeto pasivo.'),
+			array('code' => 'S2', 'label' => 'S2: Operación Sujeta y No exenta - Con Inversión del sujeto pasivo.'),
+			array('code' => 'N1', 'label' => 'N1: Operación No Sujeta artículo 7, 14, otros.'),
+			array('code' => 'N2', 'label' => 'N2: Operación No Sujeta por Reglas de localización.')
 		);
 
 		//L8
 		$regimens = array(
-			array('code' => '01', 'label' => 'Operación de régimen general.'),
-			array('code' => '02', 'label' => 'Exportación.'),
-			array('code' => '03', 'label' => 'Operaciones a las que se aplique el régimen especial de bienes usados, objetos de arte, antigüedades y objetos de colección.'),
-			array('code' => '04', 'label' => 'Régimen especial del oro de inversión.'),
-			array('code' => '05', 'label' => 'Régimen especial de las agencias de viajes.'),
-			array('code' => '06', 'label' => 'Régimen especial grupo de entidades en IVA (Nivel Avanzado)'),
-			array('code' => '07', 'label' => 'Régimen especial del criterio de caja.'),
-			array('code' => '08', 'label' => 'Operaciones sujetas al IPSI  / IGIC (Impuesto sobre la Producción, los Servicios y la Importación  / Impuesto General Indirecto Canario).'),
-			array('code' => '09', 'label' => 'Facturación de las prestaciones de servicios de agencias de viaje que actúan como mediadoras en nombre y por cuenta ajena (D.A.4ª RD1619/2012)'),
-			array('code' => '10', 'label' => 'Cobros por cuenta de terceros de honorarios profesionales o de derechos derivados de la propiedad industrial, de autor u otros por cuenta de sus socios, asociados o colegiados efectuados por sociedades, asociaciones, colegios profesionales u otras entidades que realicen estas funciones de cobro.'),
-			array('code' => '11', 'label' => 'Operaciones de arrendamiento de local de negocio.'),
-			array('code' => '14', 'label' => 'Factura con IVA pendiente de devengo en certificaciones de obra cuyo destinatario sea una Administración Pública.'),
-			array('code' => '15', 'label' => 'Factura con IVA pendiente de devengo en operaciones de tracto sucesivo.'),
-			array('code' => '17', 'label' => 'Operación acogida a alguno de los regímenes previstos en el Capítulo XI del Título IX (OSS e IOSS)'),
-			array('code' => '18', 'label' => 'Recargo de equivalencia.'),
-			array('code' => '19', 'label' => 'Operaciones de actividades incluidas en el Régimen Especial de Agricultura, Ganadería y Pesca (REAGYP)'),
-			array('code' => '20', 'label' => 'Régimen simplificado'),
+			array('code' => '01', 'label' => '01: Operación de régimen general.'),
+			array('code' => '02', 'label' => '02: Exportación.'),
+			array('code' => '03', 'label' => '03: Operaciones a las que se aplique el régimen especial de bienes usados, objetos de arte, antigüedades y objetos de colección.'),
+			array('code' => '04', 'label' => '04: Régimen especial del oro de inversión.'),
+			array('code' => '05', 'label' => '05: Régimen especial de las agencias de viajes.'),
+			array('code' => '06', 'label' => '06: Régimen especial grupo de entidades en IVA (Nivel Avanzado)'),
+			array('code' => '07', 'label' => '07: Régimen especial del criterio de caja.'),
+			array('code' => '08', 'label' => '08: Operaciones sujetas al IPSI  / IGIC (Impuesto sobre la Producción, los Servicios y la Importación  / Impuesto General Indirecto Canario).'),
+			array('code' => '09', 'label' => '09: Facturación de las prestaciones de servicios de agencias de viaje que actúan como mediadoras en nombre y por cuenta ajena (D.A.4ª RD1619/2012)'),
+			array('code' => '10', 'label' => '10: Cobros por cuenta de terceros de honorarios profesionales o de derechos derivados de la propiedad industrial, de autor u otros por cuenta de sus socios, asociados o colegiados efectuados por sociedades, asociaciones, colegios profesionales u otras entidades que realicen estas funciones de cobro.'),
+			array('code' => '11', 'label' => '11: Operaciones de arrendamiento de local de negocio.'),
+			array('code' => '14', 'label' => '14: Factura con IVA pendiente de devengo en certificaciones de obra cuyo destinatario sea una Administración Pública.'),
+			array('code' => '15', 'label' => '15: Factura con IVA pendiente de devengo en operaciones de tracto sucesivo.'),
+			array('code' => '17', 'label' => '17: Operación acogida a alguno de los regímenes previstos en el Capítulo XI del Título IX (OSS e IOSS)'),
+			array('code' => '18', 'label' => '18: Recargo de equivalencia.'),
+			array('code' => '19', 'label' => '19: Operaciones de actividades incluidas en el Régimen Especial de Agricultura, Ganadería y Pesca (REAGYP)'),
+			array('code' => '20', 'label' => '20: Régimen simplificado'),
 		);
 
 
