@@ -59,37 +59,43 @@ class ActionsVerifactu
      * @param string $cif CIF/NIF a validar
      * @return bool True si es válido
      */
-    private function validarCIF($cif)
-    {
-        if (empty($cif)) {
-            return false;
-        }
+/**
+ * Valida un CIF, NIF, NIE o DNI español
+ *
+ * @param string $doc Documento a validar
+ * @return bool True si es válido
+ */
+private function validarCIFNIFNIEDNI($doc)
+{
+    if (empty($doc)) {
+        return false;
+    }
 
-        $cif = strtoupper(trim($cif));
+    $doc = strtoupper(trim($doc));
 
-        // Verificar longitud
-        if (strlen($cif) != 9) {
-            return false;
-        }
+    // --- Validar NIF/DNI (8 dígitos + letra) ---
+    if (preg_match('/^[0-9]{8}[A-Z]$/', $doc)) {
+        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        $numero = substr($doc, 0, 8);
+        $letra = substr($doc, -1);
+        return ($letra === $letras[$numero % 23]);
+    }
 
-        // Verificar primer carácter (tipo de documento)
-        $primerCaracter = $cif[0];
-        if (!preg_match('/^[ABCDEFGHJNPQRSUVW]{1}$/', $primerCaracter)) {
-            return false;
-        }
+    // --- Validar NIE (X/Y/Z + 7 dígitos + letra) ---
+    if (preg_match('/^[XYZ][0-9]{7}[A-Z]$/', $doc)) {
+        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        $numero = str_replace(['X','Y','Z'], ['0','1','2'], substr($doc, 0, 1)) . substr($doc, 1, 7);
+        $letra = substr($doc, -1);
+        return ($letra === $letras[$numero % 23]);
+    }
 
-        // Verificar que los siguientes 7 caracteres sean dígitos
-        if (!preg_match('/^\d{7}$/', substr($cif, 1, 7))) {
-            return false;
-        }
-
-        // Calcular dígito de control
+    // --- Validar CIF ---
+    if (preg_match('/^[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J]$/', $doc)) {
         $letras = 'JABCDEFGHI';
-        $numeros = array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         $suma = 0;
 
         for ($i = 1; $i < 8; $i++) {
-            $digito = (int)$cif[$i];
+            $digito = (int)$doc[$i];
             if ($i % 2 == 0) {
                 $suma += $digito;
             } else {
@@ -100,15 +106,26 @@ class ActionsVerifactu
 
         $resto = $suma % 10;
         $digitoControl = ($resto == 0) ? 0 : 10 - $resto;
+        $ultimo = $doc[8];
 
-        // Para CIF, el dígito de control puede ser número o letra
-        $ultimoCaracter = $cif[8];
-        if (is_numeric($ultimoCaracter)) {
-            return ((int)$ultimoCaracter == $digitoControl);
+        if (is_numeric($ultimo)) {
+            return ((int)$ultimo == $digitoControl);
         } else {
-            return ($ultimoCaracter == $letras[$digitoControl]);
+            return ($ultimo == $letras[$digitoControl]);
         }
     }
+
+    // --- NIF especiales (K, L, M) validan como DNI ---
+    if (preg_match('/^[KLM][0-9]{7}[A-Z]$/', $doc)) {
+        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        $numero = substr($doc, 1, 7);
+        $letra = substr($doc, -1);
+        return ($letra === $letras[$numero % 23]);
+    }
+
+    return false; // No cumple ningún formato
+}
+
 
     /**
      * Hook: formObjectOptions
@@ -644,7 +661,7 @@ class ActionsVerifactu
                 if ($country == '4'  || strtoupper($country) == 'ES' || strtoupper($country) == 'ESPAÑA') {
                     if (empty($cif)) {
                         $errors[] = "El CIF/NIF es obligatorio para clientes españoles según normativa Verifactu";
-                    } elseif (!$this->validarCIF($cif)) {
+                    } elseif (!$this->validarCIFNIFNIEDNI($cif)) {
                         $errors[] = "El CIF/NIF proporcionado no es válido";
                     }
                 }else{
