@@ -97,7 +97,7 @@ function verifactuAdminPrepareHead()
  * @return int
  * 0 if ok
  */
-function verifactu_generar_registro_alta($object)
+function verifactu_generar_registro_alta($object,$esSubsanacion=false)
 {
 	global $db, $user;
 	
@@ -128,7 +128,7 @@ function verifactu_generar_registro_alta($object)
 		$registro->fechaHoraHusoGenRegistro = $invoiceData['FechaHoraHusoGenRegistro'];
 		$registro->fecha = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d H:i:s');
 		$registro->estado = 1; // Pendiente de envío
-		$registro->operation = 'REGISTRO_ALTA';
+		$esSubsanacion ? $registro->operation = 'REGISTRO_ALTA_SUBSAN' : $registro->operation = 'REGISTRO_ALTA';
 		$result = $registro->create($user);
 
 		if ($result) {

@@ -127,8 +127,10 @@ class VerifactuXML
         // 4. NombreRazonEmisor
         $this->addElement($dom, $registroAlta, 'sum1:NombreRazonEmisor', $this->config['emisor_nombre']);
 
-        // Ver cuando aplicar la subsanación
-        // $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
+        if ($registro->operation == 'REGISTRO_ALTA_SUBSAN') {
+            $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
+            //$this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'N');
+        }
 
         // 5. TipoFactura
         $tipoFactura = $this->getTipoFactura($facture);
@@ -514,17 +516,17 @@ class VerifactuXML
 
         $encadenamiento = $dom->createElement('sum1:Encadenamiento');
 
-        $registroAnterior = $registro->getPreviousRegister();
+        $registroAnteriorData = $registro->getPreviousRegister();
 
 
-        if ($registroAnterior) {
-            $data = json_decode($registroAnterior->hash_data, true);
-            if (!$data) {
+        if ($registroAnteriorData) {
+            $data = json_decode($registroAnteriorData->hash_data, true);
+            if ($data) {
                 $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
                 $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
                 $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $data['NumSerieFactura'] ? $data['NumSerieFactura'] : $data['NumSerieFacturaAnulada']);
                 $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $data['FechaExpedicionFactura'] ? $data['FechaExpedicionFactura'] : $data['FechaExpedicionFacturaAnulada']);
-                $this->addElement($dom, $registroAnterior, 'sum1:Huella', $registroAnterior->hash);
+                $this->addElement($dom, $registroAnterior, 'sum1:Huella', $registroAnteriorData->hash);
                 $encadenamiento->appendChild($registroAnterior);
             }
         } else {
@@ -632,6 +634,7 @@ class VerifactuXML
      */
     private function processResponse($response)
     {
+        global $user;
         if (empty($response)) {
             return;
         }
@@ -649,7 +652,7 @@ class VerifactuXML
                 // Actualizar registro con error de esquema
                 $this->registro->estado = 5;
                 $this->registro->msg_error = $errorMsg;
-                $this->registro->update();
+                $this->registro->updateCommon($user);
             }
             return;
         }
@@ -665,14 +668,14 @@ class VerifactuXML
             // Actualizar registro con error de esquema
             $this->registro->estado = 5;
             $this->registro->msg_error = $errorMsg;
-            $this->registro->update();
+            $this->registro->updateCommon($user);
             return;
         }
 
         // Extraer CSV si existe
         $csvNode = $xpath->query('//tikR:CSV')->item(0);
         if ($csvNode) {
-            $this->registro->csv = $csvNode->textContent;
+            $this->registro->csv_line = $csvNode->textContent;
         }
 
         // Extraer EstadoEnvio
@@ -699,7 +702,7 @@ class VerifactuXML
             $estadoRegistroNode = $xpath->query('tikR:EstadoRegistro', $linea)->item(0);
             if ($estadoRegistroNode) {
                 $estadoRegistro = $estadoRegistroNode->textContent;
-                switch($estadoRegistro) {
+                switch ($estadoRegistro) {
                     case 'Correcto':
                         $this->registro->estado = 2;
                         $this->registro->msg_error = '';
@@ -710,7 +713,7 @@ class VerifactuXML
                         $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
                         $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
                             "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
-                        
+
                         break;
                     case 'Incorrecto':
                         $this->registro->estado = 4;
@@ -729,8 +732,8 @@ class VerifactuXML
                 }
             }
 
-            
-            $this->registro->update();
+
+            $this->registro->updateCommon($user);
             break; // Asumiendo un solo registro por envío
         }
     }
