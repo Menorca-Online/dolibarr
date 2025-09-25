@@ -1094,8 +1094,8 @@ class modVerifactu extends DolibarrModules
 				'',                                   // $size
 				'facturedet',                         // $elementtype
 				0,                                    // $unique
-				0,                                    // $required
-				'',                                   // $default_value
+				1,                                    // $required
+				1,                                   // $default_value
 				serialize([                           // $param
 					"options" => [
 						"c_verifactu_clave_regimenes:label:rowid" => null
@@ -1124,8 +1124,8 @@ class modVerifactu extends DolibarrModules
 				'',                                   // $size
 				'facturedet',                         // $elementtype
 				0,                                    // $unique
-				0,                                    // $required
-				'',                                   // $default_value
+				1,                                    // $required
+				1,                                   // $default_value
 				serialize([                           // $param
 					"options" => [
 						"c_verifactu_clave_operaciones:label:rowid" => null
