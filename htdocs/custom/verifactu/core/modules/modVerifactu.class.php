@@ -728,7 +728,7 @@ class modVerifactu extends DolibarrModules
 			estado integer DEFAULT 1,
 			msg_error text DEFAULT NULL,
 			csv_line text DEFAULT NULL,
-			operation varchar(20) DEFAULT NULL,
+			operation varchar(20) DEFAULT NULL
 		) ENGINE=innodb;";
 
 		$resql = $this->db->query($sql);
