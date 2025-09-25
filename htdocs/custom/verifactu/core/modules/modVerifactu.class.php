@@ -936,6 +936,13 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
 		return 1;
 	}
 
