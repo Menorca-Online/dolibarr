@@ -7,10 +7,14 @@
  * (at your option) any later version.
  */
 
-require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
-require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
-require_once DOL_DOCUMENT_ROOT.'/custom/verifactu/class/verifactufacturetype.class.php';
-
+require_once DOL_DOCUMENT_ROOT . '/compta/facture/class/facture.class.php';
+require_once DOL_DOCUMENT_ROOT . '/societe/class/societe.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveoperacion.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 /**
  * Class VerifactuXML
  * Generador de XML para la normativa Verifactu
@@ -52,17 +56,17 @@ class VerifactuXML
         $this->config = array(
             // Información del emisor (empresa)
             'emisor_nif' => $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
-                           $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
-                           $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
+                $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
+                $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
             'emisor_nombre' => $this->getConfigValue($conf, 'MAIN_INFO_SOCIETE_NOM', ''),
 
             // Información del sistema informático
             'sistema_nombre' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NOMBRE', 'MENORCAONLINE S.L.'),
             'sistema_nif' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NIF') ?:
-                            $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
-                            $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
-                            $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
-            'sistema_nombre_software' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_NOMBRE', 'Dolibarr Verifactu'),
+                $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
+                $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
+                $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
+            'sistema_nombre_software' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_NOMBRE', 'MOD DOLIBARR VERIFACTU'),
             'sistema_id' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_ID', '01'),
             'sistema_version' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_VERSION', '1.0.0'),
             'sistema_instalacion' => $this->getConfigValue($conf, 'VERIFACTU_NUM_INSTALACION', 'DOLI' . strtoupper(substr(md5(DOL_DOCUMENT_ROOT), 0, 8))),
@@ -86,20 +90,22 @@ class VerifactuXML
     }
 
 
-    
+
     /**
      * Genera el XML de un RegistroAlta para una factura
      *
+     * @param VerifactuFacturaRegistro $registro Objeto registro de Dolibarr
      * @param Facture $facture Objeto factura de Dolibarr
      * @return string XML generado
      * @throws Exception Si hay errores en la generación
      */
-    public function generateRegistro($dom, $facture)
+    public function generateRegistro($dom, $parent, $registro, $facture)
     {
-        // Obtener datos del hash de la factura
-        $hashData = $this->getInvoiceHashData($facture->id);
+
         $registroFactura = $dom->createElement('sum:RegistroFactura');
-        $dom->appendChild($registroFactura);
+        $parent->appendChild($registroFactura);
+
+        $hashData = json_decode($registro->hash_data, true);
 
         // sum1:RegistroAlta
         $registroAlta = $dom->createElement('sum1:RegistroAlta');
@@ -129,7 +135,7 @@ class VerifactuXML
 
         if ($this->getTipoFactura($facture) != 'F2') {
             // 7. Destinatarios
-            $this->addDestinatarios($dom, $registroAlta, $facture);            
+            $this->addDestinatarios($dom, $registroAlta, $facture);
         }
 
 
@@ -144,7 +150,7 @@ class VerifactuXML
 
 
         // 11. Encadenamiento
-        $this->addEncadenamiento($dom, $registroAlta, $hashData);
+        $this->addEncadenamiento($dom, $registroAlta, $registro);
 
 
         // 12. SistemaInformatico
@@ -152,15 +158,15 @@ class VerifactuXML
 
         // 13. FechaHoraHusoGenRegistro
         $fechaHora = !empty($hashData['fechaHoraHusoGenRegistro']) ?
-                     $hashData['fechaHoraHusoGenRegistro'] :
-                     date('c'); // ISO 8601 format
+            $hashData['fechaHoraHusoGenRegistro'] :
+            date('c'); // ISO 8601 format
         $this->addElement($dom, $registroAlta, 'sum1:FechaHoraHusoGenRegistro', $fechaHora);
 
         // 14. TipoHuella
         $this->addElement($dom, $registroAlta, 'sum1:TipoHuella', '01');
 
         // 15. Huella
-        $huella = !empty($hashData['hash']) ? $hashData['hash'] : 'HASH_NO_GENERADO';
+        $huella = $registro->hash;
         $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
     }
 
@@ -169,21 +175,22 @@ class VerifactuXML
     /**
      * Genera el XML de un RegistroAlta para una factura
      *
-     * @param Facture $facture Objeto factura de Dolibarr
+     * @param VerifactuFacturaRegistro $registro Objeto factura de Dolibarr
      * @return string XML generado
      * @throws Exception Si hay errores en la generación
      */
-    public function generateEnvioRegistroAlta($facture)
+    public function generateEnvioRegistroAlta($registro)
     {
-        // Validar factura
-        if (!$facture || !$facture->id) {
-            throw new Exception('Factura no válida para generar XML Verifactu');
+        // Validar registro
+        if (!$registro || !$registro->factureid) {
+            throw new Exception('Registro no válido para generar XML Verifactu');
         }
-        $this->facture = $facture;
+        $this->facture = new Facture($this->db);
+        $this->facture->fetch($registro->factureid);
 
         // Cargar datos completos de la factura
-        $facture->fetch_lines();
-        $facture->fetch_thirdparty();
+        $this->facture->fetch_lines();
+        $this->facture->fetch_thirdparty();
 
 
 
@@ -221,8 +228,8 @@ class VerifactuXML
 
         $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
         $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
-       
-       $this->generateRegistro($dom, $facture);
+
+        $this->generateRegistro($dom,$regFactu, $registro, $this->facture);
 
         $this->xml = $dom->saveXML();
         return $this->xml;
@@ -288,7 +295,6 @@ class VerifactuXML
         }
 
         return '';
-
     }
 
     /**
@@ -343,23 +349,23 @@ class VerifactuXML
             //añadimos el CodigoPais
             $this->addElement($dom, $idOtro, 'sum1:CodigoPais', $countryCode);
             //añadimos el IDType
-            $this->addElement($dom, $idOtro, 'sum1:IDType', '04'); 
+            $this->addElement($dom, $idOtro, 'sum1:IDType', '04');
             //añadimos el ID
             $this->addElement($dom, $idOtro, 'sum1:ID', $facture->thirdparty->idprof1 ?: $facture->thirdparty->tva_intra ?: 'NIF_NO_PROPORCIONADO');
-        }else{
+        } else {
             $nifDestinatario = $facture->thirdparty->tva_intra ?: $facture->thirdparty->idprof1;
             if (!empty($nifDestinatario)) {
                 $this->addElement($dom, $idDestinatario, 'sum1:NIF', $nifDestinatario);
             }
         }
 
-        
+
 
         $destinatarios->appendChild($idDestinatario);
         $parent->appendChild($destinatarios);
     }
 
-   
+
     /**
      * Agrega elemento Desglose al XML
      */
@@ -368,19 +374,29 @@ class VerifactuXML
         $desglose = $dom->createElement('sum1:Desglose');
 
         // Agrupar líneas por tipo de IVA
-        $desgloseData = $this->agruparPorTipoIVA($facture);
+        $desgloseData = $this->obtenerDesgloseFactura($facture);
 
-        foreach ($desgloseData as $tipoIva => $data) {
+
+        foreach ($desgloseData as $data) {
 
             $detalleDesglose = $dom->createElement('sum1:DetalleDesglose');
             $this->addElement($dom, $detalleDesglose, 'sum1:Impuesto', '01'); // IVA
-            $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', $data['claveRegimen']);
-            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['calificacion']);
-            $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['operacionExenta']);
-            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($tipoIva, 2, '.', ''));
-            $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['base'], 2, '.', ''));
-            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['cuota'], 2, '.', ''));
+            $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', $data['ClaveRegimen']);
+            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['CalificacionOperacion']);
+            if (isset($data['OperacionExenta']) && $data['OperacionExenta']  != null) {
+                $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['OperacionExenta']);
+            }
+            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($data['TipoImpositivo'], 2, '.', ''));
+            $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['BaseImponibleOimporteNoSujeto'], 2, '.', ''));
+            if (isset($data['BaseImponibleACoste']) && $data['BaseImponibleACoste'] > 0) 
+                $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleACoste', number_format($data['BaseImponibleACoste'], 2, '.', ''));
 
+            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['CuotaRepercutida'], 2, '.', ''));
+
+            if (isset($data['TipoRecargoEquivalencia']) && $data['TipoRecargoEquivalencia'] > 0) {
+                $this->addElement($dom, $detalleDesglose, 'sum1:TipoRecargoEquivalencia', number_format($data['TipoRecargoEquivalencia'], 2, '.', ''));
+                $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRecargoEquivalencia', number_format($data['CuotaRecargoEquivalencia'], 2, '.', ''));
+            }
 
 
 
@@ -399,72 +415,76 @@ class VerifactuXML
     N1	Operación No Sujeta artículo 7, 14, otros.
     N2	Operación No Sujeta por Reglas de localización.
      */
-private function agruparPorTipoIVA($facture)
-{
-    $desglose = array();
-    $soc = $facture->thirdparty;
-    $countryCode = $soc->country_code ?? '';
-    $tvaIntra = trim($soc->tva_intra);
+    private function obtenerDesgloseFactura($facture)
+    {
+        $desglose = array();
 
-    foreach ($facture->lines as $line) {
-        $tipoIva = (float) $line->tva_tx;
+        // Obtener datos del cliente
+        $soc = $facture->thirdparty;
+        $countryCode = $soc->country_code ?? '';
+        $tvaIntra = trim($soc->tva_intra);
 
-        if (!isset($desglose[$tipoIva])) {
-            $desglose[$tipoIva] = array(
-                'base' => 0,
-                'cuota' => 0,
-                'claveRegimen' => null,
-                'calificacion' => null,
-                'operacionExenta' => null
-            );
-        }
+        foreach ($facture->lines as $line) {
 
-        $desglose[$tipoIva]['base'] += $line->total_ht;
-        $desglose[$tipoIva]['cuota'] += $line->total_tva;
-    }
+            $tipoIva = (float) $line->tva_tx;
+            $clave_regimen = $line->array_options['options_fk_clave_regimen'] ?? 0;
+            $clave_operacion = $line->array_options['options_fk_clave_operacion'] ?? 0;
+            $clave_exencion = $line->array_options['options_fk_clave_exencion'] ?? 0;
 
-    // Añadir régimen y calificación según reglas AEAT
-    foreach ($desglose as $tipoIva => &$data) {
 
-        if ($tipoIva > 0) {
-            // Con IVA -> sujeta y no exenta
-            $data['claveRegimen'] = '01'; // Régimen general
-            $data['calificacion'] = 'S1';
-            $data['operacionExenta'] = null; // no aplica
-        } else {
+            if (!isset($desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion])) {
+                $desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion] = array(
+                    'BaseImponibleOimporteNoSujeto' => 0,
+                    'CuotaRepercutida' => 0,
+                    'tipoRecargoEquivalencia' => 0,
+                    'cuotaRecargoEquivalencia' => 0,
+                    'impuesto' => '01',//IVA
+                    'fk_clave_regimen' => $clave_regimen,
+                    'fk_clave_operacion' => $clave_operacion,
+                    'fk_clave_exencion' => $clave_exencion,
+                );
+            }
 
-            if ($countryCode === 'ES') {
-                // Exenta nacional (ej: art. 20 LIVA)
-                $data['claveRegimen'] = '01';
-                $data['calificacion'] = 'S1'; // sigue siendo sujeta
-                $data['operacionExenta'] = 'E1'; // por art. 20
-            } elseif (!empty($tvaIntra) && in_array($countryCode, array(
-                'DE','FR','IT','PT','NL','BE','LU','AT','IE','DK','SE','FI','PL','CZ','SK',
-                'HU','RO','BG','HR','SI','EE','LV','LT','CY','MT','GR'
-            ))) {
-                // Cliente UE con VAT válido -> no sujeta por localización
-                $data['claveRegimen'] = '01';
-                $data['calificacion'] = 'N2';
-                $data['operacionExenta'] = null;
-            } elseif (in_array($countryCode, array(
-                'DE','FR','IT','PT','NL','BE','LU','AT','IE','DK','SE','FI','PL','CZ','SK',
-                'HU','RO','BG','HR','SI','EE','LV','LT','CY','MT','GR'
-            ))) {
-                // Cliente UE sin VAT -> debería llevar IVA español
-                $data['claveRegimen'] = '01';
-                $data['calificacion'] = 'S1';
-                $data['operacionExenta'] = null;
-            } else {
-                // Exportaciones -> exentas por art. 21 LIVA
-                $data['claveRegimen'] = '02';
-                $data['calificacion'] = 'S1'; // sujeta, pero exenta
-                $data['operacionExenta'] = 'E2';
+            $desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion]['BaseImponibleOimporteNoSujeto'] += $line->total_ht;
+            $desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion]['CuotaRepercutida'] += $line->total_tva;
+            if ($line->localtax1_tx > 0) {
+                $desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion]['tipoRecargoEquivalencia'] = (float)$line->localtax1_tx;
+                $desglose[$tipoIva][$clave_regimen][$clave_operacion][$clave_exencion]['cuotaRecargoEquivalencia'] += (float)$line->total_localtax1;
             }
         }
-    }
 
-    return $desglose;
-}
+        $claveExencionObj = new VerifactuClaveExencion($this->db);
+        $claveRegimenObj = new VerifactuClaveRegimen($this->db);
+        $claveOperacionObj = new VerifactuClaveOperacion($this->db);
+
+
+        //extraemos los ultimos desgloses
+        $finalDesglose = array();
+        foreach ($desglose as $tipoIva => $regimenes) {
+            foreach ($regimenes as $clave_regimen => $operaciones) {
+                foreach ($operaciones as $clave_operacion => $exenciones) {
+                    foreach ($exenciones as $clave_exencion => $data) {
+                        $claveExencionObj->fetchCommon($data['fk_clave_exencion']);
+                        $claveRegimenObj->fetchCommon($data['fk_clave_regimen']);
+                        $claveOperacionObj->fetchCommon($data['fk_clave_operacion']);
+                        $finalDesglose[] = array(
+                            'TipoImpositivo' => $tipoIva,
+                            'BaseImponibleOimporteNoSujeto' => $data['BaseImponibleOimporteNoSujeto'],
+                            'CuotaRepercutida' => $data['CuotaRepercutida'],
+                            'CuotaRecargoEquivalencia' => $data['cuotaRecargoEquivalencia'],
+                            'TipoRecargoEquivalencia' => $data['tipoRecargoEquivalencia'],
+                            'ClaveRegimen' => $claveRegimenObj->code ?: null,
+                            'CalificacionOperacion' => $claveOperacionObj->code ?: null,
+                            'OperacionExenta' => $claveExencionObj->code ?: null,
+                        );
+                    }
+                }
+            }
+        }
+
+    
+        return $finalDesglose;
+    }
 
 
 
@@ -483,61 +503,31 @@ private function agruparPorTipoIVA($facture)
     /**
      * Agrega elemento Encadenamiento al XML
      */
-    private function addEncadenamiento($dom, $parent, $hashData)
+    private function addEncadenamiento($dom, $parent, VerifactuFacturaRegistro $registro)
     {
-        var_dump($hashData);
-        die();
+
         $encadenamiento = $dom->createElement('sum1:Encadenamiento');
-        $facturaAnterior = $this->getFacturaAnterior($hashData['hash_anterior']);
+
+        $registroAnterior = $registro->getPreviousRegister();
 
 
-        if ($facturaAnterior) {
-            $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
-            $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
-            $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $facturaAnterior['ref']);
-            $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $facturaAnterior['fecha']);
-            $this->addElement($dom, $registroAnterior, 'sum1:Huella', $hashData['hash_anterior']);
-            $encadenamiento->appendChild($registroAnterior);
-        }else {
-            // Si no se encuentra la factura anterior, crear un nodo vacío
+        if ($registroAnterior) {
+            $data = json_decode($registroAnterior->hash_data, true);
+            if (!$data) {
+                $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
+                $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
+                $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $data['NumSerieFactura'] ? $data['NumSerieFactura'] : $data['NumSerieFacturaAnulada']);
+                $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $data['FechaExpedicionFactura'] ? $data['FechaExpedicionFactura'] : $data['FechaExpedicionFacturaAnulada']);
+                $this->addElement($dom, $registroAnterior, 'sum1:Huella', $registroAnterior->hash);
+                $encadenamiento->appendChild($registroAnterior);
+            }
+        } else {
             $primerRegistro = $dom->createElement('sum1:PrimerRegistro', 'S');
             $encadenamiento->appendChild($primerRegistro);
         }
         $parent->appendChild($encadenamiento);
     }
 
-    /**
-     * Obtiene datos de la factura anterior basándose en el hash anterior
-     */
-    private function getFacturaAnterior($hashAnterior)
-    {
-        $sql = "SELECT hash_data, operation, rowid
-                FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros f
-                WHERE hash = '" . $this->db->escape($hashAnterior) . "'"
-                . " ORDER BY rowid DESC LIMIT 1";
-
-        $resql = $this->db->query($sql);
-        if ($resql && $this->db->num_rows($resql) > 0) {
-            $obj = $this->db->fetch_object($resql);
-            $result = json_decode($obj->hash_data);
-            if (!$result) {
-                return null;
-            }
-            if ($obj->operation == 'REGISTRO_ALTA')
-                return array(
-                    'ref' => $result->NumSerieFactura,
-                    'fecha' => $result->FechaExpedicionFactura
-                );
-            else //es un registro de anulacion
-                return array(
-                    'ref' => $result->NumSerieFacturaAnulada,
-                    'fecha' => $result->FechaExpedicionFacturaAnulada
-                );
-            
-        }
-
-        return null;
-    }
 
     /**
      * Agrega elemento SistemaInformatico al XML
@@ -580,11 +570,11 @@ private function agruparPorTipoIVA($facture)
     public function send()
     {
         global $conf;
-	    $verifactu_dir = DOL_DATA_ROOT.'/verifactu';
-        $outbox_dir = $verifactu_dir.'/OUTBOX';
-	    $inbox_dir = $verifactu_dir.'/INBOX';
+        $verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+        $outbox_dir = $verifactu_dir . '/OUTBOX';
+        $inbox_dir = $verifactu_dir . '/INBOX';
         //guardamos el xml a enviar en OUTBOX con el nombre de la factura
-        $file = $outbox_dir.'/'.$this->facture->ref.'.xml';
+        $file = $outbox_dir . '/' . $this->facture->ref . '.xml';
         file_put_contents($file, $this->xml);
         $return = "";
         $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
@@ -596,7 +586,7 @@ private function agruparPorTipoIVA($facture)
         ]);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
- 
+
         $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
         $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
 
@@ -605,17 +595,17 @@ private function agruparPorTipoIVA($facture)
 
         // Debug si quieres ver errores SSL
         curl_setopt($ch, CURLOPT_VERBOSE, true);
- 
+
         $response = curl_exec($ch);
         if ($response === false) {
             $return = 'Error en cURL: ' . curl_error($ch);
             // Guardar error en INBOX
-            $errorFile = $inbox_dir.'/'.$this->facture->ref.'_error.txt';
+            $errorFile = $inbox_dir . '/' . $this->facture->ref . '_error.txt';
             file_put_contents($errorFile, $return);
         } else {
             $return = $response;
             // Guardar respuesta en INBOX
-            $responseFile = $inbox_dir.'/'.$this->facture->ref.'_response.xml';
+            $responseFile = $inbox_dir . '/' . $this->facture->ref . '_response.xml';
             file_put_contents($responseFile, $response);
         }
 
@@ -637,25 +627,25 @@ private function agruparPorTipoIVA($facture)
             return false;
         }
 
-        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
-        
+        require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
+
         $result = true;
-        
+
         // Vincular archivo XML de envío
         if ($xmlFile && file_exists($xmlFile)) {
             $result &= $this->addFileToInvoice($xmlFile, 'Verifactu XML');
         }
-        
+
         // Vincular archivo de respuesta
         if ($responseFile && file_exists($responseFile)) {
             $result &= $this->addFileToInvoice($responseFile, 'Verifactu Response');
         }
-        
+
         // Vincular archivo de error
         if ($errorFile && file_exists($errorFile)) {
             $result &= $this->addFileToInvoice($errorFile, 'Verifactu Error');
         }
-        
+
         return $result;
     }
 
@@ -669,34 +659,34 @@ private function agruparPorTipoIVA($facture)
     private function addFileToInvoice($filePath, $description = '')
     {
         global $conf, $user;
-        
+
         if (!file_exists($filePath)) {
             return false;
         }
-        
+
         $fileName = basename($filePath);
         $fileSize = filesize($filePath);
-        
+
         // Directorio de destino para documentos de la factura
-        $upload_dir = $conf->facture->multidir_output[$this->facture->entity].'/'.$this->facture->ref;
-        
+        $upload_dir = $conf->facture->multidir_output[$this->facture->entity] . '/' . $this->facture->ref;
+
         // Crear directorio si no existe
         if (!is_dir($upload_dir)) {
             if (dol_mkdir($upload_dir) < 0) {
                 return false;
             }
         }
-        
+
         // Copiar archivo al directorio de documentos de la factura
-        $destFile = $upload_dir.'/'.$fileName;
+        $destFile = $upload_dir . '/' . $fileName;
         if (!copy($filePath, $destFile)) {
             return false;
         }
-        
+
         // Registrar el archivo en la base de datos
-        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
+        require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
         $ecmfile = new EcmFiles($this->db);
-        
+
         $ecmfile->filepath = $this->facture->ref;
         $ecmfile->filename = $fileName;
         $ecmfile->label = $description;
@@ -713,7 +703,7 @@ private function agruparPorTipoIVA($facture)
         $ecmfile->fk_user_m = $user->id;
         $ecmfile->src_object_type = 'facture';
         $ecmfile->src_object_id = $this->facture->id;
-        
+
         return $ecmfile->create($user) > 0;
     }
 
@@ -725,19 +715,19 @@ private function agruparPorTipoIVA($facture)
     public function enviarYVincular()
     {
         global $conf;
-        
+
         // Generar rutas de archivos
-        $verifactu_dir = DOL_DATA_ROOT.'/verifactu';
-        $outbox_dir = $verifactu_dir.'/OUTBOX';
-        $inbox_dir = $verifactu_dir.'/INBOX';
-        
-        $xmlFile = $outbox_dir.'/'.$this->facture->ref.'.xml';
-        $responseFile = $inbox_dir.'/'.$this->facture->ref.'_response.xml';
-        $errorFile = $inbox_dir.'/'.$this->facture->ref.'_error.txt';
-        
+        $verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+        $outbox_dir = $verifactu_dir . '/OUTBOX';
+        $inbox_dir = $verifactu_dir . '/INBOX';
+
+        $xmlFile = $outbox_dir . '/' . $this->facture->ref . '.xml';
+        $responseFile = $inbox_dir . '/' . $this->facture->ref . '_response.xml';
+        $errorFile = $inbox_dir . '/' . $this->facture->ref . '_error.txt';
+
         // Enviar XML
         $response = $this->send();
-        
+
         // Determinar qué archivos se generaron
         $files = array();
         if (file_exists($xmlFile)) {
@@ -749,14 +739,14 @@ private function agruparPorTipoIVA($facture)
         if (file_exists($errorFile)) {
             $files['error'] = $errorFile;
         }
-        
+
         // Vincular archivos a la factura
         $this->linkFilesToInvoice(
             isset($files['xml']) ? $files['xml'] : null,
             isset($files['response']) ? $files['response'] : null,
             isset($files['error']) ? $files['error'] : null
         );
-        
+
         return $response;
     }
 
@@ -771,18 +761,18 @@ private function agruparPorTipoIVA($facture)
             return array();
         }
 
-        require_once DOL_DOCUMENT_ROOT.'/ecm/class/ecmfiles.class.php';
-        
+        require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
+
         $sql = "SELECT filepath, filename, label, date_c, fk_user_c";
-        $sql .= " FROM ".MAIN_DB_PREFIX."ecm_files";
+        $sql .= " FROM " . MAIN_DB_PREFIX . "ecm_files";
         $sql .= " WHERE src_object_type = 'facture'";
-        $sql .= " AND src_object_id = ".$this->facture->id;
-        $sql .= " AND (keywords LIKE '%verifactu%' OR filename LIKE '%".$this->facture->ref."%')";
+        $sql .= " AND src_object_id = " . $this->facture->id;
+        $sql .= " AND (keywords LIKE '%verifactu%' OR filename LIKE '%" . $this->facture->ref . "%')";
         $sql .= " ORDER BY date_c DESC";
-        
+
         $result = $this->db->query($sql);
         $files = array();
-        
+
         if ($result) {
             while ($obj = $this->db->fetch_object($result)) {
                 $files[] = array(
@@ -794,7 +784,7 @@ private function agruparPorTipoIVA($facture)
                 );
             }
         }
-        
+
         return $files;
     }
 
@@ -809,14 +799,9 @@ private function agruparPorTipoIVA($facture)
         if (!$this->facture) {
             return '';
         }
-        
+
         global $conf;
-        
-        return DOL_URL_ROOT.'/document.php?modulepart=facture&file='.urlencode($this->facture->ref.'/'.$filename);
+
+        return DOL_URL_ROOT . '/document.php?modulepart=facture&file=' . urlencode($this->facture->ref . '/' . $filename);
     }
-
 }
-
-
-
-

@@ -46,4 +46,79 @@ class VerifactuFacturaRegistro extends CommonObject
     {
         return $this->createCommon($user, $notrigger);
     }
+
+    public function fetch($id, $ref = null, $ref_ext = null)
+    {
+        return $this->fetchCommon($id, $ref, $ref_ext);
+    }
+
+    public function getPreviousRegister(){
+        $data = json_decode($this->hash_data, true);
+        if (!$data) {
+            return null; // No hay datos de hash_data
+        }
+        $previousHash = $data['Huella']?? "";
+
+        $sql = "SELECT * FROM ".MAIN_DB_PREFIX.$this->table_element;
+        $sql .= " WHERE hash = '" . $previousHash."'";
+        $sql .= " ORDER BY rowid DESC";
+        $sql .= " LIMIT 1";
+
+        $resql = $this->db->query($sql);
+        if ($resql) {
+            if ($this->db->num_rows($resql) > 0) {
+                $obj = $this->db->fetch_object($resql);
+                $registro = new VerifactuFacturaRegistro($this->db);
+                $registro->fetch($obj->rowid);
+                return $registro;
+            } else {
+                return null; // No hay registro previo  
+            }
+        } else {
+            dol_print_error($this->db);
+            return null;
+        }
+    }
+
+    /**
+     * Busca el primer registro que cumple con las condiciones WHERE
+     *
+     * @param array $where_conditions Array asociativo de condiciones WHERE ['campo' => 'valor']
+     * @param string $order_by Campo para ordenar (opcional)
+     * @param string $order_direction Dirección del orden (ASC/DESC, por defecto DESC)
+     * @return VerifactuFacturaRegistro|null El registro encontrado o null si no existe
+     */
+    public static function findFirst($db, $where_conditions = array(), $order_by = 'rowid', $order_direction = 'DESC')
+    {
+        $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+        
+        // Agregar condiciones WHERE
+        if (!empty($where_conditions)) {
+            $sql .= " WHERE ";
+            $conditions = array();
+            foreach ($where_conditions as $field => $value) {
+                if (is_string($value)) {
+                    $conditions[] = $field . " = '" . $db->escape($value) . "'";
+                } else {
+                    $conditions[] = $field . " = " . ((int) $value);
+                }
+            }
+            $sql .= implode(" AND ", $conditions);
+        }
+        
+        $sql .= " ORDER BY " . $order_by . " " . $order_direction;
+        $sql .= " LIMIT 1";
+        
+        $result = $db->query($sql);
+        if ($result && $db->num_rows($result) > 0) {
+            $obj = $db->fetch_object($result);
+            $registro = new VerifactuFacturaRegistro($db);
+            $registro->fetch($obj->rowid); // Ahora fetch() está definido
+            $db->free($result);
+            return $registro;
+        }
+        
+        return null;
+    }
+    
 }

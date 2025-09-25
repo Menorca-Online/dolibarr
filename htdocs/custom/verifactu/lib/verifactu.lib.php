@@ -112,7 +112,7 @@ function verifactu_generar_registro_alta($object)
 
 		// 2. Obtener datos de esta factura para generar el nuevo hash
 		$invoiceData = prepareInvoiceDataForHash($object);
-		if ($invoiceData['valid'] == 0) {
+		if (!isset($invoiceData['FechaHoraHusoGenRegistro']) || $invoiceData['FechaHoraHusoGenRegistro'] == null) {
 			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
 			return 1;
 		}
@@ -293,7 +293,7 @@ function prepareInvoiceDataForHash($object)
 	$dt = new DateTime('@' . $timestamp);         // crea desde timestamp UTC
 	$dt->setTimezone(new DateTimeZone('Europe/Madrid')); // o la tz que necesites
 	$fechaHora = $dt->format('Y-m-d\TH:i:sP'); // 2025-09-19T10:29:58+02:00
-	$huellaAnterior = getLastInvoiceHash();
+	$huellaAnterior = getLastInvoice()->hash ?? '';
 
 	global $conf;
 
@@ -333,11 +333,11 @@ function prepareInvoiceDataForHash($object)
 			}
 		}
 	}
-	$valid = 1;
+
 	if (preg_match('/^\(PROV/i', $numFactura)) {
 		dol_syslog("Verifactu ADVERTENCIA: No se pudo obtener el número definitivo de factura. Usando: " . $numFactura, LOG_WARNING);
 		setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
-		$valid = 0;
+		return array();
 	}
 
 	// Preparar datos según especificaciones Verifactu
@@ -350,23 +350,78 @@ function prepareInvoiceDataForHash($object)
 		'ImporteTotal' => number_format($object->total_ttc, 2, '.', ''),
 		'Huella' =>  $huellaAnterior,
 		'FechaHoraHusoGenRegistro' => $fechaHora,
-		'valid' => $valid
 	);
 
 	return $data;
 }
 
-function getLastInvoiceHash()
+function getPreviousRegister($hash)
 {
 	global $db;
 	
 	// Leer el último hash de la tabla dedicada
-	$sql = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
+	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE hash = '" . $db->escape($hash) . "'";
 	$result = $db->query($sql);
 	if ($result && $db->num_rows($result) > 0) {
 		$obj = $db->fetch_object($result);
 		$db->free($result);
-		return $obj->hash;
+		return $obj;
+	}
+
+	// Si no hay registros, devolver cadena vacía (se inicializará con el primer hash)
+	return "";
+}
+
+function getLastRegistro()
+{
+	global $db;
+	
+	// Leer el último hash de la tabla dedicada
+	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
+	$result = $db->query($sql);
+	if ($result && $db->num_rows($result) > 0) {
+		$obj = $db->fetch_object($result);
+		$db->free($result);
+		return $obj;
+	}
+
+	// Si no hay registros, devolver cadena vacía (se inicializará con el primer hash)
+	return "";
+}
+
+
+function getFirstFacturaRegistro($factureId)
+{
+	global $db;
+	
+	// Leer primer registro pendiente de envio para esta factura
+	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+	$sql .= " WHERE factureid = " . ((int) $factureId) ;
+	$sql .= " AND estado = 1"; // Pendiente de envío
+	$sql .= " ORDER BY rowid ASC LIMIT 1";
+
+	$result = $db->query($sql);
+	if ($result && $db->num_rows($result) > 0) {
+		$obj = $db->fetch_object($result);
+		$db->free($result);
+		return $obj;
+	}
+
+	return null;
+}
+
+
+function getLastInvoice()
+{
+	global $db;
+	
+	// Leer el último hash de la tabla dedicada
+	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
+	$result = $db->query($sql);
+	if ($result && $db->num_rows($result) > 0) {
+		$obj = $db->fetch_object($result);
+		$db->free($result);
+		return $obj;
 	}
 
 	// Si no hay registros, devolver cadena vacía (se inicializará con el primer hash)

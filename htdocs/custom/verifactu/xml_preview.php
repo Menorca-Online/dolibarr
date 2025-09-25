@@ -17,18 +17,22 @@
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
-	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"] . "/main.inc.php";
 }
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
-$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
 while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
-	$i--; $j--;
+	$i--;
+	$j--;
 }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1)) . "/main.inc.php")) {
+	$res = @include substr($tmp, 0, ($i + 1)) . "/main.inc.php";
 }
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php")) {
+	$res = @include dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php";
 }
 // Try main.inc.php using relative path
 if (!$res && file_exists("../main.inc.php")) {
@@ -44,8 +48,9 @@ if (!$res) {
 	die("Include of main fails");
 }
 
-require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
-require_once DOL_DOCUMENT_ROOT.'/custom/verifactu/class/verifactuxml.class.php';
+require_once DOL_DOCUMENT_ROOT . '/compta/facture/class/facture.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregistro.class.php';
 
 // Load translation files required by the page
 $langs->loadLangs(array("verifactu@verifactu", "bills"));
@@ -87,15 +92,25 @@ $error_message = '';
 try {
 	// Generate XML using our VerifactuXML class
 	$xmlGenerator = new VerifactuXML($db);
-	$xml_content = $xmlGenerator->generateEnvioRegistroAlta($object);
+	// Opción 3: Usar el método findFirst (recomendado)
+	$record = VerifactuFacturaRegistro::findFirst($db, [
+		'factureid' => $id,
+		'estado' => 1  // Solo registros con estado 1 (pendientes)
+	], 'rowid', 'asc'); // Ordenar por fecha ascendente
 
+	// Si no se encontró ningún registro, error
+	if (!$record) {
+		throw new Exception('No se encontró ningún registro pendiente para esta factura.');
+	}
+
+
+	$xml_content = $xmlGenerator->generateEnvioRegistroAlta($record);
 	// Pretty format the XML for display
 	$dom = new DOMDocument('1.0', 'UTF-8');
 	$dom->preserveWhiteSpace = false;
 	$dom->formatOutput = true;
 	$dom->loadXML($xml_content);
 	$xml_formatted = $dom->saveXML();
-
 } catch (Exception $e) {
 	$error_message = 'Error al generar XML: ' . $e->getMessage();
 	dol_syslog("Verifactu XML Preview Error: " . $e->getMessage(), LOG_ERR);
@@ -119,21 +134,21 @@ llxHeader("", "XML Verifactu - " . $object->ref, '');
 if ($action == 'send' && !empty($xml_content)) {
 	// Usar el nuevo método que vincula archivos automáticamente
 	$response = $xmlGenerator->enviarYVincular();
-	 // Intentar formatear el XML
-    $formattedResponse = $response;
-    if (trim($response) !== '') {
-        libxml_use_internal_errors(true);
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->preserveWhiteSpace = false;
-        $dom->formatOutput = true;
-        if ($dom->loadXML($response)) {
-            $formattedResponse = $dom->saveXML();
-        } else {
-            // Si no es XML válido, lo dejamos tal cual
-            $formattedResponse = $response;
-        }
-        libxml_clear_errors();
-    }
+	// Intentar formatear el XML
+	$formattedResponse = $response;
+	if (trim($response) !== '') {
+		libxml_use_internal_errors(true);
+		$dom = new DOMDocument('1.0', 'UTF-8');
+		$dom->preserveWhiteSpace = false;
+		$dom->formatOutput = true;
+		if ($dom->loadXML($response)) {
+			$formattedResponse = $dom->saveXML();
+		} else {
+			// Si no es XML válido, lo dejamos tal cual
+			$formattedResponse = $response;
+		}
+		libxml_clear_errors();
+	}
 	print '<div class="fichecenter">';
 	print '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0;">';
 	print '<h3 style="margin-top: 0;"><i class="fa fa-code"></i> Respuesta del servicio Verifactu</h3>';
@@ -143,8 +158,6 @@ if ($action == 'send' && !empty($xml_content)) {
 	print '</pre>';
 	print '</div>';
 	print '</div>';
-
-
 }
 // Simple header
 print '<div class="fiche">';
@@ -262,7 +275,6 @@ if (!empty($xml_formatted)) {
 
 	print '</table>';
 	print '</div>';
-
 } elseif (empty($error_message)) {
 	print '<div class="info">No se pudo generar el XML para esta factura.</div>';
 }
@@ -335,18 +347,22 @@ $db->close();
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
-	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"] . "/main.inc.php";
 }
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
-$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
 while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
-	$i--; $j--;
+	$i--;
+	$j--;
 }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1)) . "/main.inc.php")) {
+	$res = @include substr($tmp, 0, ($i + 1)) . "/main.inc.php";
 }
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php")) {
+	$res = @include dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php";
 }
 // Try main.inc.php using relative path
 if (!$res && file_exists("../main.inc.php")) {
@@ -362,10 +378,10 @@ if (!$res) {
 	die("Include of main fails");
 }
 
-require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/invoice.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/functions.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/custom/verifactu/class/verifactuxml.class.php';
+require_once DOL_DOCUMENT_ROOT . '/compta/facture/class/facture.class.php';
+require_once DOL_DOCUMENT_ROOT . '/core/lib/invoice.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/core/lib/functions.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
 
 // Load translation files required by the page
 $langs->loadLangs(array("verifactu@verifactu", "bills"));
@@ -415,7 +431,6 @@ try {
 	$dom->formatOutput = true;
 	$dom->loadXML($xml_content);
 	$xml_formatted = $dom->saveXML();
-
 } catch (Exception $e) {
 	$error_message = 'Error al generar XML: ' . $e->getMessage();
 	dol_syslog("Verifactu XML Preview Error: " . $e->getMessage(), LOG_ERR);
@@ -577,7 +592,6 @@ if (!empty($xml_formatted)) {
 
 	print '</table>';
 	print '</div>';
-
 } elseif (empty($error_message)) {
 	print '<div class="info">No se pudo generar el XML para esta factura.</div>';
 }

@@ -37,4 +37,8 @@ class VerifactuRegistroEstado extends CommonObject
     {
         return $this->createCommon($user, $notrigger);
     }
+        public function fetch($id, $ref = null, $ref_ext = null)
+    {
+        return $this->fetchCommon($id, $ref, $ref_ext);
+    }
 }
