@@ -85,6 +85,8 @@ class VerifactuXML
         return isset($conf->global->$key) ? $conf->global->$key : $default;
     }
 
+
+    
     /**
      * Genera el XML de un RegistroAlta para una factura
      *
@@ -92,59 +94,12 @@ class VerifactuXML
      * @return string XML generado
      * @throws Exception Si hay errores en la generación
      */
-    public function generateRegistroAlta($facture)
+    public function generateRegistro($dom, $facture)
     {
-        // Validar factura
-        if (!$facture || !$facture->id) {
-            throw new Exception('Factura no válida para generar XML Verifactu');
-        }
-        $this->facture = $facture;
-
-        // Cargar datos completos de la factura
-        $facture->fetch_lines();
-        $facture->fetch_thirdparty();
-
         // Obtener datos del hash de la factura
         $hashData = $this->getInvoiceHashData($facture->id);
-
-        // Crear el documento XML con estructura SOAP
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->formatOutput = true;
-
-        // Crear elemento raíz soapenv:Envelope con todos los namespaces
-        $envelope = $dom->createElement('soapenv:Envelope');
-        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
-        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
-        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
-        $dom->appendChild($envelope);
-
-        // soapenv:Header (vacío)
-        $header = $dom->createElement('soapenv:Header');
-        $envelope->appendChild($header);
-
-        // soapenv:Body
-        $body = $dom->createElement('soapenv:Body');
-        $envelope->appendChild($body);
-
-        // sum:RegFactuSistemaFacturacion
-        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
-        $body->appendChild($regFactu);
-
-        // sum:Cabecera
-        $cabecera = $dom->createElement('sum:Cabecera');
-        $regFactu->appendChild($cabecera);
-
-        // sum1:ObligadoEmision
-        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
-        $cabecera->appendChild($obligadoEmision);
-
-        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
-        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
-
-        // sum:RegistroFactura
         $registroFactura = $dom->createElement('sum:RegistroFactura');
-        $regFactu->appendChild($registroFactura);
+        $dom->appendChild($registroFactura);
 
         // sum1:RegistroAlta
         $registroAlta = $dom->createElement('sum1:RegistroAlta');
@@ -207,6 +162,67 @@ class VerifactuXML
         // 15. Huella
         $huella = !empty($hashData['hash']) ? $hashData['hash'] : 'HASH_NO_GENERADO';
         $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
+    }
+
+
+
+    /**
+     * Genera el XML de un RegistroAlta para una factura
+     *
+     * @param Facture $facture Objeto factura de Dolibarr
+     * @return string XML generado
+     * @throws Exception Si hay errores en la generación
+     */
+    public function generateEnvioRegistroAlta($facture)
+    {
+        // Validar factura
+        if (!$facture || !$facture->id) {
+            throw new Exception('Factura no válida para generar XML Verifactu');
+        }
+        $this->facture = $facture;
+
+        // Cargar datos completos de la factura
+        $facture->fetch_lines();
+        $facture->fetch_thirdparty();
+
+
+
+        // Crear el documento XML con estructura SOAP
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+
+        // Crear elemento raíz soapenv:Envelope con todos los namespaces
+        $envelope = $dom->createElement('soapenv:Envelope');
+        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
+        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
+        $dom->appendChild($envelope);
+
+        // soapenv:Header (vacío)
+        $header = $dom->createElement('soapenv:Header');
+        $envelope->appendChild($header);
+
+        // soapenv:Body
+        $body = $dom->createElement('soapenv:Body');
+        $envelope->appendChild($body);
+
+        // sum:RegFactuSistemaFacturacion
+        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
+        $body->appendChild($regFactu);
+
+        // sum:Cabecera
+        $cabecera = $dom->createElement('sum:Cabecera');
+        $regFactu->appendChild($cabecera);
+
+        // sum1:ObligadoEmision
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $cabecera->appendChild($obligadoEmision);
+
+        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
+        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+       
+       $this->generateRegistro($dom, $facture);
 
         $this->xml = $dom->saveXML();
         return $this->xml;
@@ -469,6 +485,8 @@ private function agruparPorTipoIVA($facture)
      */
     private function addEncadenamiento($dom, $parent, $hashData)
     {
+        var_dump($hashData);
+        die();
         $encadenamiento = $dom->createElement('sum1:Encadenamiento');
         $facturaAnterior = $this->getFacturaAnterior($hashData['hash_anterior']);
 
@@ -493,18 +511,29 @@ private function agruparPorTipoIVA($facture)
      */
     private function getFacturaAnterior($hashAnterior)
     {
-        $sql = "SELECT f.ref, DATE_FORMAT(f.datef, '%d-%m-%Y') as fecha
-                FROM " . MAIN_DB_PREFIX . "facture f
-                INNER JOIN " . MAIN_DB_PREFIX . "facture_extrafields fe ON fe.fk_object = f.rowid
-                WHERE fe.hash = '" . $this->db->escape($hashAnterior) . "'";
+        $sql = "SELECT hash_data, operation, rowid
+                FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros f
+                WHERE hash = '" . $this->db->escape($hashAnterior) . "'"
+                . " ORDER BY rowid DESC LIMIT 1";
 
         $resql = $this->db->query($sql);
         if ($resql && $this->db->num_rows($resql) > 0) {
             $obj = $this->db->fetch_object($resql);
-            return array(
-                'ref' => $obj->ref,
-                'fecha' => $obj->fecha
-            );
+            $result = json_decode($obj->hash_data);
+            if (!$result) {
+                return null;
+            }
+            if ($obj->operation == 'REGISTRO_ALTA')
+                return array(
+                    'ref' => $result->NumSerieFactura,
+                    'fecha' => $result->FechaExpedicionFactura
+                );
+            else //es un registro de anulacion
+                return array(
+                    'ref' => $result->NumSerieFacturaAnulada,
+                    'fecha' => $result->FechaExpedicionFacturaAnulada
+                );
+            
         }
 
         return null;

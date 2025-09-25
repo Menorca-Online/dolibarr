@@ -87,7 +87,7 @@ $error_message = '';
 try {
 	// Generate XML using our VerifactuXML class
 	$xmlGenerator = new VerifactuXML($db);
-	$xml_content = $xmlGenerator->generateRegistroAlta($object);
+	$xml_content = $xmlGenerator->generateEnvioRegistroAlta($object);
 
 	// Pretty format the XML for display
 	$dom = new DOMDocument('1.0', 'UTF-8');
@@ -407,7 +407,7 @@ $xmlGenerator = null;
 try {
 	// Generate XML using our VerifactuXML class
 	$xmlGenerator = new VerifactuXML($db);
-	$xml_content = $xmlGenerator->generateRegistroAlta($object);
+	$xml_content = $xmlGenerator->generateEnvioRegistroAlta($object);
 
 	// Pretty format the XML for display
 	$dom = new DOMDocument('1.0', 'UTF-8');

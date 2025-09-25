@@ -800,11 +800,10 @@ class modVerifactu extends DolibarrModules
 		);
 
 		$registroEstados = array(
-			array('code' => '1', 'label' => '1 - Sin enviar'),
-			array('code' => '2', 'label' => '2 - Enviada'),
-			array('code' => '3', 'label' => '3 - Rechazada'),
-			array('code' => '4', 'label' => '4 - Aceptada'),
-			array('code' => '5', 'label' => '5 - Con errores'),
+			array('code' => '1', 'label' => '1 - Sin enviar'), //1
+			array('code' => '2', 'label' => '2 - Correcto'), //
+			array('code' => '3', 'label' => '3 - AceptadoConErrores'),
+			array('code' => '4', 'label' => '4 - Incorrecto'),
 		);
 
 		foreach ($types as $type) {
