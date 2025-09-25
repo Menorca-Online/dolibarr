@@ -266,21 +266,25 @@ class modVerifactu extends DolibarrModules
 			MAIN_DB_PREFIX . "c_verifactu_facture_types",
 			MAIN_DB_PREFIX . "c_verifactu_clave_regimenes",
 			MAIN_DB_PREFIX . "c_verifactu_clave_operaciones",
-			MAIN_DB_PREFIX . "c_verifactu_clave_exenciones"
+			MAIN_DB_PREFIX . "c_verifactu_clave_exenciones",
+			MAIN_DB_PREFIX . "c_verifactu_registro_estados"
 		),
 		'tablib' => array(
 			"Tipos de Factura Verifactu",
 			"Claves de Régimen Verifactu",
 			"Claves de Operación Verifactu",
-			"Claves de Exención Verifactu"
+			"Claves de Exención Verifactu",
+			"Estados de Registros Verifactu"
 		),
 		'tabsql' => array(
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimenes as f',
 			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operaciones as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f'
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f',
+			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f'
 		),
 		'tabsqlsort' => array(
+			"code ASC",
 			"code ASC",
 			"code ASC",
 			"code ASC",
@@ -290,9 +294,11 @@ class modVerifactu extends DolibarrModules
 			"code,label,active",
 			"code,label,active",
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabfieldvalue' => array(
+			"code,label,active",
 			"code,label,active",
 			"code,label,active",
 			"code,label,active",
@@ -302,15 +308,18 @@ class modVerifactu extends DolibarrModules
 			"code,label,active",
 			"code,label,active",
 			"code,label,active",
+			"code,label,active",
 			"code,label,active"
 		),
 		'tabrowid' => array(
 			"rowid",
 			"rowid",
 			"rowid",
+			"rowid",
 			"rowid"
 		),
 		'tabcond' => array(
+			isModEnabled('verifactu'),
 			isModEnabled('verifactu'),
 			isModEnabled('verifactu'),
 			isModEnabled('verifactu'),
@@ -321,6 +330,7 @@ class modVerifactu extends DolibarrModules
 			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 			array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 			array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+			array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
 		)
 	);
 
