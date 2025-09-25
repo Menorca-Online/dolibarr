@@ -157,9 +157,8 @@ class VerifactuXML
         $this->addSistemaInformatico($dom, $registroAlta);
 
         // 13. FechaHoraHusoGenRegistro
-        $fechaHora = !empty($hashData['fechaHoraHusoGenRegistro']) ?
-            $hashData['fechaHoraHusoGenRegistro'] :
-            date('c'); // ISO 8601 format
+        $fechaHora = $hashData['fechaHoraHusoGenRegistro'];
+
         $this->addElement($dom, $registroAlta, 'sum1:FechaHoraHusoGenRegistro', $fechaHora);
 
         // 14. TipoHuella
