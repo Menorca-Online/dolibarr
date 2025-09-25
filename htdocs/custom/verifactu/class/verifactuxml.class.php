@@ -30,6 +30,8 @@ class VerifactuXML
 
     private $facture;
 
+    private $registro;
+
     /**
      * @var array Configuración del módulo
      */
@@ -107,6 +109,7 @@ class VerifactuXML
 
         $hashData = json_decode($registro->hash_data, true);
 
+
         // sum1:RegistroAlta
         $registroAlta = $dom->createElement('sum1:RegistroAlta');
         $registroFactura->appendChild($registroAlta);
@@ -118,11 +121,14 @@ class VerifactuXML
         $this->addIDFactura($dom, $registroAlta, $facture);
 
         // 3. RefExterna (hash de la factura como referencia externa)
-        $refExterna = str_pad($facture->id, 20, '0', STR_PAD_LEFT);
+        $refExterna = str_pad($registro->rowid, 20, '0', STR_PAD_LEFT);
         $this->addElement($dom, $registroAlta, 'sum1:RefExterna', $refExterna);
 
         // 4. NombreRazonEmisor
         $this->addElement($dom, $registroAlta, 'sum1:NombreRazonEmisor', $this->config['emisor_nombre']);
+
+        // Ver cuando aplicar la subsanación
+        // $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
 
         // 5. TipoFactura
         $tipoFactura = $this->getTipoFactura($facture);
@@ -157,7 +163,7 @@ class VerifactuXML
         $this->addSistemaInformatico($dom, $registroAlta);
 
         // 13. FechaHoraHusoGenRegistro
-        $fechaHora = $hashData['fechaHoraHusoGenRegistro'];
+        $fechaHora = $hashData['FechaHoraHusoGenRegistro'];
 
         $this->addElement($dom, $registroAlta, 'sum1:FechaHoraHusoGenRegistro', $fechaHora);
 
@@ -184,6 +190,7 @@ class VerifactuXML
         if (!$registro || !$registro->factureid) {
             throw new Exception('Registro no válido para generar XML Verifactu');
         }
+        $this->registro = $registro;
         $this->facture = new Facture($this->db);
         $this->facture->fetch($registro->factureid);
 
@@ -228,7 +235,7 @@ class VerifactuXML
         $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
         $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
 
-        $this->generateRegistro($dom,$regFactu, $registro, $this->facture);
+        $this->generateRegistro($dom, $regFactu, $registro, $this->facture);
 
         $this->xml = $dom->saveXML();
         return $this->xml;
@@ -387,7 +394,7 @@ class VerifactuXML
             }
             $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($data['TipoImpositivo'], 2, '.', ''));
             $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['BaseImponibleOimporteNoSujeto'], 2, '.', ''));
-            if (isset($data['BaseImponibleACoste']) && $data['BaseImponibleACoste'] > 0) 
+            if (isset($data['BaseImponibleACoste']) && $data['BaseImponibleACoste'] > 0)
                 $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleACoste', number_format($data['BaseImponibleACoste'], 2, '.', ''));
 
             $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['CuotaRepercutida'], 2, '.', ''));
@@ -437,7 +444,7 @@ class VerifactuXML
                     'CuotaRepercutida' => 0,
                     'tipoRecargoEquivalencia' => 0,
                     'cuotaRecargoEquivalencia' => 0,
-                    'impuesto' => '01',//IVA
+                    'impuesto' => '01', //IVA
                     'fk_clave_regimen' => $clave_regimen,
                     'fk_clave_operacion' => $clave_operacion,
                     'fk_clave_exencion' => $clave_exencion,
@@ -481,7 +488,7 @@ class VerifactuXML
             }
         }
 
-    
+
         return $finalDesglose;
     }
 
@@ -606,10 +613,126 @@ class VerifactuXML
             // Guardar respuesta en INBOX
             $responseFile = $inbox_dir . '/' . $this->facture->ref . '_response.xml';
             file_put_contents($responseFile, $response);
+
+            // Procesar la respuesta si se proporciona el registro
+            if ($this->registro) {
+                $this->processResponse($response, $this->registro);
+            }
         }
 
         curl_close($ch);
         return $return;
+    }
+
+    /**
+     * Procesa la respuesta XML de la AEAT y actualiza el registro en la base de datos
+     *
+     * @param string $response Respuesta XML de la AEAT
+     * @param VerifactuFacturaRegistro $registro Objeto registro a actualizar
+     */
+    private function processResponse($response)
+    {
+        if (empty($response)) {
+            return;
+        }
+
+        $dom = new DOMDocument();
+        $dom->loadXML($response);
+
+        // Verificar si hay un error de esquema (SOAP Fault)
+        $faults = $dom->getElementsByTagNameNS('http://schemas.xmlsoap.org/soap/envelope/', 'Fault');
+        if ($faults->length > 0) {
+            $fault = $faults->item(0);
+            $faultstring = $fault->getElementsByTagName('faultstring')->item(0);
+            if ($faultstring) {
+                $errorMsg = $faultstring->textContent;
+                // Actualizar registro con error de esquema
+                $this->registro->estado = 5;
+                $this->registro->msg_error = $errorMsg;
+                $this->registro->update();
+            }
+            return;
+        }
+
+        // Procesar respuesta normal
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('tikR', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd');
+        $xpath->registerNamespace('tik', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+
+        $respuesta = $xpath->query('//tikR:RespuestaRegFactuSistemaFacturacion')->item(0);
+        if (!$respuesta) {
+            $errorMsg = "Respuesta inválida o no contiene RespuestaRegFactuSistemaFacturacion";
+            // Actualizar registro con error de esquema
+            $this->registro->estado = 5;
+            $this->registro->msg_error = $errorMsg;
+            $this->registro->update();
+            return;
+        }
+
+        // Extraer CSV si existe
+        $csvNode = $xpath->query('//tikR:CSV')->item(0);
+        if ($csvNode) {
+            $this->registro->csv = $csvNode->textContent;
+        }
+
+        // Extraer EstadoEnvio
+        $estadoEnvioNode = $xpath->query('//tikR:EstadoEnvio')->item(0);
+        if ($estadoEnvioNode) {
+            $estadoEnvio = $estadoEnvioNode->textContent;
+            // Aquí puedes mapear EstadoEnvio si es necesario
+        }
+
+        // Procesar RespuestaLinea
+        $respuestaLineas = $xpath->query('//tikR:RespuestaLinea');
+        foreach ($respuestaLineas as $linea) {
+            // Verificar RefExterna para confirmar que es el registro correcto
+            $refExternaNode = $xpath->query('tikR:RefExterna', $linea)->item(0);
+            if ($refExternaNode) {
+                $refExterna = $refExternaNode->textContent;
+                $expectedRef = str_pad($this->registro->rowid, 20, '0', STR_PAD_LEFT);
+                if ($refExterna !== $expectedRef) {
+                    continue; // No es el registro correcto
+                }
+            }
+
+            // Extraer EstadoRegistro
+            $estadoRegistroNode = $xpath->query('tikR:EstadoRegistro', $linea)->item(0);
+            if ($estadoRegistroNode) {
+                $estadoRegistro = $estadoRegistroNode->textContent;
+                switch($estadoRegistro) {
+                    case 'Correcto':
+                        $this->registro->estado = 2;
+                        $this->registro->msg_error = '';
+                        break;
+                    case 'AceptadoConErrores':
+                        $this->registro->estado = 3;
+                        $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
+                        $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
+                        $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
+                            "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
+                        
+                        break;
+                    case 'Incorrecto':
+                        $this->registro->estado = 4;
+                        $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
+                        $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
+                        $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
+                            "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
+                        break;
+                    // case 'Rechazado':
+                    //     $this->registro->estado = 3;
+                    //     break;
+                    default:
+                        $this->registro->estado = 5; // Estado desconocido
+                        $this->registro->msg_error = "EstadoRegistro desconocido: $estadoRegistro";
+                        break;
+                }
+            }
+
+            
+            $this->registro->update();
+            break; // Asumiendo un solo registro por envío
+        }
     }
 
     /**
