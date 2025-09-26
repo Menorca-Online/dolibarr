@@ -547,7 +547,7 @@ class modVerifactu extends DolibarrModules
 		$this->import_convertvalue_array[$r] = array(
 			't.ref' => array(
 				'rule'=>'getrefifauto',
-				'class'=(!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON')),
+				'class'=!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON'),
 				'path'=>"/core/modules/verifactu/".(!getDolGlobalString('VERIFACTU_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('VERIFACTU_MYOBJECT_ADDON')).'.php',
 				'classobject'=>'MyObject',
 				'pathobject'=>'/verifactu/class/myobject.class.php',
@@ -952,6 +952,26 @@ class modVerifactu extends DolibarrModules
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
 		$extrafields = new ExtraFields($this->db);
 
+		// Buscar ID del régimen con código '01'
+		$sql_regimen = "SELECT rowid FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_regimenes WHERE code = '01' AND active = 1 LIMIT 1";
+		$res_regimen = $this->db->query($sql_regimen);
+		$default_regimen = '';
+		if ($res_regimen && $this->db->num_rows($res_regimen) > 0) {
+			$obj_regimen = $this->db->fetch_object($res_regimen);
+			$default_regimen = $obj_regimen->rowid;
+			$this->db->free($res_regimen);
+		}
+
+		// Buscar ID de la operación con código 'S1'
+		$sql_operacion = "SELECT rowid FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_operaciones WHERE code = 'S1' AND active = 1 LIMIT 1";
+		$res_operacion = $this->db->query($sql_operacion);
+		$default_operacion = '';
+		if ($res_operacion && $this->db->num_rows($res_operacion) > 0) {
+			$obj_operacion = $this->db->fetch_object($res_operacion);
+			$default_operacion = $obj_operacion->rowid;
+			$this->db->free($res_operacion);
+		}
+
 		// Verificar si ya existe antes de crear
 		$existing = $extrafields->fetch_name_optionals_label('facture');
 		if (!isset($existing['fk_facture_type'])) {
@@ -1016,7 +1036,7 @@ class modVerifactu extends DolibarrModules
 				'facturedet',                         // $elementtype
 				0,                                    // $unique
 				1,                                    // $required
-				1,                                   // $default_value
+				$default_regimen,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
 						"c_verifactu_clave_regimenes:label:rowid" => null
@@ -1046,7 +1066,7 @@ class modVerifactu extends DolibarrModules
 				'facturedet',                         // $elementtype
 				0,                                    // $unique
 				1,                                    // $required
-				1,                                   // $default_value
+				$default_operacion,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
 						"c_verifactu_clave_operaciones:label:rowid" => null
