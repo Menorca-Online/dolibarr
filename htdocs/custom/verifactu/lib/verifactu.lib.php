@@ -24,7 +24,18 @@
 
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregistro.class.php';
 
-global $db, $langs, $conf, $user;
+//ESTADOS
+CONST VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
+CONST VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
+CONST VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
+CONST VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
+
+
+//OPERACIONES
+CONST VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
+CONST VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
+CONST VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
+
 /**
  * Prepare admin pages header
  *
@@ -128,7 +139,26 @@ function verifactu_generar_registro_alta($object,$esSubsanacion=false)
 		$registro->fechaHoraHusoGenRegistro = $invoiceData['FechaHoraHusoGenRegistro'];
 		$registro->fecha = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d H:i:s');
 		$registro->estado = 1; // Pendiente de envío
-		$esSubsanacion ? $registro->operation = 'REGISTRO_ALTA_SUBSAN' : $registro->operation = 'REGISTRO_ALTA';
+		if($esSubsanacion){
+		 $registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION;
+		 $existingPreviousSubsanation = VerifactuFacturaRegistro::findFirst(
+			 $db,
+			 array(
+				 'factureid' => $object->id,
+				 'operation' => VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION,
+				 // Estado diferente a VERIFACTU_ESTADO_REGISTRO_CORRECTO
+				 'estado' => array('operator' => '!=', 'value' => VERIFACTU_ESTADO_REGISTRO_CORRECTO)
+			 )
+		 );
+		 if($existingPreviousSubsanation){
+			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA;
+		 }
+		}else{
+			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA;
+		}
+		var_dump($registro->operation);
+		die();
+			
 		$result = $registro->create($user);
 
 		if ($result) {

@@ -32,10 +32,17 @@ class VerifactuFacturaRegistro extends CommonObject
             'hash' => array('type' => 'string',  'label' => 'Hash', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'length' => '64'),
             'hash_data'   => array('type' => 'text', 'label' => 'Hash data',   'enabled' => 1, 'visible' => 1, 'notnull' => 1),
             'fecha'   => array('type' => 'date', 'label' => 'Date',   'enabled' => 1, 'visible' => 1, 'notnull' => 1),
-            'estado'   => array('type' => 'integer', 'label' => 'State',   'enabled' => 1, 'visible' => 1, 'notnull' => 1),    
+            'estado'   => array('type' => 'integer', 'label' => 'State',   'enabled' => 1, 'visible' => 1, 'notnull' => 1),
             'msg_error'   => array('type' => 'text', 'label' => 'Error message',   'enabled' => 1, 'visible' => 1, 'notnull' => 0),
             'csv_line'   => array('type' => 'text', 'label' => 'CSV line',   'enabled' => 1, 'visible' => 1, 'notnull' => 0),
-            'operation'   => array('type' => 'string', 'label' => 'Operation',   'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'length' => '20')
+            'operation'   => array(
+                'type' => 'integer',
+                'label' => 'Operation',
+                'enabled' => 1,
+                'visible' => 1,
+                'notnull' => 1,
+                'foreignkey' => 'c_verifactu_registro_operaciones.rowid'
+            )
 
         );
     }
@@ -52,15 +59,16 @@ class VerifactuFacturaRegistro extends CommonObject
         return $this->fetchCommon($id, $ref, $ref_ext);
     }
 
-    public function getPreviousRegister(){
+    public function getPreviousRegister()
+    {
         $data = json_decode($this->hash_data, true);
         if (!$data) {
             return null; // No hay datos de hash_data
         }
-        $previousHash = $data['Huella']?? "";
+        $previousHash = $data['Huella'] ?? "";
 
-        $sql = "SELECT * FROM ".MAIN_DB_PREFIX.$this->table_element;
-        $sql .= " WHERE hash = '" . $previousHash."'";
+        $sql = "SELECT * FROM " . MAIN_DB_PREFIX . $this->table_element;
+        $sql .= " WHERE hash = '" . $previousHash . "'";
         $sql .= " ORDER BY rowid DESC";
         $sql .= " LIMIT 1";
 
@@ -91,7 +99,7 @@ class VerifactuFacturaRegistro extends CommonObject
     public static function findFirst($db, $where_conditions = array(), $order_by = 'rowid', $order_direction = 'DESC')
     {
         $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
-        
+
         // Agregar condiciones WHERE
         if (!empty($where_conditions)) {
             $sql .= " WHERE ";
@@ -105,10 +113,10 @@ class VerifactuFacturaRegistro extends CommonObject
             }
             $sql .= implode(" AND ", $conditions);
         }
-        
+
         $sql .= " ORDER BY " . $order_by . " " . $order_direction;
         $sql .= " LIMIT 1";
-        
+
         $result = $db->query($sql);
         if ($result && $db->num_rows($result) > 0) {
             $obj = $db->fetch_object($result);
@@ -117,8 +125,7 @@ class VerifactuFacturaRegistro extends CommonObject
             $db->free($result);
             return $registro;
         }
-        
+
         return null;
     }
-    
 }

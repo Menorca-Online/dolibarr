@@ -146,7 +146,7 @@ class VerifactuXML
             $FacturasRectificadas = $dom->createElement('sum1:FacturasRectificadas');
             $registroAlta->appendChild($FacturasRectificadas);
             $IDFacturaRectificada  = $dom->createElement('sum1:IDFacturaRectificada');
-            $this->addElement($dom, $IDFacturaRectificada, 'sum1:IDEmisorFactura', $this->config['emisor_nombre']);
+            $this->addElement($dom, $IDFacturaRectificada, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
             $this->addElement($dom, $IDFacturaRectificada, 'sum1:NumSerieFactura', $factureSource->ref);
             $this->addElement($dom, $IDFacturaRectificada, 'sum1:FechaExpedicionFactura', date('d-m-Y', $factureSource->date));
             $FacturasRectificadas->appendChild($IDFacturaRectificada);
@@ -720,11 +720,11 @@ class VerifactuXML
                 $estadoRegistro = $estadoRegistroNode->textContent;
                 switch ($estadoRegistro) {
                     case 'Correcto':
-                        $this->registro->estado = 2;
+                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_CORRECTO;
                         $this->registro->msg_error = '';
                         break;
                     case 'AceptadoConErrores':
-                        $this->registro->estado = 3;
+                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES;
                         $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
                         $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
                         $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
@@ -732,7 +732,7 @@ class VerifactuXML
 
                         break;
                     case 'Incorrecto':
-                        $this->registro->estado = 4;
+                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_INCORRECTO;
                         $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
                         $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
                         $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .

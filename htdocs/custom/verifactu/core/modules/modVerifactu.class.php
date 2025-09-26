@@ -260,79 +260,88 @@ class modVerifactu extends DolibarrModules
 		 */
 		/* BEGIN MODULEBUILDER DICTIONARIES */
 		/* BEGIN MODULEBUILDER DICTIONARIES */
-	$this->dictionaries = array(
-		'langs' => 'verifactu@verifactu',
-		'tabname' => array(
-			MAIN_DB_PREFIX . "c_verifactu_facture_types",
-			MAIN_DB_PREFIX . "c_verifactu_clave_regimenes",
-			MAIN_DB_PREFIX . "c_verifactu_clave_operaciones",
-			MAIN_DB_PREFIX . "c_verifactu_clave_exenciones",
-			MAIN_DB_PREFIX . "c_verifactu_registro_estados"
-		),
-		'tablib' => array(
-			"Tipos de Factura Verifactu",
-			"Claves de Régimen Verifactu",
-			"Claves de Operación Verifactu",
-			"Claves de Exención Verifactu",
-			"Estados de Registros Verifactu"
-		),
-		'tabsql' => array(
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimenes as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operaciones as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f',
-			'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f'
-		),
-		'tabsqlsort' => array(
-			"code ASC",
-			"code ASC",
-			"code ASC",
-			"code ASC",
-			"code ASC"
-		),
-		'tabfield' => array(
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label"
-		),
-		'tabfieldvalue' => array(
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label"
-		),
-		'tabfieldinsert' => array(
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label",
-			"code,label"
-		),
-		'tabrowid' => array(
-			"rowid",
-			"rowid",
-			"rowid",
-			"rowid",
-			"rowid"
-		),
-		'tabcond' => array(
-			isModEnabled('verifactu'),
-			isModEnabled('verifactu'),
-			isModEnabled('verifactu'),
-			isModEnabled('verifactu'),
-			isModEnabled('verifactu')
-		),
-		'tabhelp' => array(
-			array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-			array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
-		)
-	);
+		$this->dictionaries = array(
+			'langs' => 'verifactu@verifactu',
+			'tabname' => array(
+				MAIN_DB_PREFIX . "c_verifactu_facture_types",
+				MAIN_DB_PREFIX . "c_verifactu_clave_regimenes",
+				MAIN_DB_PREFIX . "c_verifactu_clave_operaciones",
+				MAIN_DB_PREFIX . "c_verifactu_clave_exenciones",
+				MAIN_DB_PREFIX . "c_verifactu_registro_estados",
+				MAIN_DB_PREFIX . "c_verifactu_registro_operaciones"
+			),
+			'tablib' => array(
+				"Tipos de Factura Verifactu",
+				"Claves de Régimen Verifactu",
+				"Claves de Operación Verifactu",
+				"Claves de Exención Verifactu",
+				"Estados de Registros Verifactu"
+			),
+			'tabsql' => array(
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_regimenes as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operaciones as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones as f'
+			),
+			'tabsqlsort' => array(
+				"code ASC",
+				"code ASC",
+				"code ASC",
+				"code ASC",
+				"code ASC",
+				"code ASC"
+			),
+			'tabfield' => array(
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label"
+			),
+			'tabfieldvalue' => array(
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label"
+			),
+			'tabfieldinsert' => array(
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label",
+				"code,label"
+			),
+			'tabrowid' => array(
+				"rowid",
+				"rowid",
+				"rowid",
+				"rowid",
+				"rowid",
+				"rowid"
+			),
+			'tabcond' => array(
+				isModEnabled('verifactu'),
+				isModEnabled('verifactu'),
+				isModEnabled('verifactu'),
+				isModEnabled('verifactu'),
+				isModEnabled('verifactu'),
+				isModEnabled('verifactu')
+			),
+			'tabhelp' => array(
+				array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código régimen'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código operación'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código registro operacion'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+			)
+		);
 
 
 		/* END MODULEBUILDER DICTIONARIES */
@@ -728,6 +737,18 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
+		//Campo que especifica los estados de registros.
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_operaciones (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
+		) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
@@ -738,7 +759,7 @@ class modVerifactu extends DolibarrModules
 			estado integer DEFAULT 1,
 			msg_error text DEFAULT NULL,
 			csv_line text DEFAULT NULL,
-			operation varchar(20) DEFAULT NULL
+			operation integer DEFAULT 1
 		) ENGINE=innodb;";
 
 		$resql = $this->db->query($sql);
@@ -805,6 +826,12 @@ class modVerifactu extends DolibarrModules
 			array('code' => '3', 'label' => '3 - AceptadoConErrores'),
 			array('code' => '4', 'label' => '4 - Incorrecto'),
 			array('code' => '5', 'label' => '5 - Error de sistema, no enviado'),
+		);
+
+		$registroOperaciones = array(
+			array('code' => '1', 'label' => '1 - Registro alta'),
+			array('code' => '2', 'label' => '2 - Registro alta subsanación'),
+			array('code' => '3', 'label' => '3 - Registro alta subsanación rechazada'),
 		);
 
 		foreach ($types as $type) {
@@ -874,7 +901,7 @@ class modVerifactu extends DolibarrModules
 			}
 		}
 
-		foreach( $registroEstados as $estado) {
+		foreach ($registroEstados as $estado) {
 			// Verificar si ya existe
 			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_registro_estados WHERE code = '" . $this->db->escape($estado['code']) . "'";
 			$resql_check = $this->db->query($sql_check);
@@ -888,6 +915,24 @@ class modVerifactu extends DolibarrModules
 					$estadoObj->label = $estado['label'];
 					$estadoObj->active = 1;
 					$estadoObj->create($user);
+				}
+			}
+		}
+
+		foreach ($registroOperaciones as $operacion) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_registro_operaciones WHERE code = '" . $this->db->escape($operacion['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
+
+				if ($count == 0) { // Solo crear si no existe
+					$operacionObj = new VerifactuRegistroOperacion($this->db);
+					$operacionObj->code = $operacion['code'];
+					$operacionObj->label = $operacion['label'];
+					$operacionObj->active = 1;
+					$operacionObj->create($user);
 				}
 			}
 		}
@@ -938,6 +983,13 @@ class modVerifactu extends DolibarrModules
 		}
 
 		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_operaciones";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
@@ -1136,7 +1188,7 @@ class modVerifactu extends DolibarrModules
 	 */
 	public function _update_extrafields_positions()
 	{
-		
+
 		return 1;
 	}
 
@@ -1194,7 +1246,7 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		
+
 		// Eliminar campos de líneas de facturas (facturedet)
 		$result6 = $extrafields->delete('fk_clave_regimen', 'facturedet');
 		if ($result6 < 0) {
