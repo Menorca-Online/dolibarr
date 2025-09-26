@@ -137,12 +137,27 @@ class VerifactuXML
         $tipoFactura = $this->getTipoFactura($facture);
         $this->addElement($dom, $registroAlta, 'sum1:TipoFactura', $tipoFactura);
 
+
+        if ($facture->fk_facture_source != null && $facture->fk_facture_source>0) {
+            $this->addElement($dom, $registroAlta, 'sum1:TipoRectificativa', 'I');
+
+            $factureSource = new Facture($this->db);
+            $factureSource->fetch($facture->fk_facture_source);
+            $FacturasRectificadas = $dom->createElement('sum1:FacturasRectificadas');
+            $registroAlta->appendChild($FacturasRectificadas);
+            $IDFacturaRectificada  = $dom->createElement('sum1:IDFacturaRectificada');
+            $this->addElement($dom, $IDFacturaRectificada, 'sum1:IDEmisorFactura', $this->config['emisor_nombre']);
+            $this->addElement($dom, $IDFacturaRectificada, 'sum1:NumSerieFactura', $factureSource->ref);
+            $this->addElement($dom, $IDFacturaRectificada, 'sum1:FechaExpedicionFactura', date('d-m-Y', $factureSource->date));
+            $FacturasRectificadas->appendChild($IDFacturaRectificada);
+        }
+
         // 6. DescripcionOperacion
         $descripcion = $this->getDescripcionOperacion($facture);
         $this->addElement($dom, $registroAlta, 'sum1:DescripcionOperacion', $descripcion);
 
 
-        if ($this->getTipoFactura($facture) != 'F2') {
+        if ($this->getTipoFactura($facture) != 'F2' && $this->getTipoFactura($facture) != 'R5') {
             // 7. Destinatarios
             $this->addDestinatarios($dom, $registroAlta, $facture);
         }
