@@ -16,6 +16,8 @@
 /**
  * Class ActionsVerifactu
  */
+
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 class ActionsVerifactu
 {
     /**
@@ -133,13 +135,19 @@ private function validarCIFNIFNIEDNI($doc)
      */
     public function formObjectOptions($parameters, &$object, &$action, $hookmanager)
     {
-        global $langs, $db, $conf;
+        global $langs, $db, $conf, $extrafields;
 
+
+        
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
 
             // Solo aplicar en facturas
             if ($object->element == 'facture' || get_class($object) == 'Facture') {
+
+                if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_INCORRECTO) {
+                    $extrafields->attributes['facture']['alwayseditable']['fk_facture_type'] = 1;
+                }
 
                 // Determinar si la factura ya existe (modo edición) o se está creando
                 $isExistingInvoice = !empty($object->id) && $object->id > 0;
@@ -311,7 +319,7 @@ private function validarCIFNIFNIEDNI($doc)
                         });
                     }
 
-                    // Verificar si la factura no está en estado borrador y mostrar alerta
+                    //Verificar si la  no está en estado borrador y mostrar alerta
                     if (isExistingInvoice && ' . ($object->status > 0 ? 'true' : 'false') . ') {
                         //alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
 
@@ -319,20 +327,21 @@ private function validarCIFNIFNIEDNI($doc)
                         setTimeout(function() {
                             // Buscar y deshabilitar botones de modificar y eliminar con múltiples selectores
                             var buttonSelectors = [
-                                \'a[href*="action=edit"]\',
-                                \'a[href*="action=delete"]\',
-                                \'a.butAction[href*="edit"]\',
-                                \'a.butActionDelete[href*="delete"]\',
-                                \'input[name="edit"]\',
-                                \'input[name="delete"]\',
-                                \'input[value*="Modificar"]\',
-                                \'input[value*="Eliminar"]\',
+                                // \'a[href*="action=edit"]\',
+                                // \'a[href*="action=delete"]\',
+                                // \'a.butAction[href*="edit"]\',
+                                // \'a.butActionDelete[href*="delete"]\',
+                                // \'input[name="edit"]\',
+                                // \'input[name="delete"]\',
+                                // \'input[value*="Modificar"]\',
+                                // \'input[value*="Eliminar"]\',
                                 \'.butAction\',
                                 \'.butActionDelete\'
                             ];
 
                             var hiddenCount = 0;
                             buttonSelectors.forEach(function(selector) {
+                            console.log(selector);
                                 $(selector).each(function() {
                                     var $this = $(this);
                                     var href = $this.attr("href") || "";
