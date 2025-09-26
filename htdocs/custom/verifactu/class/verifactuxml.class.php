@@ -121,7 +121,8 @@ class VerifactuXML
         $this->addIDFactura($dom, $registroAlta, $facture);
 
         // 3. RefExterna (hash de la factura como referencia externa)
-        $refExterna = str_pad($registro->rowid, 20, '0', STR_PAD_LEFT);
+
+        $refExterna = str_pad($registro->id, 20, '0', STR_PAD_LEFT);
         $this->addElement($dom, $registroAlta, 'sum1:RefExterna', $refExterna);
 
         // 4. NombreRazonEmisor
@@ -692,7 +693,7 @@ class VerifactuXML
             $refExternaNode = $xpath->query('tikR:RefExterna', $linea)->item(0);
             if ($refExternaNode) {
                 $refExterna = $refExternaNode->textContent;
-                $expectedRef = str_pad($this->registro->rowid, 20, '0', STR_PAD_LEFT);
+                $expectedRef = str_pad($this->registro->id, 20, '0', STR_PAD_LEFT);
                 if ($refExterna !== $expectedRef) {
                     continue; // No es el registro correcto
                 }
