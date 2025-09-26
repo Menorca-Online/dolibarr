@@ -115,8 +115,7 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 
 	try {
 
-		
-		if ($object->array_options['fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_CORRECTO) {
+		if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_CORRECTO) {
 			setEventMessages("ADVERTENCIA: No se puede generar un nuevo registro mientras haya uno pendiente de envío", null, 'warnings');
 			return 1;
 		}
@@ -136,7 +135,8 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 			return 1;
 		}
 
-		if ($esSubsanacion && $object->array_options['fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES) {
+
+		if ($esSubsanacion && $object->array_options['options_fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES) {
 			setEventMessages("ADVERTENCIA: No se puede generar una subsanación para una factura que no sea aceptada con errores", null, 'warnings');
 			return 1;
 		}

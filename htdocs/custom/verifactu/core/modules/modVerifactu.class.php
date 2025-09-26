@@ -1078,7 +1078,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $size
 				'facture',                             // $elementtype
 				0,                                     // $unique
-				1,                                     // $required (obligatorio)
+				0,                                     // $required (obligatorio)
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
