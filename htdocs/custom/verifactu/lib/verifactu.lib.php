@@ -29,6 +29,7 @@ CONST VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
 CONST VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
 CONST VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
 CONST VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
+CONST VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
 
 
 //OPERACIONES
@@ -147,7 +148,7 @@ function verifactu_generar_registro_alta($object,$esSubsanacion=false)
 				 'factureid' => $object->id,
 				 'operation' => VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION,
 				 // Estado diferente a VERIFACTU_ESTADO_REGISTRO_CORRECTO
-				 'estado' => array('operator' => '!=', 'value' => VERIFACTU_ESTADO_REGISTRO_CORRECTO)
+				 'estado' => array('operator' => '=', 'value' => VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES)
 			 )
 		 );
 		 if($existingPreviousSubsanation){
@@ -156,8 +157,6 @@ function verifactu_generar_registro_alta($object,$esSubsanacion=false)
 		}else{
 			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA;
 		}
-		var_dump($registro->operation);
-		die();
 			
 		$result = $registro->create($user);
 

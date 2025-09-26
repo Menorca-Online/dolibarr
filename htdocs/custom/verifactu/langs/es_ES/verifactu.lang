@@ -28,6 +28,15 @@ VERIFACTU_MYPARAM2Tooltip=Tooltip de mi parámetro 2
 VERIFACTU_URL_ENDPOINT=URL DEL ENDPOINT DE VERIFACTU
 VERIFACTU_CERTIFICADO_AEAT=Ruta del certificado AEAT
 INVOICE_CLIENTE_GENERICO=ID Cliente Genérico
+INVOICE_MAX_AMOUNT_SIMPLIFICADAS=Importe máximo para facturas simplificadas
+VERIFACTU_SISTEMA_NOMBRE=Nombre del sistema
+VERIFACTU_SOFTWARE_NOMBRE=Nombre del software
+VERIFACTU_SISTEMA_ID=ID del sistema
+VERIFACTU_SOFTWARE_VERSION=Versión del software
+VERIFACTU_NUM_INSTALACION=Número de instalación
+VERIFACTU_SOLO_VERIFACTU=Solo Verifactu
+VERIFACTU_MULTI_OT=Multi OT
+VERIFACTU_INDICADOR_MULTI=Indicador Multi
 VerifactuErrorClienteGenericoNoDefinido=Error: Cliente genérico no definido en configuración
 #
 # Errores y mensajes Verifactu

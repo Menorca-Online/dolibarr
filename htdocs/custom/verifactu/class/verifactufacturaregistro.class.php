@@ -104,11 +104,21 @@ class VerifactuFacturaRegistro extends CommonObject
         if (!empty($where_conditions)) {
             $sql .= " WHERE ";
             $conditions = array();
-            foreach ($where_conditions as $field => $value) {
-                if (is_string($value)) {
-                    $conditions[] = $field . " = '" . $db->escape($value) . "'";
+            foreach ($where_conditions as $field => $cond) {
+                // Permitir formato: ['campo' => ['operator' => '!=', 'value' => 1]]
+                if (is_array($cond) && isset($cond['operator'], $cond['value'])) {
+                    $operator = $cond['operator'];
+                    $value = $cond['value'];
                 } else {
-                    $conditions[] = $field . " = " . ((int) $value);
+                    // Compatibilidad con formato anterior: ['campo' => 'valor']
+                    $operator = '=';
+                    $value = $cond;
+                }
+
+                if (is_string($value)) {
+                    $conditions[] = $field . " " . $operator . " '" . $db->escape($value) . "'";
+                } else {
+                    $conditions[] = $field . " " . $operator . " " . ((int) $value);
                 }
             }
             $sql .= implode(" AND ", $conditions);

@@ -35,6 +35,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveoperacion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistrooperacion.class.php';
 
 
 /**
@@ -1066,6 +1067,48 @@ class modVerifactu extends DolibarrModules
 			dol_syslog("Verifactu: Actualizada posición del extrafield fk_facture_type a -10");
 		}
 
+		$existing = $extrafields->fetch_name_optionals_label('facture');
+		if (!isset($existing['fk_verifactu__registro_estado'])) {
+			// CREAR extrafield nuevo
+			$result1 = $extrafields->addExtraField(
+				'fk_verifactu_registro_estado',                     // $attrname
+				'Estado de Verifactu',                     // $label
+				'sellist',                             // $type
+				-11,                                   // $pos (posición negativa para aparecer al inicio)
+				'',                                    // $size
+				'facture',                             // $elementtype
+				0,                                     // $unique
+				1,                                     // $required (obligatorio)
+				'',                                    // $default_value
+				serialize([                            // $param
+					"options" => [
+						"c_verifactu_registro_estados:label:rowid" => null
+					]
+				]),
+				0,                                     // $alwayseditable (0 = no siempre editable)
+				'',                                    // $perms
+				1,                                     // $list
+				'Seleccione el estado de factura según el último registro Verifactu', // $help
+				'',                                    // $computed
+				'',                                    // $entity
+				'',                                    // $langfile
+				'-1',                                  // no editable
+				0,                                     // $totalizable
+				0                                      // $printable
+			);
+		} else {
+			// ACTUALIZAR extrafield existente para cambiar la posición
+			$sql = "UPDATE " . MAIN_DB_PREFIX . "extrafields
+					SET pos = -11,
+						label = 'Estado de Verifactu',
+						required = 1,
+						enabled = '-1'
+					WHERE name = 'fk_verifactu_registro_estado'
+					AND elementtype = 'facture'";
+			$this->db->query($sql);
+			dol_syslog("Verifactu: Actualizada posición del extrafield fk_verifactu_registro_estado a -11 y configurado como solo lectura en facturas validadas");
+		}
+
 
 
 		// Verificar los resultados de la creación de los nuevos campos
@@ -1260,6 +1303,11 @@ class modVerifactu extends DolibarrModules
 
 		$result8 = $extrafields->delete('fk_clave_exencion', 'facturedet');
 		if ($result8 < 0) {
+			return -1;
+		}
+
+		$result9 = $extrafields->delete('fk_verifactu_registro_estado', 'facture');
+		if ($result9 < 0) {
 			return -1;
 		}
 

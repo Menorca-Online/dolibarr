@@ -128,8 +128,11 @@ class VerifactuXML
         // 4. NombreRazonEmisor
         $this->addElement($dom, $registroAlta, 'sum1:NombreRazonEmisor', $this->config['emisor_nombre']);
 
-        if ($registro->operation == 'REGISTRO_ALTA_SUBSAN') {
+        if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION || $registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
             $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
+            if($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
+                $this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'S');
+            }
             //$this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'N');
         }
 
@@ -655,6 +658,9 @@ class VerifactuXML
             return;
         }
 
+        $invoice = new Facture($this->db);
+        $invoice->fetch($this->registro->factureid);
+
         $dom = new DOMDocument();
         $dom->loadXML($response);
 
@@ -666,7 +672,9 @@ class VerifactuXML
             if ($faultstring) {
                 $errorMsg = $faultstring->textContent;
                 // Actualizar registro con error de esquema
-                $this->registro->estado = 5;
+                $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                $invoice->update($user);
                 $this->registro->msg_error = $errorMsg;
                 $this->registro->updateCommon($user);
             }
@@ -682,7 +690,9 @@ class VerifactuXML
         if (!$respuesta) {
             $errorMsg = "Respuesta inválida o no contiene RespuestaRegFactuSistemaFacturacion";
             // Actualizar registro con error de esquema
-            $this->registro->estado = 5;
+            $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+            $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+            $invoice->update($user);
             $this->registro->msg_error = $errorMsg;
             $this->registro->updateCommon($user);
             return;
@@ -742,13 +752,14 @@ class VerifactuXML
                     //     $this->registro->estado = 3;
                     //     break;
                     default:
-                        $this->registro->estado = 5; // Estado desconocido
+                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO; // Estado desconocido
                         $this->registro->msg_error = "EstadoRegistro desconocido: $estadoRegistro";
                         break;
                 }
             }
 
-
+            $invoice->array_options['fk_verifactu_registro_estado'] = $this->registro->estado;
+            $invoice->update($user);
             $this->registro->updateCommon($user);
             break; // Asumiendo un solo registro por envío
         }
