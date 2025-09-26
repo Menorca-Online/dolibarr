@@ -68,7 +68,7 @@ class VerifactuXML
                 $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
                 $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
                 $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
-            'sistema_nombre_software' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_NOMBRE', 'MOD DOLIBARR VERIFACTU'),
+            'sistema_nombre_software' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_NOMBRE', 'MENORCA ONLINE MOD VERIFACTU'),
             'sistema_id' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_ID', '01'),
             'sistema_version' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_VERSION', '1.0.0'),
             'sistema_instalacion' => $this->getConfigValue($conf, 'VERIFACTU_NUM_INSTALACION', 'DOLI' . strtoupper(substr(md5(DOL_DOCUMENT_ROOT), 0, 8))),
