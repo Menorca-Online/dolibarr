@@ -184,6 +184,133 @@ private function validarCIFNIFNIEDNI($doc)
                         }
                     }
 
+                    // ====== APLICAR VALORES POR DEFECTO PARA LÍNEAS DE FACTURA ======
+                    console.log("Verifactu: Inicializando aplicación de valores por defecto para líneas");
+                    
+                    function aplicarValoresPorDefectoLineas() {
+                        console.log("Verifactu: Ejecutando aplicación de valores por defecto para líneas");
+                        
+                        // Régimen: buscar opción con código "01"
+                        $("select[name*=\'options_fk_clave_regimen\']").each(function() {
+                            var currentValue = $(this).val();
+                            console.log("Verifactu: Régimen actual:", currentValue);
+                            
+                            if (!currentValue || currentValue === "" || currentValue === "0") {
+                                console.log("Verifactu: Régimen vacío, buscando opción 01");
+                                var found = false;
+                                $(this).find("option").each(function() {
+                                    var optionText = $(this).text().trim();
+                                    var optionValue = $(this).val();
+                                    console.log("Verifactu: Evaluando opción régimen:", optionText, "Value:", optionValue);
+                                    
+                                    if (optionText.startsWith("01:") || 
+                                        optionText.startsWith("01 -") || 
+                                        optionText.indexOf("01:") === 0) {
+                                        $(this).parent().val(optionValue).trigger("change");
+                                        console.log("Verifactu: ✓ Seleccionado régimen por defecto:", optionText);
+                                        found = true;
+                                        return false; // Break
+                                    }
+                                });
+                                if (!found) {
+                                    console.log("Verifactu: ⚠ No se encontró opción de régimen con código 01");
+                                }
+                            } else {
+                                console.log("Verifactu: Régimen ya tiene valor, no se modifica");
+                            }
+                        });
+                        
+                        // Operación: buscar opción con código "S1"  
+                        $("select[name*=\'options_fk_clave_operacion\']").each(function() {
+                            var currentValue = $(this).val();
+                            console.log("Verifactu: Operación actual:", currentValue);
+                            
+                            if (!currentValue || currentValue === "" || currentValue === "0") {
+                                console.log("Verifactu: Operación vacía, buscando opción S1");
+                                var found = false;
+                                $(this).find("option").each(function() {
+                                    var optionText = $(this).text().trim();
+                                    var optionValue = $(this).val();
+                                    console.log("Verifactu: Evaluando opción operación:", optionText, "Value:", optionValue);
+                                    
+                                    if (optionText.startsWith("S1:") || 
+                                        optionText.startsWith("S1 -") || 
+                                        optionText.indexOf("S1:") === 0) {
+                                        $(this).parent().val(optionValue).trigger("change");
+                                        console.log("Verifactu: ✓ Seleccionada operación por defecto:", optionText);
+                                        found = true;
+                                        return false; // Break
+                                    }
+                                });
+                                if (!found) {
+                                    console.log("Verifactu: ⚠ No se encontró opción de operación con código S1");
+                                }
+                            } else {
+                                console.log("Verifactu: Operación ya tiene valor, no se modifica");
+                            }
+                        });
+                    }
+                    
+                    // Aplicar valores por defecto en diferentes momentos
+                    setTimeout(aplicarValoresPorDefectoLineas, 500);
+                    setTimeout(aplicarValoresPorDefectoLineas, 1000);
+                    setTimeout(aplicarValoresPorDefectoLineas, 2000);
+                    
+                    // Cuando se hace click en agregar línea
+                    $(document).on("click", "input[name=\'addline\']", function() {
+                        console.log("Verifactu: Detectado click en agregar línea");
+                        setTimeout(aplicarValoresPorDefectoLineas, 500);
+                        setTimeout(aplicarValoresPorDefectoLineas, 1000);
+                        setTimeout(aplicarValoresPorDefectoLineas, 2000);
+                    });
+                    
+                    // Cuando se hace click en editar línea
+                    $(document).on("click", "a[href*=\'action=editline\'], .editfielda", function() {
+                        console.log("Verifactu: Detectado click en editar línea");
+                        setTimeout(aplicarValoresPorDefectoLineas, 500);
+                        setTimeout(aplicarValoresPorDefectoLineas, 1000);
+                    });
+                    
+                    // Observer para detectar cuando aparecen nuevos selects
+                    if (window.MutationObserver) {
+                        var observer = new MutationObserver(function(mutations) {
+                            var hasNewSelects = false;
+                            mutations.forEach(function(mutation) {
+                                if (mutation.addedNodes.length) {
+                                    for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                        var node = mutation.addedNodes[i];
+                                        if (node.nodeType === 1) { // Element node
+                                            if (node.tagName === "SELECT" && 
+                                                node.name && 
+                                                node.name.indexOf("options_fk_clave_") !== -1) {
+                                                hasNewSelects = true;
+                                                break;
+                                            }
+                                            // Buscar selects dentro del nodo
+                                            var selects = node.querySelectorAll ? 
+                                                         node.querySelectorAll("select[name*=\'options_fk_clave_\']") : [];
+                                            if (selects.length > 0) {
+                                                hasNewSelects = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            if (hasNewSelects) {
+                                console.log("Verifactu: Detectados nuevos selects de líneas, aplicando valores por defecto");
+                                setTimeout(aplicarValoresPorDefectoLineas, 100);
+                                setTimeout(aplicarValoresPorDefectoLineas, 500);
+                            }
+                        });
+                        
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true
+                        });
+                    }
+
                     // Verificar si la factura no está en estado borrador y mostrar alerta
                     if (isExistingInvoice && ' . ($object->status > 0 ? 'true' : 'false') . ') {
                         //alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
