@@ -25,17 +25,17 @@
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregistro.class.php';
 
 //ESTADOS
-CONST VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
-CONST VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
-CONST VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
-CONST VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
-CONST VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
+const VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
+const VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
+const VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
+const VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
+const VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
 
 
 //OPERACIONES
-CONST VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
-CONST VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
-CONST VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
+const VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
+const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
+const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
 
 /**
  * Prepare admin pages header
@@ -109,23 +109,35 @@ function verifactuAdminPrepareHead()
  * @return int
  * 0 if ok
  */
-function verifactu_generar_registro_alta($object,$esSubsanacion=false)
+function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 {
 	global $db, $user;
-	
+
 	try {
 
-		$existingAvalidHash = getInvoiceHash($object->id);
-		if (!empty($existingAvalidHash)) {
-			setEventMessages("Esta factura ya tiene un hash de verificación valido en la AEAT", null, 'warnings');
-
+		
+		if ($object->array_options['fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_CORRECTO) {
+			setEventMessages("ADVERTENCIA: No se puede generar un nuevo registro mientras haya uno pendiente de envío", null, 'warnings');
 			return 1;
 		}
+
+
+		// $existingAvalidHash = getInvoiceHash($object->id);
+		// if (!empty($existingAvalidHash)) {
+		// 	setEventMessages("Esta factura ya tiene un hash de verificación valido en la AEAT", null, 'warnings');
+
+		// 	return 1;
+		// }
 
 		// 2. Obtener datos de esta factura para generar el nuevo hash
 		$invoiceData = prepareInvoiceDataForHash($object);
 		if (!isset($invoiceData['FechaHoraHusoGenRegistro']) || $invoiceData['FechaHoraHusoGenRegistro'] == null) {
 			setEventMessages("ADVERTENCIA: El hash se generará con el número provisional de factura", null, 'warnings');
+			return 1;
+		}
+
+		if ($esSubsanacion && $object->array_options['fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES) {
+			setEventMessages("ADVERTENCIA: No se puede generar una subsanación para una factura que no sea aceptada con errores", null, 'warnings');
 			return 1;
 		}
 
@@ -140,24 +152,24 @@ function verifactu_generar_registro_alta($object,$esSubsanacion=false)
 		$registro->fechaHoraHusoGenRegistro = $invoiceData['FechaHoraHusoGenRegistro'];
 		$registro->fecha = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d H:i:s');
 		$registro->estado = 1; // Pendiente de envío
-		if($esSubsanacion){
-		 $registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION;
-		 $existingPreviousSubsanation = VerifactuFacturaRegistro::findFirst(
-			 $db,
-			 array(
-				 'factureid' => $object->id,
-				 'operation' => VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION,
-				 // Estado diferente a VERIFACTU_ESTADO_REGISTRO_CORRECTO
-				 'estado' => array('operator' => '=', 'value' => VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES)
-			 )
-		 );
-		 if($existingPreviousSubsanation){
-			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA;
-		 }
-		}else{
+		if ($esSubsanacion) {
+			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION;
+			$existingPreviousSubsanation = VerifactuFacturaRegistro::findFirst(
+				$db,
+				array(
+					'factureid' => $object->id,
+					'operation' => VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION,
+					// Estado diferente a VERIFACTU_ESTADO_REGISTRO_CORRECTO
+					'estado' => array('operator' => '=', 'value' => VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES)
+				)
+			);
+			if ($existingPreviousSubsanation) {
+				$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA;
+			}
+		} else {
 			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA;
 		}
-			
+
 		$result = $registro->create($user);
 
 		if ($result) {
@@ -288,7 +300,7 @@ function generateHash(array $data)
 function prepareInvoiceDataForHash($object)
 {
 	global $db, $conf;
-	
+
 	// Obtener líneas de factura
 	$object->fetch_lines();
 
@@ -387,7 +399,7 @@ function prepareInvoiceDataForHash($object)
 function getPreviousRegister($hash)
 {
 	global $db;
-	
+
 	// Leer el último hash de la tabla dedicada
 	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE hash = '" . $db->escape($hash) . "'";
 	$result = $db->query($sql);
@@ -404,7 +416,7 @@ function getPreviousRegister($hash)
 function getLastRegistro()
 {
 	global $db;
-	
+
 	// Leer el último hash de la tabla dedicada
 	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
 	$result = $db->query($sql);
@@ -422,10 +434,10 @@ function getLastRegistro()
 function getFirstFacturaRegistro($factureId)
 {
 	global $db;
-	
+
 	// Leer primer registro pendiente de envio para esta factura
 	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
-	$sql .= " WHERE factureid = " . ((int) $factureId) ;
+	$sql .= " WHERE factureid = " . ((int) $factureId);
 	$sql .= " AND estado = 1"; // Pendiente de envío
 	$sql .= " ORDER BY rowid ASC LIMIT 1";
 
@@ -443,7 +455,7 @@ function getFirstFacturaRegistro($factureId)
 function getLastInvoice()
 {
 	global $db;
-	
+
 	// Leer el último hash de la tabla dedicada
 	$sql = "SELECT hash, hash_data, operation  FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
 	$result = $db->query($sql);
@@ -466,7 +478,7 @@ function getLastInvoice()
 function getInvoiceHash($invoiceId)
 {
 	global $db;
-	
+
 	$sql = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
 	$sql .= " WHERE factureid = " . ((int) $invoiceId);
 	$sql .= " AND estado  = 2";
