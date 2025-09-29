@@ -230,6 +230,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 if ($tipoImpositivo != 0) {
                     $errorMsg = "ERROR: Tipo impositivo inválido para clave de operación N1 o N2. Solo se permite 0% ya que N1 y N2 son operaciones no sujetas";
                     setEventMessages($errorMsg, null, 'errors');
+                    $object->error = $errorMsg;
                     return -1;
                 }
 
