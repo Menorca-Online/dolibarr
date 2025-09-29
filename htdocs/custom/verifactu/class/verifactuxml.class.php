@@ -413,18 +413,18 @@ class VerifactuXML
             if (isset($data['OperacionExenta']) && $data['OperacionExenta']  != null) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['OperacionExenta']);
             }
-            if ($data['CalificacionOperacion'] != 'S2') {
+            if (in_array($data['CalificacionOperacion'], array('S1', 'S2'))) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($data['TipoImpositivo'], 2, '.', ''));
             }
             $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['BaseImponibleOimporteNoSujeto'], 2, '.', ''));
             if (isset($data['BaseImponibleACoste']) && $data['BaseImponibleACoste'] > 0)
                 $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleACoste', number_format($data['BaseImponibleACoste'], 2, '.', ''));
-            
-            if ($data['CalificacionOperacion'] != 'S2') {
+
+            if (in_array($data['CalificacionOperacion'], array('S1', 'S2'))) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['CuotaRepercutida'], 2, '.', ''));
             }
 
-            if (isset($data['TipoRecargoEquivalencia']) && $data['TipoRecargoEquivalencia'] > 0 && $data['CalificacionOperacion'] != 'S2') {
+            if (isset($data['TipoRecargoEquivalencia']) && $data['TipoRecargoEquivalencia'] > 0 && in_array($data['CalificacionOperacion'], array('S1', 'S2'))) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:TipoRecargoEquivalencia', number_format($data['TipoRecargoEquivalencia'], 2, '.', ''));
                 $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRecargoEquivalencia', number_format($data['CuotaRecargoEquivalencia'], 2, '.', ''));
             }

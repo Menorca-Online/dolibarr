@@ -157,8 +157,8 @@ class InterfaceVerifactu extends DolibarrTriggers
             $claveExencion = $claveExencionObj->fetch($claveExencion) ?
                 $claveExencionObj->code : null;
 
-            if (empty($claveRegimen) || (empty($calificacionOperacion) && empty($claveExencion))) {
-                $errorMsg = "ERROR: Faltan claves de régimen o calificación de operación / clave exención en alguna línea de la factura.";
+            if (empty($claveRegimen) || (empty($calificacionOperacion) && empty($claveExencion)) || (!empty($calificacionOperacion) && !empty($claveExencion))) {
+                $errorMsg = "ERROR: Falta clave de régimen o (calificación de operación / clave exención están vacías o cumplimentadas las dos, son excluyentes) en alguna línea de la factura.";
                 setEventMessages($errorMsg, null, 'errors');
                 $object->error = $errorMsg;
                 return -1;
@@ -208,7 +208,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                     }
                 }
             }
-            //Validacion CalificacionOperacion y de operacionExenta | hay aplicadas validaciones en XML
+            //Validacion CalificacionOperacion | hay aplicadas validaciones en XML
             if ($calificacionOperacion == "S2") {
                 if (!in_array($factureType, ['F1', 'F3', 'R1', 'R2', 'R3', 'R4'])) {
                     $errorMsg = "ERROR: Tipo de factura inválido para clave de operación S2. Valores permitidos: F1, F3, R1, R2, R3, R4";
@@ -239,16 +239,27 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $object->error = $errorMsg;
                     return -1;
                 }
+            }
 
-                if (empty($claveExencion)) {
-                    $errorMsg = "ERROR: Clave de exención es obligatoria para clave de operación N1 o N2.";
+            //Validacion ClaveExencion | hay aplicadas validaciones en XML
+            if (!empty($claveExencion)) {
+
+                if ($claveRegimen == '01' && in_array($claveExencion, ['E2', 'E3'])) {
+                    $errorMsg = "ERROR: Clave de exención inválida para clave de régimen 01. No se permite clave de exención E2 o E3.";
                     setEventMessages($errorMsg, null, 'errors');
                     $object->error = $errorMsg;
                     return -1;
                 }
 
-                if ($claveRegimen == '01' && in_array($claveExencion, ['E2', 'E3'])) {
-                    $errorMsg = "ERROR: Clave de exención inválida para clave de régimen 01. No se permite clave de exención E2 o E3.";
+                if ($tipoImpositivo != 0) {
+                    $errorMsg = "ERROR: Tipo impositivo inválido para clave de exención. Solo se permite 0% ya que las claves de exención son operaciones no sujetas";
+                    setEventMessages($errorMsg, null, 'errors');
+                    $object->error = $errorMsg;
+                    return -1;
+                }
+
+                if ($tipoRecargoEquivalencia != 0) {
+                    $errorMsg = "ERROR: Tipo recargo de equivalencia inválido para clave de exención. Solo se permite 0% ya que las claves de exención son operaciones no sujetas";
                     setEventMessages($errorMsg, null, 'errors');
                     $object->error = $errorMsg;
                     return -1;
