@@ -208,34 +208,14 @@ private function validarCIFNIFNIEDNI($doc)
                     var isFacturaCorrectiva = ' . ($isFacturaCorrectiva ? 'true' : 'false') . ';
                     var oldType = "' . ($oldType ?? '') . '";
                     
-                    console.log("Verifactu: Información de detección:");
-                    console.log("  - fk_facture_source:", ' . ($object->fk_facture_source ?? 0) . ');
-                    console.log("  - URL actual:", window.location.href);
-                    console.log("  - Parámetros GET:", new URLSearchParams(window.location.search).toString());
-                    console.log("  - isFacturaCorrectiva:", isFacturaCorrectiva);
-                    console.log("  - oldType (factura origen):", oldType); ' . ($isExistingInvoice ? 'true' : 'false') . ';
-                    var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
-                    var isFacturaCorrectiva = ' . ($isFacturaCorrectiva ? 'true' : 'false') . ';
-                    
-                    console.log("Verifactu: Información de detección:");
-                    console.log("  - fk_facture_source:", ' . ($object->fk_facture_source ?? 0) . ');
-                    console.log("  - URL actual:", window.location.href);
-                    console.log("  - Parámetros GET:", new URLSearchParams(window.location.search).toString());
-                    console.log("  - isFacturaCorrectiva:", isFacturaCorrectiva);
-                    
-                    // Verificar parámetros específicos en JavaScript también
                     var urlParams = new URLSearchParams(window.location.search);
                     var hasCorrectiveParams = urlParams.has("fac_avoir") || 
                                              urlParams.has("fac_rec") || 
                                              urlParams.has("facid") || 
                                              urlParams.has("fac_replacement");
                     
-                    console.log("  - Parámetros correctivos detectados:", hasCorrectiveParams);
-                    
-                    // Si PHP no detectó pero JS sí, actualizar la variable
                     if (!isFacturaCorrectiva && hasCorrectiveParams) {
                         isFacturaCorrectiva = true;
-                        console.log("  - ✓ Factura correctiva detectada por JavaScript");
                     }
 
                     // Lógica de selección automática de tipo de factura basado en cliente
@@ -268,37 +248,18 @@ private function validarCIFNIFNIEDNI($doc)
 
                                 $("select[name*=\'options_fk_facture_type\']").val("").change();
 
-                        }
                     }
 
                     if (isFacturaCorrectiva) {
-                        console.log("Verifactu: Aplicando filtros para factura correctiva");
-                        
                         function filtrarTiposFacturaCorrectiva() {
                             var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
                             
                             if (selectTipoFactura.length > 0) {
-                                console.log("Verifactu: Filtrando opciones de tipo de factura para corrección");
-                                
-                                // Debug: listar todas las opciones disponibles
-                                console.log("Verifactu: === DEBUG: Todas las opciones disponibles ===");
-                                selectTipoFactura.find("option").each(function(index) {
-                                    var optText = $(this).text().trim();
-                                    var optValue = $(this).val();
-                                    console.log("Verifactu: Opción", index + ":", optText, "Value:", optValue);
-                                });
-                                console.log("Verifactu: === FIN DEBUG ===");
-                                
-                                // Limpiar selección actual si no es válida para corrección
                                 var currentValue = selectTipoFactura.val();
                                 var currentText = selectTipoFactura.find("option:selected").text().trim();
                                 
-                                console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
-                                
-                                // Si el valor actual no empieza con R, limpiarlo
                                 if (currentValue && currentValue !== "" && currentValue !== "0" && 
                                     !currentText.match(/^R\d+[\s:-]/)) {
-                                    console.log("Verifactu: ⚠️ Limpiando selección no válida para corrección:", currentText);
                                     selectTipoFactura.val("").trigger("change");
                                 }
                                 
@@ -306,38 +267,26 @@ private function validarCIFNIFNIEDNI($doc)
                                     var optionText = $(this).text().trim();
                                     var optionValue = $(this).val();
                                     
-                                    // Mantener solo opciones que empiecen con "R" (rectificativas)
-                                    // y la opción vacía (para permitir selección)
                                     if (optionValue === "" || optionValue === "0") {
-                                        // Mantener opción vacía
                                         return true;
                                     }
                                     
-                                    // Verificar si el código empieza con "R"
                                     var startsWithR = false;
                                     var regexMatch = optionText.match(/^R\d+[\s:-]/);
                                     if (regexMatch) {
                                         startsWithR = true;
                                     }
                                     
-                                    console.log("Verifactu: Evaluando opción:", optionText, "-> Regex match:", regexMatch, "-> Empieza con R:", startsWithR);
-                                    
                                     if (!startsWithR) {
-                                        console.log("Verifactu: ❌ Ocultando opción no válida para corrección:", optionText);
                                         $(this).prop("disabled", true).hide();
                                     } else {
-                                        console.log("Verifactu: ✅ Manteniendo opción válida para corrección:", optionText);
                                         $(this).prop("disabled", false).show();
                                     }
                                 });
                                 
-                                // Verificar si hay algún valor seleccionado válido
                                 var finalValue = selectTipoFactura.val();
                                 if (!finalValue || finalValue === "" || finalValue === "0") {
-                                    // Mapear tipo original a tipo rectificativo
                                     var targetRectificativo = "";
-                                    
-                                    console.log("Verifactu: Aplicando mapeo de tipo original:", oldType);
                                     
                                     switch(oldType) {
                                         case "F1":
@@ -347,46 +296,24 @@ private function validarCIFNIFNIEDNI($doc)
                                             targetRectificativo = "R5";
                                             break;
                                         default:
-                                            targetRectificativo = "R1"; // Por defecto R1 si no se puede mapear
-                                            console.log("Verifactu: Tipo no mapeado, usando R1 por defecto");
+                                            targetRectificativo = "R1";
                                     }
                                     
-                                    console.log("Verifactu: Mapeo:", oldType, "->", targetRectificativo);
-                                    
-                                    // Buscar la opción que corresponde al tipo rectificativo objetivo
                                     var targetOption = selectTipoFactura.find("option").filter(function() {
                                         var optionText = $(this).text().trim();
                                         var optionValue = $(this).val();
-                                        console.log("Verifactu: Evaluando opción para mapeo:", optionText, "Value:", optionValue);
                                         
                                         var matches = optionText.match(new RegExp("^" + targetRectificativo + "[\\s:-]"));
-                                        console.log("Verifactu: ¿Coincide con", targetRectificativo + "?", matches !== null);
                                         
                                         return matches !== null;
                                     });
                                     
-                                    console.log("Verifactu: Opciones encontradas para", targetRectificativo + ":", targetOption.length);
-                                    
                                     if (targetOption.length > 0) {
                                         var targetValue = targetOption.first().val();
                                         var targetText = targetOption.first().text().trim();
-                                        console.log("Verifactu: Intentando seleccionar:", targetText, "Value:", targetValue);
                                         
                                         selectTipoFactura.val(targetValue).trigger("change");
-                                        
-                                        // Verificar si se seleccionó correctamente
-                                        var selectedAfter = selectTipoFactura.val();
-                                        console.log("Verifactu: Valor después de selección:", selectedAfter);
-                                        
-                                        if (selectedAfter === targetValue) {
-                                            console.log("Verifactu: ✓ Seleccionado automáticamente", targetRectificativo, "para factura correctiva");
-                                        } else {
-                                            console.log("Verifactu: ❌ Error al seleccionar", targetRectificativo, "- valor no se aplicó");
-                                        }
                                     } else {
-                                        console.log("Verifactu: ⚠️ No se encontró opción para", targetRectificativo);
-                                        
-                                        // Fallback: intentar seleccionar R1
                                         var r1Option = selectTipoFactura.find("option").filter(function() {
                                             return $(this).text().trim().match(/^R1[\s\-:]/);
                                         });
@@ -394,12 +321,10 @@ private function validarCIFNIFNIEDNI($doc)
                                         if (r1Option.length > 0) {
                                             var r1Value = r1Option.val();
                                             selectTipoFactura.val(r1Value).trigger("change");
-                                            console.log("Verifactu: ✓ Fallback: Seleccionado R1");
                                         }
                                     }
                                 }
                                 
-                                // Agregar mensaje explicativo
                                 if (selectTipoFactura.parent().find(".verifactu-correction-info").length === 0) {
                                     var mappingMessage = "";
                                     if (oldType === "F1") {
@@ -429,33 +354,15 @@ private function validarCIFNIFNIEDNI($doc)
                         setTimeout(filtrarTiposFacturaCorrectiva, 2000);
                     } else {
                         // ====== FILTRAR TIPOS DE FACTURA PARA FACTURAS NORMALES (SOLO F1 Y F2) ======
-                        console.log("Verifactu: Aplicando filtros para factura normal");
-                        
                         function filtrarTiposFacturaNormal() {
                             var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
                             
                             if (selectTipoFactura.length > 0) {
-                                console.log("Verifactu: Filtrando opciones de tipo de factura para factura normal (solo F1 y F2)");
-                                
-                                // Debug: listar todas las opciones disponibles
-                                console.log("Verifactu: === DEBUG: Todas las opciones disponibles ===");
-                                selectTipoFactura.find("option").each(function(index) {
-                                    var optText = $(this).text().trim();
-                                    var optValue = $(this).val();
-                                    console.log("Verifactu: Opción", index + ":", optText, "Value:", optValue);
-                                });
-                                console.log("Verifactu: === FIN DEBUG ===");
-                                
-                                // Limpiar selección actual si no es válida para factura normal
                                 var currentValue = selectTipoFactura.val();
                                 var currentText = selectTipoFactura.find("option:selected").text().trim();
                                 
-                                console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
-                                
-                                // Si el valor actual no es F1 o F2, limpiarlo
                                 if (currentValue && currentValue !== "" && currentValue !== "0" && 
                                     !currentText.match(/^F[12][\s:-]/)) {
-                                    console.log("Verifactu: ⚠️ Limpiando selección no válida para factura normal:", currentText);
                                     selectTipoFactura.val("").trigger("change");
                                 }
                                 
@@ -463,14 +370,10 @@ private function validarCIFNIFNIEDNI($doc)
                                     var optionText = $(this).text().trim();
                                     var optionValue = $(this).val();
                                     
-                                    // Mantener solo opciones que empiecen con "F1" o "F2" (facturas normales)
-                                    // y la opción vacía (para permitir selección)
                                     if (optionValue === "" || optionValue === "0") {
-                                        // Mantener opción vacía
                                         return true;
                                     }
                                     
-                                    // Verificar si el código empieza con "F1" o "F2"
                                     var isValidNormal = false;
                                     var regexMatchF1 = optionText.match(/^F1[\s:-]/);
                                     var regexMatchF2 = optionText.match(/^F2[\s:-]/);
@@ -478,18 +381,13 @@ private function validarCIFNIFNIEDNI($doc)
                                         isValidNormal = true;
                                     }
                                     
-                                    console.log("Verifactu: Evaluando opción:", optionText, "-> F1 match:", regexMatchF1, "-> F2 match:", regexMatchF2, "-> Es válida:", isValidNormal);
-                                    
                                     if (!isValidNormal) {
-                                        console.log("Verifactu: ❌ Ocultando opción no válida para factura normal:", optionText);
                                         $(this).prop("disabled", true).hide();
                                     } else {
-                                        console.log("Verifactu: ✅ Manteniendo opción válida para factura normal:", optionText);
                                         $(this).prop("disabled", false).show();
                                     }
                                 });
                                 
-                                // Agregar mensaje explicativo
                                 if (selectTipoFactura.parent().find(".verifactu-normal-info").length === 0) {
                                     selectTipoFactura.after(
                                         \'<div class="verifactu-normal-info" style="background:#e7f3ff; border:1px solid #bee5eb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#0c5460;">\' +
@@ -500,104 +398,71 @@ private function validarCIFNIFNIEDNI($doc)
                             }
                         }
                         
-                        // Aplicar filtro inmediatamente y con retraso
                         setTimeout(filtrarTiposFacturaNormal, 100);
                         setTimeout(filtrarTiposFacturaNormal, 500);
                         setTimeout(filtrarTiposFacturaNormal, 1000);
-                        
-                        // Asegurar que el filtro se mantenga
                         setTimeout(filtrarTiposFacturaNormal, 1500);
                         setTimeout(filtrarTiposFacturaNormal, 2000);
                     }
 
-                    // ====== APLICAR VALORES POR DEFECTO PARA LÍNEAS DE FACTURA ======
-                    console.log("Verifactu: Inicializando aplicación de valores por defecto para líneas");
-                    
                     function aplicarValoresPorDefectoLineas() {
-                        console.log("Verifactu: Ejecutando aplicación de valores por defecto para líneas");
-                        
-                        // Régimen: buscar opción con código "01"
                         $("select[name*=\'options_fk_clave_regimen\']").each(function() {
                             var currentValue = $(this).val();
-                            console.log("Verifactu: Régimen actual:", currentValue);
                             
                             if (!currentValue || currentValue === "" || currentValue === "0") {
-                                console.log("Verifactu: Régimen vacío, buscando opción 01");
                                 var found = false;
                                 $(this).find("option").each(function() {
                                     var optionText = $(this).text().trim();
                                     var optionValue = $(this).val();
-                                    console.log("Verifactu: Evaluando opción régimen:", optionText, "Value:", optionValue);
                                     
                                     if (optionText.startsWith("01:") || 
                                         optionText.startsWith("01 -") || 
                                         optionText.indexOf("01:") === 0) {
                                         $(this).parent().val(optionValue).trigger("change");
-                                        console.log("Verifactu: ✓ Seleccionado régimen por defecto:", optionText);
                                         found = true;
-                                        return false; // Break
+                                        return false;
                                     }
                                 });
-                                if (!found) {
-                                    console.log("Verifactu: ⚠ No se encontró opción de régimen con código 01");
-                                }
-                            } else {
-                                console.log("Verifactu: Régimen ya tiene valor, no se modifica");
                             }
                         });
                         
-                        // Operación: buscar opción con código "S1"  
                         $("select[name*=\'options_fk_clave_operacion\']").each(function() {
                             var currentValue = $(this).val();
-                            console.log("Verifactu: Operación actual:", currentValue);
                             
                             if (!currentValue || currentValue === "" || currentValue === "0") {
-                                console.log("Verifactu: Operación vacía, buscando opción S1");
                                 var found = false;
                                 $(this).find("option").each(function() {
                                     var optionText = $(this).text().trim();
                                     var optionValue = $(this).val();
-                                    console.log("Verifactu: Evaluando opción operación:", optionText, "Value:", optionValue);
+                                    
                                     
                                     if (optionText.startsWith("S1:") || 
                                         optionText.startsWith("S1 -") || 
                                         optionText.indexOf("S1:") === 0) {
                                         $(this).parent().val(optionValue).trigger("change");
-                                        console.log("Verifactu: ✓ Seleccionada operación por defecto:", optionText);
                                         found = true;
-                                        return false; // Break
+                                        return false;
                                     }
                                 });
-                                if (!found) {
-                                    console.log("Verifactu: ⚠ No se encontró opción de operación con código S1");
-                                }
-                            } else {
-                                console.log("Verifactu: Operación ya tiene valor, no se modifica");
                             }
                         });
                     }
                     
-                    // Aplicar valores por defecto en diferentes momentos
                     setTimeout(aplicarValoresPorDefectoLineas, 500);
                     setTimeout(aplicarValoresPorDefectoLineas, 1000);
                     setTimeout(aplicarValoresPorDefectoLineas, 2000);
                     
-                    // Cuando se hace click en agregar línea
                     $(document).on("click", "input[name=\'addline\']", function() {
-                        console.log("Verifactu: Detectado click en agregar línea");
                         setTimeout(aplicarValoresPorDefectoLineas, 500);
                         setTimeout(aplicarValoresPorDefectoLineas, 1000);
                         setTimeout(aplicarValoresPorDefectoLineas, 2000);
                     });
                     
-                    // Cuando se hace click en editar línea
                     $(document).on("click", "a[href*=\'action=editline\'], .editfielda", function() {
-                        console.log("Verifactu: Detectado click en editar línea");
                         setTimeout(aplicarValoresPorDefectoLineas, 500);
                         setTimeout(aplicarValoresPorDefectoLineas, 1000);
                     });
                     
-                    // Observer para detectar cuando aparecen nuevos selects
                     if (window.MutationObserver) {
                         var observer = new MutationObserver(function(mutations) {
                             var hasNewSelects = false;
@@ -605,14 +470,13 @@ private function validarCIFNIFNIEDNI($doc)
                                 if (mutation.addedNodes.length) {
                                     for (var i = 0; i < mutation.addedNodes.length; i++) {
                                         var node = mutation.addedNodes[i];
-                                        if (node.nodeType === 1) { // Element node
+                                        if (node.nodeType === 1) {
                                             if (node.tagName === "SELECT" && 
                                                 node.name && 
                                                 node.name.indexOf("options_fk_clave_") !== -1) {
                                                 hasNewSelects = true;
                                                 break;
                                             }
-                                            // Buscar selects dentro del nodo
                                             var selects = node.querySelectorAll ? 
                                                          node.querySelectorAll("select[name*=\'options_fk_clave_\']") : [];
                                             if (selects.length > 0) {
@@ -625,7 +489,6 @@ private function validarCIFNIFNIEDNI($doc)
                             });
                             
                             if (hasNewSelects) {
-                                console.log("Verifactu: Detectados nuevos selects de líneas, aplicando valores por defecto");
                                 setTimeout(aplicarValoresPorDefectoLineas, 100);
                                 setTimeout(aplicarValoresPorDefectoLineas, 500);
                             }
@@ -637,36 +500,21 @@ private function validarCIFNIFNIEDNI($doc)
                         });
                     }
 
-                    //Verificar si la  no está en estado borrador y mostrar alerta
                     if (isExistingInvoice && ' . ($object->status > 0 ? 'true' : 'false') . ') {
-                        //alert("Verifactu: La factura no está en estado borrador, se deshabilitan botones de modificar y eliminar");
-
-                        // DESHABILITAR EFECTIVAMENTE LOS BOTONES DE MODIFICAR Y ELIMINAR
                         setTimeout(function() {
-                            // Buscar y deshabilitar botones de modificar y eliminar con múltiples selectores
                             var buttonSelectors = [
-                                // \'a[href*="action=edit"]\',
-                                // \'a[href*="action=delete"]\',
-                                // \'a.butAction[href*="edit"]\',
-                                // \'a.butActionDelete[href*="delete"]\',
-                                // \'input[name="edit"]\',
-                                // \'input[name="delete"]\',
-                                // \'input[value*="Modificar"]\',
-                                // \'input[value*="Eliminar"]\',
                                 \'.butAction\',
                                 \'.butActionDelete\'
                             ];
 
                             var hiddenCount = 0;
                             buttonSelectors.forEach(function(selector) {
-                            console.log(selector);
                                 $(selector).each(function() {
                                     var $this = $(this);
                                     var href = $this.attr("href") || "";
                                     var value = $this.attr("value") || "";
                                     var text = $this.text() || "";
 
-                                    // Verificar si el botón es de editar o eliminar
                                     if (href.includes("edit") || href.includes("delete") ||
                                         value.includes("Modificar") || value.includes("Eliminar") ||
                                         text.includes("Modificar") || text.includes("Eliminar") ||
@@ -675,20 +523,15 @@ private function validarCIFNIFNIEDNI($doc)
                                         $this.hide();
                                         $this.prop("disabled", true);
                                         hiddenCount++;
-                                        console.log("Verifactu: Ocultado botón:", text || value || href);
                                     }
                                 });
                             });
-
-                            console.log("Verifactu: Total de botones ocultados/deshabilitados:", hiddenCount);
                         }, 100);
                     }
 
-                    // Remover botones que permiten modificar fecha
                     $(\'#reButtonNow\').remove();
                     $(\'.ui-datepicker-trigger\').remove();
-
-                    // Establecer fecha actual
+                    
                     var today = new Date();
                     var day = today.getDate();
                     var month = today.getMonth() + 1;
@@ -699,21 +542,14 @@ private function validarCIFNIFNIEDNI($doc)
                         var dateInput = $("input[name=\'re\']");
 
                         if (isCreating) {
-                            // MODO CREACIÓN: Forzar fecha actual
                             dateInput.val(todayStr).prop("readonly", true);
-
-                            // También establecer campos ocultos si existen
                             $("input[name=\'reday\']").val(day);
                             $("input[name=\'remonth\']").val(month);
                             $("input[name=\'reyear\']").val(year);
-
                             showVerifactuWarning("create");
 
                         } else if (isExistingInvoice) {
-                            // MODO EDICIÓN: Bloquear completamente el campo
                             dateInput.prop("readonly", true).prop("disabled", false);
-
-                            // Bloquear también cualquier selector de fecha
                             $("select[name=\'remonth\'], select[name=\'reday\'], select[name=\'reyear\']")
                                 .prop("disabled", true);
 
@@ -921,7 +757,6 @@ private function validarCIFNIFNIEDNI($doc)
                             // Ocultar visualmente la opción de anticipo
                             advanceRadios.closest("label, .radio, tr, div").hide();
 
-                            // Agregar mensaje explicativo si no existe
                             var advanceContainer = advanceRadios.closest("td, div").first();
                             if (advanceContainer.length && !advanceContainer.find(".verifactu-anticipo-warning").length) {
                                 advanceContainer.append(
@@ -930,11 +765,8 @@ private function validarCIFNIFNIEDNI($doc)
                                     \'</div>\'
                                 );
                             }
-
-                            console.log("Verifactu: Radiobutton de anticipo deshabilitado");
                         }
 
-                        // También buscar con otros posibles selectores
                         var otherAdvanceSelectors = [
                             \'select[name="type"] option[value="3"]\',
                             \'input[value*="anticip"]\',
@@ -948,7 +780,6 @@ private function validarCIFNIFNIEDNI($doc)
                                 var value = $this.val();
                                 var text = $this.text() || $this.next("label").text() || "";
 
-                                // Verificar si es el tipo anticipo
                                 if (value == "3" ||
                                     text.toLowerCase().includes("anticip") ||
                                     text.toLowerCase().includes("deposit") ||
@@ -960,21 +791,16 @@ private function validarCIFNIFNIEDNI($doc)
                                         $this.prop("disabled", true);
                                         $this.closest("label, .radio, tr, div").hide();
                                     }
-
-                                    console.log("Verifactu: Opción de anticipo encontrada y deshabilitada:", text);
                                 }
                             });
                         });
                     }
 
-                    // Interceptar envío del formulario
                     $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
-                        // Validación para facturas correctivas
                         if (isFacturaCorrectiva) {
                             var tipoFactura = $("select[name*=\'options_fk_facture_type\']").val();
                             var tipoTexto = $("select[name*=\'options_fk_facture_type\'] option:selected").text().trim();
                             
-                            console.log("Verifactu: Validando envío - Tipo seleccionado:", tipoFactura, "->", tipoTexto);
                             
                             if (!tipoFactura || tipoFactura === "" || tipoFactura === "0") {
                                 alert("Debe seleccionar un tipo de factura rectificativa (R1-R5) para facturas correctivas.");
@@ -1256,27 +1082,16 @@ private function validarCIFNIFNIEDNI($doc)
                 $this->resprints .= '
                 <script type="text/javascript">
                 $(document).ready(function() {
-                    console.log("Verifactu: JavaScript de validación de clientes cargado");
-                    console.log("Verifactu: Contexto actual:", "' . ($parameters['currentcontext'] ?? 'N/A') . '");
-                    console.log("Verifactu: Elemento del objeto:", "' . ($object->element ?? 'N/A') . '");
-
-                    // Interceptar envío del formulario de cliente/tercero
                     $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
-                        console.log("Verifactu: Interceptando envío de formulario de cliente");
-
                         var errors = [];
 
-                        // Validar dirección obligatoria
                         var address = $(\'input[name="address"]\').val() || "";
                         if (!address.trim()) {
                             errors.push("La dirección es obligatoria para clientes según normativa Verifactu");
                         }
 
-                        // Validar CIF/NIF solo si el país es España
                         var country = $(\'select[name="country_id"]\').val() || $(\'select[name="country"]\').val() || "";
                         var cif = $(\'input[name="idprof1"]\').val() || "";
-
-                        console.log("Verifactu: País seleccionado:", country, "CIF:", cif);
 
                         if (country == "1" || country == "75" || country.toUpperCase() == "ES" || country.toUpperCase() == "ESPAÑA") {
                             if (!cif.trim()) {
@@ -1302,15 +1117,12 @@ private function validarCIFNIFNIEDNI($doc)
                             errors.push("La población es obligatoria para clientes según normativa Verifactu");
                         }
 
-                        // Si hay errores, mostrarlos y prevenir envío
                         if (errors.length > 0) {
-                            console.log("Verifactu: Errores de validación encontrados:", errors);
                             alert("Errores de validación:\n\n" + errors.join("\n"));
                             e.preventDefault();
                             return false;
                         }
 
-                        console.log("Verifactu: Validación de cliente exitosa, permitiendo envío");
                         return true;
                     });
                 });
