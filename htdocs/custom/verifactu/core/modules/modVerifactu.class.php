@@ -365,20 +365,20 @@ class modVerifactu extends DolibarrModules
 		// unit_frequency must be 60 for minute, 3600 for hour, 86400 for day, 604800 for week
 		/* BEGIN MODULEBUILDER CRON */
 		$this->cronjobs = array(
-			//  0 => array(
-			//      'label' => 'MyJob label',
-			//      'jobtype' => 'method',
-			//      'class' => '/verifactu/class/myobject.class.php',
-			//      'objectname' => 'MyObject',
-			//      'method' => 'doScheduledJob',
-			//      'parameters' => '',
-			//      'comment' => 'Comment',
-			//      'frequency' => 2,
-			//      'unitfrequency' => 3600,
-			//      'status' => 0,
-			//      'test' => 'isModEnabled("verifactu")',
-			//      'priority' => 50,
-			//  ),
+			0 => array(
+				'label' => 'Enviar registros pendientes a Verifactu',
+				'jobtype' => 'method',
+				'class' => '/verifactu/class/verifactucron.class.php',
+				'objectname' => 'VerifactuCron',
+				'method' => 'doScheduledJob',
+				'parameters' => '',
+				'comment' => 'Procesa y envía batches de hasta 1000 registros pendientes al webservice de Verifactu',
+				'frequency' => 1,
+				'unitfrequency' => 3600,  // Cada hora
+				'status' => 0,
+				'test' => 'isModEnabled("verifactu")',
+				'priority' => 50,
+			),
 		);
 		/* END MODULEBUILDER CRON */
 		// Example: $this->cronjobs=array(
@@ -1185,6 +1185,7 @@ class modVerifactu extends DolibarrModules
 		if (!isset($existing_det['fk_clave_exencion'])) {
 			$result8 = $extrafields->addExtraField(
 				'fk_clave_exencion',                   // $attrname
+
 				'Clave Exención',                     // $label
 				'sellist',                            // $type
 				30,                                   // $pos
