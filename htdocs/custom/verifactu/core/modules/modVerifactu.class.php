@@ -276,7 +276,8 @@ class modVerifactu extends DolibarrModules
 				"Claves de Régimen Verifactu",
 				"Claves de Operación Verifactu",
 				"Claves de Exención Verifactu",
-				"Estados de Registros Verifactu"
+				"Estados de Registros Verifactu",
+				"Registros de Operaciones Verifactu"
 			),
 			'tabsql' => array(
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
