@@ -146,9 +146,10 @@ private function validarCIFNIFNIEDNI($doc)
             // Solo aplicar en facturas
             if ($object->element == 'facture' || get_class($object) == 'Facture') {
 
-                if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_INCORRECTO) {
-                    $extrafields->attributes['facture']['alwayseditable']['fk_facture_type'] = 1;
-                }
+                if (count($object->array_options) > 0)
+                    if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_INCORRECTO) {
+                        $extrafields->attributes['facture']['alwayseditable']['fk_facture_type'] = 1;
+                    }
 
                 // Determinar si la factura ya existe (modo edición) o se está creando
                 $isExistingInvoice = !empty($object->id) && $object->id > 0;
@@ -172,10 +173,12 @@ private function validarCIFNIFNIEDNI($doc)
                     {
                         $factureOriginal->fetch($_GET['fac_avoir']);
                     }
-                    $verifactuFactureType = new VerifactuFactureType($db);
-                    $verifactuFactureType->fetch($factureOriginal->array_options['options_fk_facture_type']);
-                    $oldType = $verifactuFactureType->code;
-
+                    if ($factureOriginal->id > 0 && isset($factureOriginal->array_options['options_fk_facture_type']) && $factureOriginal->array_options['options_fk_facture_type'] > 0)
+                    {
+                        $verifactuFactureType = new VerifactuFactureType($db);
+                        $verifactuFactureType->fetch($factureOriginal->array_options['options_fk_facture_type']);
+                        $oldType = $verifactuFactureType->code;
+                    }
                 }
 
                 
@@ -200,6 +203,16 @@ private function validarCIFNIFNIEDNI($doc)
                 <script type="text/javascript">
                 $(document).ready(function() {
                     var isExistingInvoice = ' . ($isExistingInvoice ? 'true' : 'false') . ';
+                    var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
+                    var isFacturaCorrectiva = ' . ($isFacturaCorrectiva ? 'true' : 'false') . ';
+                    var oldType = "' . ($oldType ?? '') . '";
+                    
+                    console.log("Verifactu: Información de detección:");
+                    console.log("  - fk_facture_source:", ' . ($object->fk_facture_source ?? 0) . ');
+                    console.log("  - URL actual:", window.location.href);
+                    console.log("  - Parámetros GET:", new URLSearchParams(window.location.search).toString());
+                    console.log("  - isFacturaCorrectiva:", isFacturaCorrectiva);
+                    console.log("  - oldType (factura origen):", oldType); ' . ($isExistingInvoice ? 'true' : 'false') . ';
                     var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
                     var isFacturaCorrectiva = ' . ($isFacturaCorrectiva ? 'true' : 'false') . ';
                     
@@ -311,23 +324,65 @@ private function validarCIFNIFNIEDNI($doc)
                                 // Verificar si hay algún valor seleccionado válido
                                 var finalValue = selectTipoFactura.val();
                                 if (!finalValue || finalValue === "" || finalValue === "0") {
-                                    // Intentar seleccionar automáticamente R1 si está disponible
-                                    var r1Option = selectTipoFactura.find("option").filter(function() {
-                                        return $(this).text().trim().match(/^R1[\s\-:]/);
+                                    // Mapear tipo original a tipo rectificativo
+                                    var targetRectificativo = "";
+                                    
+                                    console.log("Verifactu: Aplicando mapeo de tipo original:", oldType);
+                                    
+                                    switch(oldType) {
+                                        case "F1":
+                                            targetRectificativo = "R1";
+                                            break;
+                                        case "F2":
+                                            targetRectificativo = "R5";
+                                            break;
+                                        default:
+                                            targetRectificativo = "R1"; // Por defecto R1 si no se puede mapear
+                                            console.log("Verifactu: Tipo no mapeado, usando R1 por defecto");
+                                    }
+                                    
+                                    console.log("Verifactu: Mapeo:", oldType, "->", targetRectificativo);
+                                    
+                                    // Buscar la opción que corresponde al tipo rectificativo objetivo
+                                    var targetOption = selectTipoFactura.find("option").filter(function() {
+                                        var optionText = $(this).text().trim();
+                                        return optionText.match(new RegExp("^" + targetRectificativo + "[\\s\\-:]"));
                                     });
                                     
-                                    if (r1Option.length > 0) {
-                                        var r1Value = r1Option.val();
-                                        selectTipoFactura.val(r1Value).trigger("change");
-                                        console.log("Verifactu: ✓ Seleccionado automáticamente R1 para factura correctiva");
+                                    if (targetOption.length > 0) {
+                                        var targetValue = targetOption.val();
+                                        selectTipoFactura.val(targetValue).trigger("change");
+                                        console.log("Verifactu: ✓ Seleccionado automáticamente", targetRectificativo, "para factura correctiva");
+                                    } else {
+                                        console.log("Verifactu: ⚠️ No se encontró opción para", targetRectificativo);
+                                        
+                                        // Fallback: intentar seleccionar R1
+                                        var r1Option = selectTipoFactura.find("option").filter(function() {
+                                            return $(this).text().trim().match(/^R1[\s\-:]/);
+                                        });
+                                        
+                                        if (r1Option.length > 0) {
+                                            var r1Value = r1Option.val();
+                                            selectTipoFactura.val(r1Value).trigger("change");
+                                            console.log("Verifactu: ✓ Fallback: Seleccionado R1");
+                                        }
                                     }
                                 }
                                 
                                 // Agregar mensaje explicativo
                                 if (selectTipoFactura.parent().find(".verifactu-correction-info").length === 0) {
+                                    var mappingMessage = "";
+                                    if (oldType === "F1") {
+                                        mappingMessage = " Se ha seleccionado R1 automáticamente (F1 → R1).";
+                                    } else if (oldType === "F2") {
+                                        mappingMessage = " Se ha seleccionado R5 automáticamente (F2 → R5).";
+                                    } else {
+                                        mappingMessage = " Se ha seleccionado el tipo rectificativo correspondiente.";
+                                    }
+                                    
                                     selectTipoFactura.after(
                                         \'<div class="verifactu-correction-info" style="background:#d1ecf1; border:1px solid #bee5eb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#0c5460;">\' +
-                                        \'<i class="fa fa-info-circle"></i> <strong>Factura correctiva:</strong> Solo se muestran los tipos de factura rectificativa (códigos R). Se ha seleccionado R1 por defecto.\' +
+                                        \'<i class="fa fa-info-circle"></i> <strong>Factura correctiva:</strong> Solo se muestran los tipos rectificativos (códigos R).\' + mappingMessage +
                                         \'</div>\'
                                     );
                                 }
