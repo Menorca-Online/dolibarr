@@ -271,7 +271,6 @@ private function validarCIFNIFNIEDNI($doc)
                         }
                     }
 
-                    // ====== FILTRAR TIPOS DE FACTURA PARA FACTURAS CORRECTIVAS ======
                     if (isFacturaCorrectiva) {
                         console.log("Verifactu: Aplicando filtros para factura correctiva");
                         
@@ -428,6 +427,87 @@ private function validarCIFNIFNIEDNI($doc)
                         // Asegurar que el mapeo se aplique después del filtrado
                         setTimeout(filtrarTiposFacturaCorrectiva, 1500);
                         setTimeout(filtrarTiposFacturaCorrectiva, 2000);
+                    } else {
+                        // ====== FILTRAR TIPOS DE FACTURA PARA FACTURAS NORMALES (SOLO F1 Y F2) ======
+                        console.log("Verifactu: Aplicando filtros para factura normal");
+                        
+                        function filtrarTiposFacturaNormal() {
+                            var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
+                            
+                            if (selectTipoFactura.length > 0) {
+                                console.log("Verifactu: Filtrando opciones de tipo de factura para factura normal (solo F1 y F2)");
+                                
+                                // Debug: listar todas las opciones disponibles
+                                console.log("Verifactu: === DEBUG: Todas las opciones disponibles ===");
+                                selectTipoFactura.find("option").each(function(index) {
+                                    var optText = $(this).text().trim();
+                                    var optValue = $(this).val();
+                                    console.log("Verifactu: Opción", index + ":", optText, "Value:", optValue);
+                                });
+                                console.log("Verifactu: === FIN DEBUG ===");
+                                
+                                // Limpiar selección actual si no es válida para factura normal
+                                var currentValue = selectTipoFactura.val();
+                                var currentText = selectTipoFactura.find("option:selected").text().trim();
+                                
+                                console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
+                                
+                                // Si el valor actual no es F1 o F2, limpiarlo
+                                if (currentValue && currentValue !== "" && currentValue !== "0" && 
+                                    !currentText.match(/^F[12][\s:-]/)) {
+                                    console.log("Verifactu: ⚠️ Limpiando selección no válida para factura normal:", currentText);
+                                    selectTipoFactura.val("").trigger("change");
+                                }
+                                
+                                selectTipoFactura.find("option").each(function() {
+                                    var optionText = $(this).text().trim();
+                                    var optionValue = $(this).val();
+                                    
+                                    // Mantener solo opciones que empiecen con "F1" o "F2" (facturas normales)
+                                    // y la opción vacía (para permitir selección)
+                                    if (optionValue === "" || optionValue === "0") {
+                                        // Mantener opción vacía
+                                        return true;
+                                    }
+                                    
+                                    // Verificar si el código empieza con "F1" o "F2"
+                                    var isValidNormal = false;
+                                    var regexMatchF1 = optionText.match(/^F1[\s:-]/);
+                                    var regexMatchF2 = optionText.match(/^F2[\s:-]/);
+                                    if (regexMatchF1 || regexMatchF2) {
+                                        isValidNormal = true;
+                                    }
+                                    
+                                    console.log("Verifactu: Evaluando opción:", optionText, "-> F1 match:", regexMatchF1, "-> F2 match:", regexMatchF2, "-> Es válida:", isValidNormal);
+                                    
+                                    if (!isValidNormal) {
+                                        console.log("Verifactu: ❌ Ocultando opción no válida para factura normal:", optionText);
+                                        $(this).prop("disabled", true).hide();
+                                    } else {
+                                        console.log("Verifactu: ✅ Manteniendo opción válida para factura normal:", optionText);
+                                        $(this).prop("disabled", false).show();
+                                    }
+                                });
+                                
+                                // Agregar mensaje explicativo
+                                if (selectTipoFactura.parent().find(".verifactu-normal-info").length === 0) {
+                                    selectTipoFactura.after(
+                                        \'<div class="verifactu-normal-info" style="background:#e7f3ff; border:1px solid #bee5eb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#0c5460;">\' +
+                                        \'<i class="fa fa-info-circle"></i> <strong>Factura normal:</strong> Solo se muestran los tipos de factura estándar (F1, F2).\' +
+                                        \'</div>\'
+                                    );
+                                }
+                            }
+                        }
+                        
+                        // Aplicar filtro inmediatamente y con retraso
+                        setTimeout(filtrarTiposFacturaNormal, 100);
+                        setTimeout(filtrarTiposFacturaNormal, 500);
+                        setTimeout(filtrarTiposFacturaNormal, 1000);
+                        
+                        // Asegurar que el filtro se mantenga
+                        setTimeout(filtrarTiposFacturaNormal, 1500);
+                        setTimeout(filtrarTiposFacturaNormal, 2000);
                     }
 
                     // ====== APLICAR VALORES POR DEFECTO PARA LÍNEAS DE FACTURA ======
