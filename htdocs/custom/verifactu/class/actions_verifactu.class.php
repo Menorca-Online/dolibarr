@@ -200,6 +200,13 @@ private function validarCIFNIFNIEDNI($doc)
                 // Combinar ambas detecciones
                 $isFacturaCorrectiva = $isFacturaCorrectiva || $correctionFromUrl;
 
+                // Resetear el estado de registro Verifactu para facturas correctivas en creación
+                if ($isCreating && $isFacturaCorrectiva) {
+                    // Resetear el campo fk_verifactu_registro_estado para que no mantenga el valor de la factura original
+                    $object->array_options['options_fk_verifactu_registro_estado'] = '';
+                    dol_syslog("Verifactu: Reseteado campo fk_verifactu_registro_estado para factura correctiva en creación");
+                }
+
                 $this->resprints .= '
                 <script type="text/javascript">
                 $(document).ready(function() {
