@@ -94,7 +94,7 @@ class InterfaceVerifactu extends DolibarrTriggers
         $isRectificativa = ($object->type == 2);
         $isAbono = ($object->type == 1);
         $totalFactura = $object->total_ttc;
-        $factureType = $object->array_options['options_fk_tipo_factura'] ?? null;
+        $factureType = $object->array_options['options_fk_facture_type'] ?? null;
         $factureTypeObj = new VerifactuFactureType($this->db);
         $factureType = $factureTypeObj->fetchCommon($factureType) ? $factureTypeObj->code : 'F1'; // Por defecto F1 si no se encuentra
 
@@ -208,7 +208,6 @@ class InterfaceVerifactu extends DolibarrTriggers
                     }
                 }
             }
-
             //Validacion CalificacionOperacion y de operacionExenta | hay aplicadas validaciones en XML
             if ($calificacionOperacion == "S2") {
                 if (!in_array($factureType, ['F1', 'F3', 'R1', 'R2', 'R3', 'R4'])) {
