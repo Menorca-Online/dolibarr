@@ -100,6 +100,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 
         $maxAmountSimplificadas = $conf->global->INVOICE_MAX_AMOUNT_SIMPLIFICADAS ?? 0;
         $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO ?? -1000;
+        
 
 
         //regla para facturas simplificadas
