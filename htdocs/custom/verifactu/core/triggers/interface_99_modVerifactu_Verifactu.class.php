@@ -157,7 +157,7 @@ class InterfaceVerifactu extends DolibarrTriggers
             $claveExencion = $claveExencionObj->fetch($claveExencion) ?
                 $claveExencionObj->code : null;
 
-            if (empty($claveRegimen) || (empty($calificacionOperacion) || empty($claveExencion))) {
+            if (empty($claveRegimen) || (empty($calificacionOperacion) && empty($claveExencion))) {
                 $errorMsg = "ERROR: Faltan claves de régimen o calificación de operación / clave exención en alguna línea de la factura.";
                 setEventMessages($errorMsg, null, 'errors');
                 $object->error = $errorMsg;
