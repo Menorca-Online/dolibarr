@@ -183,7 +183,7 @@ private function validarCIFNIFNIEDNI($doc)
                 }
 
                 
-                                // Detectar si es factura correctiva (tiene factura origen)
+                // Detectar si es factura correctiva (tiene factura origen)
                 $isFacturaCorrectiva = $object->fk_facture_source > 0;
                 
                 // También detectar por URL para casos de creación
@@ -272,142 +272,57 @@ private function validarCIFNIFNIEDNI($doc)
                     }
 
                     if (isFacturaCorrectiva) {
-                        console.log("Verifactu: Aplicando filtros para factura correctiva");
-                        
                         function filtrarTiposFacturaCorrectiva() {
                             var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
                             
                             if (selectTipoFactura.length > 0) {
-                                console.log("Verifactu: Filtrando opciones de tipo de factura para corrección");
+                                console.log("🔧 filtrarTiposFacturaCorrectiva - oldType:", oldType);
                                 
-                                // Debug: listar todas las opciones disponibles
-                                console.log("Verifactu: === DEBUG: Todas las opciones disponibles ===");
-                                selectTipoFactura.find("option").each(function(index) {
-                                    var optText = $(this).text().trim();
-                                    var optValue = $(this).val();
-                                    console.log("Verifactu: Opción", index + ":", optText, "Value:", optValue);
-                                });
-                                console.log("Verifactu: === FIN DEBUG ===");
-                                
-                                // Limpiar selección actual si no es válida para corrección
                                 var currentValue = selectTipoFactura.val();
                                 var currentText = selectTipoFactura.find("option:selected").text().trim();
                                 
-                                console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
+                                console.log("🔧 Valor actual antes del filtro:", currentValue, "->", currentText);
                                 
-                                // Si el valor actual no empieza con R, limpiarlo
                                 if (currentValue && currentValue !== "" && currentValue !== "0" && 
-                                    !currentText.match(/^R\d+[\s:-]/)) {
-                                    console.log("Verifactu: ⚠️ Limpiando selección no válida para corrección:", currentText);
+                                    !currentText.match(/^R\d+ - /)) {
                                     selectTipoFactura.val("").trigger("change");
+                                    console.log("🧹 Limpiado valor no válido para corrección");
                                 }
                                 
+                                var optionsVisible = 0;
                                 selectTipoFactura.find("option").each(function() {
                                     var optionText = $(this).text().trim();
                                     var optionValue = $(this).val();
                                     
-                                    // Mantener solo opciones que empiecen con "R" (rectificativas)
-                                    // y la opción vacía (para permitir selección)
                                     if (optionValue === "" || optionValue === "0") {
-                                        // Mantener opción vacía
                                         return true;
                                     }
                                     
-                                    // Verificar si el código empieza con "R"
                                     var startsWithR = false;
-                                    var regexMatch = optionText.match(/^R\d+[\s:-]/);
+                                    var regexMatch = optionText.match(/^R\d+ - /);
                                     if (regexMatch) {
                                         startsWithR = true;
+                                        optionsVisible++;
                                     }
                                     
-                                    console.log("Verifactu: Evaluando opción:", optionText, "-> Regex match:", regexMatch, "-> Empieza con R:", startsWithR);
-                                    
                                     if (!startsWithR) {
-                                        console.log("Verifactu: ❌ Ocultando opción no válida para corrección:", optionText);
                                         $(this).prop("disabled", true).hide();
                                     } else {
-                                        console.log("Verifactu: ✅ Manteniendo opción válida para corrección:", optionText);
                                         $(this).prop("disabled", false).show();
+                                        console.log("👁️ Opción visible:", optionText, "Value:", optionValue);
                                     }
                                 });
                                 
-                                // Verificar si hay algún valor seleccionado válido
-                                var finalValue = selectTipoFactura.val();
-                                if (!finalValue || finalValue === "" || finalValue === "0") {
-                                    // Mapear tipo original a tipo rectificativo
-                                    var targetRectificativo = "";
-                                    
-                                    console.log("Verifactu: Aplicando mapeo de tipo original:", oldType);
-                                    
-                                    switch(oldType) {
-                                        case "F1":
-                                            targetRectificativo = "R1";
-                                            break;
-                                        case "F2":
-                                            targetRectificativo = "R5";
-                                            break;
-                                        default:
-                                            targetRectificativo = "R1"; // Por defecto R1 si no se puede mapear
-                                            console.log("Verifactu: Tipo no mapeado, usando R1 por defecto");
-                                    }
-                                    
-                                    console.log("Verifactu: Mapeo:", oldType, "->", targetRectificativo);
-                                    
-                                    // Buscar la opción que corresponde al tipo rectificativo objetivo
-                                    var targetOption = selectTipoFactura.find("option").filter(function() {
-                                        var optionText = $(this).text().trim();
-                                        var optionValue = $(this).val();
-                                        console.log("Verifactu: Evaluando opción para mapeo:", optionText, "Value:", optionValue);
-                                        
-                                        var matches = optionText.match(new RegExp("^" + targetRectificativo + "[\\s:-]"));
-                                        console.log("Verifactu: ¿Coincide con", targetRectificativo + "?", matches !== null);
-                                        
-                                        return matches !== null;
-                                    });
-                                    
-                                    console.log("Verifactu: Opciones encontradas para", targetRectificativo + ":", targetOption.length);
-                                    
-                                    if (targetOption.length > 0) {
-                                        var targetValue = targetOption.first().val();
-                                        var targetText = targetOption.first().text().trim();
-                                        console.log("Verifactu: Intentando seleccionar:", targetText, "Value:", targetValue);
-                                        
-                                        selectTipoFactura.val(targetValue).trigger("change");
-                                        
-                                        // Verificar si se seleccionó correctamente
-                                        var selectedAfter = selectTipoFactura.val();
-                                        console.log("Verifactu: Valor después de selección:", selectedAfter);
-                                        
-                                        if (selectedAfter === targetValue) {
-                                            console.log("Verifactu: ✓ Seleccionado automáticamente", targetRectificativo, "para factura correctiva");
-                                        } else {
-                                            console.log("Verifactu: ❌ Error al seleccionar", targetRectificativo, "- valor no se aplicó");
-                                        }
-                                    } else {
-                                        console.log("Verifactu: ⚠️ No se encontró opción para", targetRectificativo);
-                                        
-                                        // Fallback: intentar seleccionar R1
-                                        var r1Option = selectTipoFactura.find("option").filter(function() {
-                                            return $(this).text().trim().match(/^R1[\s\-:]/);
-                                        });
-                                        
-                                        if (r1Option.length > 0) {
-                                            var r1Value = r1Option.val();
-                                            selectTipoFactura.val(r1Value).trigger("change");
-                                            console.log("Verifactu: ✓ Fallback: Seleccionado R1");
-                                        }
-                                    }
-                                }
+                                console.log("📊 Total opciones R visibles:", optionsVisible);
                                 
-                                // Agregar mensaje explicativo
                                 if (selectTipoFactura.parent().find(".verifactu-correction-info").length === 0) {
                                     var mappingMessage = "";
                                     if (oldType === "F1") {
-                                        mappingMessage = " Se ha seleccionado R1 automáticamente (F1 → R1).";
+                                        mappingMessage = " Se intentará seleccionar R1 automáticamente (F1 → R1).";
                                     } else if (oldType === "F2") {
-                                        mappingMessage = " Se ha seleccionado R5 automáticamente (F2 → R5).";
+                                        mappingMessage = " Se intentará seleccionar R5 automáticamente (F2 → R5).";
                                     } else {
-                                        mappingMessage = " Se ha seleccionado el tipo rectificativo correspondiente.";
+                                        mappingMessage = " Se seleccionará automáticamente el tipo rectificativo correspondiente.";
                                     }
                                     
                                     selectTipoFactura.after(
@@ -419,14 +334,92 @@ private function validarCIFNIFNIEDNI($doc)
                             }
                         }
                         
-                        // Aplicar filtro inmediatamente y con retraso
+                        function aplicarMapeoAutomatico() {
+                            var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
+                            
+                            if (selectTipoFactura.length > 0) {
+                                var finalValue = selectTipoFactura.val();
+                                console.log("🔍 aplicarMapeoAutomatico - Valor actual:", finalValue);
+                                console.log("🔍 aplicarMapeoAutomatico - oldType:", oldType);
+                                
+                                if (!finalValue || finalValue === "" || finalValue === "0") {
+                                    var targetRectificativo = "";
+                                    
+                                    switch(oldType) {
+                                        case "F1":
+                                            targetRectificativo = "R1";
+                                            break;
+                                        case "F2":
+                                            targetRectificativo = "R5";
+                                            break;
+                                        default:
+                                            targetRectificativo = "R1";
+                                    }
+                                    
+                                    console.log("🎯 Mapeo determinado:", oldType, "->", targetRectificativo);
+                                    
+                                    var targetOption = selectTipoFactura.find("option:not(:disabled)").filter(function() {
+                                        var optionText = $(this).text().trim();
+                                        var regex = new RegExp("^" + targetRectificativo + " - ");
+                                        var matches = optionText.match(regex);
+                                        console.log("📋 Evaluando opción:", optionText, "-> Regex:", regex, "-> Coincide con", targetRectificativo + "?", matches !== null);
+                                        return matches !== null;
+                                    });
+                                    
+                                    console.log("✅ Opciones encontradas para", targetRectificativo + ":", targetOption.length);
+                                    
+                                    if (targetOption.length > 0) {
+                                        var targetValue = targetOption.first().val();
+                                        var targetText = targetOption.first().text().trim();
+                                        console.log("🎯 Intentando seleccionar:", targetText, "Value:", targetValue);
+                                        
+                                        selectTipoFactura.val(targetValue).trigger("change");
+                                        
+                                        // Verificar si se seleccionó correctamente
+                                        setTimeout(function() {
+                                            var selectedAfter = selectTipoFactura.val();
+                                            var selectedText = selectTipoFactura.find("option:selected").text().trim();
+                                            console.log("✅ Valor después de selección:", selectedAfter, "->", selectedText);
+                                            
+                                            if (selectedAfter === targetValue) {
+                                                console.log("🎉 ¡ÉXITO! Seleccionado automáticamente", targetRectificativo, "para factura correctiva");
+                                            } else {
+                                                console.log("❌ ERROR: No se aplicó la selección - Expected:", targetValue, "Got:", selectedAfter);
+                                            }
+                                        }, 100);
+                                        
+                                    } else {
+                                        console.log("⚠️ No se encontró opción para", targetRectificativo, "- Intentando fallback R1");
+                                        
+                                        var r1Option = selectTipoFactura.find("option:not(:disabled)").filter(function() {
+                                            return $(this).text().trim().match(/^R1 - /);
+                                        });
+                                        
+                                        if (r1Option.length > 0) {
+                                            var r1Value = r1Option.first().val();
+                                            selectTipoFactura.val(r1Value).trigger("change");
+                                            console.log("✅ Fallback: Seleccionado R1");
+                                        }
+                                    }
+                                } else {
+                                    console.log("ℹ️ Ya hay una selección:", finalValue);
+                                }
+                            } else {
+                                console.log("❌ No se encontró el select de tipo de factura");
+                            }
+                        }
+                        
+                        // Primer paso: aplicar filtro
+                        console.log("⏰ Programando filtrado en:", "100ms, 500ms, 1000ms");
                         setTimeout(filtrarTiposFacturaCorrectiva, 100);
                         setTimeout(filtrarTiposFacturaCorrectiva, 500);
                         setTimeout(filtrarTiposFacturaCorrectiva, 1000);
                         
-                        // Asegurar que el mapeo se aplique después del filtrado
-                        setTimeout(filtrarTiposFacturaCorrectiva, 1500);
-                        setTimeout(filtrarTiposFacturaCorrectiva, 2000);
+                        // Segundo paso: aplicar mapeo después del filtrado
+                        console.log("⏰ Programando mapeo en:", "1500ms, 2000ms, 3000ms");
+                        setTimeout(aplicarMapeoAutomatico, 1500);
+                        setTimeout(aplicarMapeoAutomatico, 2000);
+                        setTimeout(aplicarMapeoAutomatico, 3000);
                     } else {
                         // ====== FILTRAR TIPOS DE FACTURA PARA FACTURAS NORMALES (SOLO F1 Y F2) ======
                         console.log("Verifactu: Aplicando filtros para factura normal");
@@ -452,9 +445,8 @@ private function validarCIFNIFNIEDNI($doc)
                                 
                                 console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
                                 
-                                // Si el valor actual no es F1 o F2, limpiarlo
                                 if (currentValue && currentValue !== "" && currentValue !== "0" && 
-                                    !currentText.match(/^F[12][\s:-]/)) {
+                                    !currentText.match(/^F[12]\s/)) {
                                     console.log("Verifactu: ⚠️ Limpiando selección no válida para factura normal:", currentText);
                                     selectTipoFactura.val("").trigger("change");
                                 }
@@ -472,8 +464,8 @@ private function validarCIFNIFNIEDNI($doc)
                                     
                                     // Verificar si el código empieza con "F1" o "F2"
                                     var isValidNormal = false;
-                                    var regexMatchF1 = optionText.match(/^F1[\s:-]/);
-                                    var regexMatchF2 = optionText.match(/^F2[\s:-]/);
+                                    var regexMatchF1 = optionText.match(/^F1 - /);
+                                    var regexMatchF2 = optionText.match(/^F2 - /);
                                     if (regexMatchF1 || regexMatchF2) {
                                         isValidNormal = true;
                                     }
@@ -982,7 +974,7 @@ private function validarCIFNIFNIEDNI($doc)
                                 return false;
                             }
                             
-                            if (tipoTexto && !tipoTexto.match(/^R\d+[\s:-]/)) {
+                            if (tipoTexto && !tipoTexto.match(/^R\d+ - /)) {
                                 alert("Para facturas correctivas solo se permiten tipos rectificativos que empiecen con R (R1, R2, R3, R4, R5).");
                                 e.preventDefault();
                                 return false;
