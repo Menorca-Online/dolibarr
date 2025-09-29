@@ -1161,7 +1161,7 @@ class modVerifactu extends DolibarrModules
 				'',                                   // $size
 				'facturedet',                         // $elementtype
 				0,                                    // $unique
-				1,                                    // $required
+				0,                                    // $required
 				$default_operacion,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [

@@ -100,7 +100,7 @@ class InterfaceVerifactu extends DolibarrTriggers
 
         $maxAmountSimplificadas = $conf->global->INVOICE_MAX_AMOUNT_SIMPLIFICADAS ?? 0;
         $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO ?? -1000;
-        
+
 
 
         //regla para facturas simplificadas
@@ -157,8 +157,8 @@ class InterfaceVerifactu extends DolibarrTriggers
             $claveExencion = $claveExencionObj->fetch($claveExencion) ?
                 $claveExencionObj->code : null;
 
-            if (empty($claveRegimen) || empty($calificacionOperacion)) {
-                $errorMsg = "ERROR: Faltan claves de régimen u operación en alguna línea de la factura.";
+            if (empty($claveRegimen) || (empty($calificacionOperacion) || empty($claveExencion))) {
+                $errorMsg = "ERROR: Faltan claves de régimen o calificación de operación / clave exención en alguna línea de la factura.";
                 setEventMessages($errorMsg, null, 'errors');
                 $object->error = $errorMsg;
                 return -1;
