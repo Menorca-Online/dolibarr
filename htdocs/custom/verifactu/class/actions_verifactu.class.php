@@ -153,11 +153,51 @@ private function validarCIFNIFNIEDNI($doc)
                 $isExistingInvoice = !empty($object->id) && $object->id > 0;
                 $isCreating = ($action === 'create' || empty($object->id));
 
+                
+                                // Detectar si es factura correctiva (tiene factura origen)
+                $isFacturaCorrectiva = $object->fk_facture_source > 0;
+                
+                // También detectar por URL para casos de creación
+                $correctionFromUrl = (
+                    isset($_GET['fac_avoir']) ||        // Factura de abono
+                    isset($_GET['fac_rec']) ||          // Factura recurrente  
+                    isset($_GET['facid']) ||            // ID de factura origen
+                    isset($_GET['fac_replacement']) ||  // Factura de reemplazo
+                    strpos($_SERVER['REQUEST_URI'] ?? '', 'fac_avoir') !== false ||
+                    strpos($_SERVER['REQUEST_URI'] ?? '', 'fac_rec') !== false ||
+                    strpos($_SERVER['REQUEST_URI'] ?? '', 'correction') !== false
+                );
+                
+                // Combinar ambas detecciones
+                $isFacturaCorrectiva = $isFacturaCorrectiva || $correctionFromUrl;
+
                 $this->resprints .= '
                 <script type="text/javascript">
                 $(document).ready(function() {
                     var isExistingInvoice = ' . ($isExistingInvoice ? 'true' : 'false') . ';
                     var isCreating = ' . ($isCreating ? 'true' : 'false') . ';
+                    var isFacturaCorrectiva = ' . ($isFacturaCorrectiva ? 'true' : 'false') . ';
+                    
+                    console.log("Verifactu: Información de detección:");
+                    console.log("  - fk_facture_source:", ' . ($object->fk_facture_source ?? 0) . ');
+                    console.log("  - URL actual:", window.location.href);
+                    console.log("  - Parámetros GET:", new URLSearchParams(window.location.search).toString());
+                    console.log("  - isFacturaCorrectiva:", isFacturaCorrectiva);
+                    
+                    // Verificar parámetros específicos en JavaScript también
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var hasCorrectiveParams = urlParams.has("fac_avoir") || 
+                                             urlParams.has("fac_rec") || 
+                                             urlParams.has("facid") || 
+                                             urlParams.has("fac_replacement");
+                    
+                    console.log("  - Parámetros correctivos detectados:", hasCorrectiveParams);
+                    
+                    // Si PHP no detectó pero JS sí, actualizar la variable
+                    if (!isFacturaCorrectiva && hasCorrectiveParams) {
+                        isFacturaCorrectiva = true;
+                        console.log("  - ✓ Factura correctiva detectada por JavaScript");
+                    }
 
                     // Lógica de selección automática de tipo de factura basado en cliente
                     if (isCreating) {
@@ -190,6 +230,89 @@ private function validarCIFNIFNIEDNI($doc)
                                 $("select[name*=\'options_fk_facture_type\']").val("").change();
 
                         }
+                    }
+
+                    // ====== FILTRAR TIPOS DE FACTURA PARA FACTURAS CORRECTIVAS ======
+                    if (isFacturaCorrectiva) {
+                        console.log("Verifactu: Aplicando filtros para factura correctiva");
+                        
+                        function filtrarTiposFacturaCorrectiva() {
+                            var selectTipoFactura = $("select[name*=\'options_fk_facture_type\']");
+                            
+                            if (selectTipoFactura.length > 0) {
+                                console.log("Verifactu: Filtrando opciones de tipo de factura para corrección");
+                                
+                                // Limpiar selección actual si no es válida para corrección
+                                var currentValue = selectTipoFactura.val();
+                                var currentText = selectTipoFactura.find("option:selected").text().trim();
+                                
+                                console.log("Verifactu: Valor actual seleccionado:", currentValue, "->", currentText);
+                                
+                                // Si el valor actual no empieza con R, limpiarlo
+                                if (currentValue && currentValue !== "" && currentValue !== "0" && 
+                                    !currentText.match(/^R\d+[\s\-:]/)) {
+                                    console.log("Verifactu: ⚠️ Limpiando selección no válida para corrección:", currentText);
+                                    selectTipoFactura.val("").trigger("change");
+                                }
+                                
+                                selectTipoFactura.find("option").each(function() {
+                                    var optionText = $(this).text().trim();
+                                    var optionValue = $(this).val();
+                                    
+                                    // Mantener solo opciones que empiecen con "R" (rectificativas)
+                                    // y la opción vacía (para permitir selección)
+                                    if (optionValue === "" || optionValue === "0") {
+                                        // Mantener opción vacía
+                                        return true;
+                                    }
+                                    
+                                    // Verificar si el código empieza con "R"
+                                    var startsWithR = false;
+                                    if (optionText.match(/^R\d+[\s\-:]/)) {  // Formato "R1 -", "R01:", "R2 -", etc.
+                                        startsWithR = true;
+                                    }
+                                    
+                                    console.log("Verifactu: Evaluando opción:", optionText, "-> Empieza con R:", startsWithR);
+                                    
+                                    if (!startsWithR) {
+                                        console.log("Verifactu: ❌ Ocultando opción no válida para corrección:", optionText);
+                                        $(this).prop("disabled", true).hide();
+                                    } else {
+                                        console.log("Verifactu: ✅ Manteniendo opción válida para corrección:", optionText);
+                                        $(this).prop("disabled", false).show();
+                                    }
+                                });
+                                
+                                // Verificar si hay algún valor seleccionado válido
+                                var finalValue = selectTipoFactura.val();
+                                if (!finalValue || finalValue === "" || finalValue === "0") {
+                                    // Intentar seleccionar automáticamente R1 si está disponible
+                                    var r1Option = selectTipoFactura.find("option").filter(function() {
+                                        return $(this).text().trim().match(/^R1[\s\-:]/);
+                                    });
+                                    
+                                    if (r1Option.length > 0) {
+                                        var r1Value = r1Option.val();
+                                        selectTipoFactura.val(r1Value).trigger("change");
+                                        console.log("Verifactu: ✓ Seleccionado automáticamente R1 para factura correctiva");
+                                    }
+                                }
+                                
+                                // Agregar mensaje explicativo
+                                if (selectTipoFactura.parent().find(".verifactu-correction-info").length === 0) {
+                                    selectTipoFactura.after(
+                                        \'<div class="verifactu-correction-info" style="background:#d1ecf1; border:1px solid #bee5eb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#0c5460;">\' +
+                                        \'<i class="fa fa-info-circle"></i> <strong>Factura correctiva:</strong> Solo se muestran los tipos de factura rectificativa (códigos R). Se ha seleccionado R1 por defecto.\' +
+                                        \'</div>\'
+                                    );
+                                }
+                            }
+                        }
+                        
+                        // Aplicar filtro inmediatamente y con retraso
+                        setTimeout(filtrarTiposFacturaCorrectiva, 100);
+                        setTimeout(filtrarTiposFacturaCorrectiva, 500);
+                        setTimeout(filtrarTiposFacturaCorrectiva, 1000);
                     }
 
                     // ====== APLICAR VALORES POR DEFECTO PARA LÍNEAS DE FACTURA ======
@@ -651,6 +774,26 @@ private function validarCIFNIFNIEDNI($doc)
 
                     // Interceptar envío del formulario
                     $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
+                        // Validación para facturas correctivas
+                        if (isFacturaCorrectiva) {
+                            var tipoFactura = $("select[name*=\'options_fk_facture_type\']").val();
+                            var tipoTexto = $("select[name*=\'options_fk_facture_type\'] option:selected").text().trim();
+                            
+                            console.log("Verifactu: Validando envío - Tipo seleccionado:", tipoFactura, "->", tipoTexto);
+                            
+                            if (!tipoFactura || tipoFactura === "" || tipoFactura === "0") {
+                                alert("Debe seleccionar un tipo de factura rectificativa (R1-R5) para facturas correctivas.");
+                                e.preventDefault();
+                                return false;
+                            }
+                            
+                            if (tipoTexto && !tipoTexto.match(/^R\d+[\s\-:]/)) {
+                                alert("Para facturas correctivas solo se permiten tipos rectificativos que empiecen con R (R1, R2, R3, R4, R5).");
+                                e.preventDefault();
+                                return false;
+                            }
+                        }
+                        
                         // Validación para fecha actual en creación
                         if (isCreating) {
                             // Validar que la fecha sea hoy en modo creación

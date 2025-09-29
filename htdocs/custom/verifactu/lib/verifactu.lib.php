@@ -116,7 +116,7 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 	try {
 
 		if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_CORRECTO) {
-			setEventMessages("ADVERTENCIA: No se puede generar un nuevo registro mientras haya uno pendiente de envío", null, 'warnings');
+			setEventMessages("ADVERTENCIA: LA factura ya se ha enviado a verifactu correctamente", null, 'warnings');
 			return 1;
 		}
 
