@@ -130,7 +130,7 @@ class VerifactuXML
 
         if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION || $registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
             $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
-            if($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
+            if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
                 $this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'S');
             }
             //$this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'N');
@@ -141,7 +141,7 @@ class VerifactuXML
         $this->addElement($dom, $registroAlta, 'sum1:TipoFactura', $tipoFactura);
 
 
-        if ($facture->fk_facture_source != null && $facture->fk_facture_source>0) {
+        if ($facture->fk_facture_source != null && $facture->fk_facture_source > 0) {
             $this->addElement($dom, $registroAlta, 'sum1:TipoRectificativa', 'I');
 
             $factureSource = new Facture($this->db);
@@ -413,14 +413,18 @@ class VerifactuXML
             if (isset($data['OperacionExenta']) && $data['OperacionExenta']  != null) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['OperacionExenta']);
             }
-            $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($data['TipoImpositivo'], 2, '.', ''));
+            if ($data['CalificacionOperacion'] != 'S2') {
+                $this->addElement($dom, $detalleDesglose, 'sum1:TipoImpositivo', number_format($data['TipoImpositivo'], 2, '.', ''));
+            }
             $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleOimporteNoSujeto', number_format($data['BaseImponibleOimporteNoSujeto'], 2, '.', ''));
             if (isset($data['BaseImponibleACoste']) && $data['BaseImponibleACoste'] > 0)
                 $this->addElement($dom, $detalleDesglose, 'sum1:BaseImponibleACoste', number_format($data['BaseImponibleACoste'], 2, '.', ''));
+            
+            if ($data['CalificacionOperacion'] != 'S2') {
+                $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['CuotaRepercutida'], 2, '.', ''));
+            }
 
-            $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRepercutida', number_format($data['CuotaRepercutida'], 2, '.', ''));
-
-            if (isset($data['TipoRecargoEquivalencia']) && $data['TipoRecargoEquivalencia'] > 0) {
+            if (isset($data['TipoRecargoEquivalencia']) && $data['TipoRecargoEquivalencia'] > 0 && $data['CalificacionOperacion'] != 'S2') {
                 $this->addElement($dom, $detalleDesglose, 'sum1:TipoRecargoEquivalencia', number_format($data['TipoRecargoEquivalencia'], 2, '.', ''));
                 $this->addElement($dom, $detalleDesglose, 'sum1:CuotaRecargoEquivalencia', number_format($data['CuotaRecargoEquivalencia'], 2, '.', ''));
             }

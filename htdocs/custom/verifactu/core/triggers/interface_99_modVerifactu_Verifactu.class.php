@@ -204,7 +204,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 }
             }
 
-            //Validacion CalificacionOperacion y de operacionExenta | hay que aplicar alguna validcacion en XML
+            //Validacion CalificacionOperacion y de operacionExenta | hay aplicadas validaciones en XML
             if ($calificacionOperacion == "S2") {
                 if (!in_array($factureType, ['F1', 'F3', 'R1', 'R2', 'R3', 'R4'])) {
                     $errorMsg = "ERROR: Tipo de factura inválido para clave de operación S2. Valores permitidos: F1, F3, R1, R2, R3, R4";
@@ -332,7 +332,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 }
             }
 
-            //Validaciones CuotaRepercutida | hay que aplicar alguna validcacion en XML
+            //Validaciones CuotaRepercutida | hay validaciones aplicadas en XML
             if ($cuotaRepercutida != 0 && $calificacionOperacion != 'S1') {
                 $errorMsg = "ERROR: Cuota repercutida solo puede ser distinta de 0 cuando la clave de operación es S1.";
                 setEventMessages($errorMsg, null, 'errors');
