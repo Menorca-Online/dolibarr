@@ -153,6 +153,27 @@ private function validarCIFNIFNIEDNI($doc)
                 $isExistingInvoice = !empty($object->id) && $object->id > 0;
                 $isCreating = ($action === 'create' || empty($object->id));
 
+                if ($isCreating)
+                {
+                    $oldType = -1;
+                    //leemos la factura original para obtener su fk_facture_type
+                    $factureOriginal = new Facture($db);
+                    if (isset($_GET['facid']) && is_numeric($_GET['facid']) && $_GET['facid'] > 0)
+                    {
+                        $factureOriginal->fetch($_GET['facid']);
+                    }
+                    //si es una factura recurrente, leemos la factura origen
+                    if (isset($_GET['fac_rec']) && is_numeric($_GET['fac_rec']) && $_GET['fac_rec'] > 0)
+                    {
+                        $factureOriginal->fetch($_GET['fac_rec']);
+                    }//sino puede ser una factura de abono
+                    else if (isset($_GET['fac_avoir']) && is_numeric($_GET['fac_avoir']) && $_GET['fac_avoir'] > 0)
+                    {
+                        $factureOriginal->fetch($_GET['fac_avoir']);
+                    }
+
+                }
+
                 
                                 // Detectar si es factura correctiva (tiene factura origen)
                 $isFacturaCorrectiva = $object->fk_facture_source > 0;
