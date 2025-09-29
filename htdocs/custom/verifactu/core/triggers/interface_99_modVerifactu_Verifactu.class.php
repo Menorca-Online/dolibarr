@@ -100,7 +100,9 @@ class InterfaceVerifactu extends DolibarrTriggers
 
         $maxAmountSimplificadas = $conf->global->INVOICE_MAX_AMOUNT_SIMPLIFICADAS ?? 0;
         $clienteGenerico = $conf->global->INVOICE_CLIENTE_GENERICO ?? -1000;
-
+        
+        var_dump($object->fk_facture_source);
+        die();
 
         //regla para facturas simplificadas
         if (abs($totalFactura) >= $maxAmountSimplificadas && $object->socid == $clienteGenerico) {
