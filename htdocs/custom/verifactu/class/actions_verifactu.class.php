@@ -18,6 +18,7 @@
  */
 
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
 class ActionsVerifactu
 {
     /**
@@ -171,6 +172,9 @@ private function validarCIFNIFNIEDNI($doc)
                     {
                         $factureOriginal->fetch($_GET['fac_avoir']);
                     }
+                    $verifactuFactureType = new VerifactuFactureType($db);
+                    $verifactuFactureType->fetch($factureOriginal->array_options['options_fk_facture_type']);
+                    $oldType = $verifactuFactureType->code;
 
                 }
 
