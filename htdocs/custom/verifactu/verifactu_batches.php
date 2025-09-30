@@ -363,11 +363,11 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
                 // Estado
                 $estado_label = '';
                 switch ($obj_detail->estado) {
-                    case 1: $estado_label = '<span class="badge badge-warning">Pendiente</span>'; break;
-                    case 2: $estado_label = '<span class="badge badge-success">Correcto</span>'; break;
-                    case 3: $estado_label = '<span class="badge badge-warning">Aceptado con Errores</span>'; break;
-                    case 4: $estado_label = '<span class="badge badge-danger">Rechazado</span>'; break;
-                    case 5: $estado_label = '<span class="badge badge-danger">No Enviado</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO: $estado_label = '<span class="badge badge-warning">Pendiente</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_CORRECTO: $estado_label = '<span class="badge badge-success">Correcto</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES: $estado_label = '<span class="badge badge-warning">Aceptado con Errores</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_INCORRECTO: $estado_label = '<span class="badge badge-danger">Rechazado</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO: $estado_label = '<span class="badge badge-danger">No Enviado</span>'; break;
                     default: $estado_label = '<span class="badge badge-secondary">Desconocido</span>';
                 }
                 print '<td class="center">'.$estado_label.'</td>';
