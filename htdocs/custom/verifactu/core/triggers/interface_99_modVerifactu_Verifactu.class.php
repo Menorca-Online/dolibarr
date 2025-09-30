@@ -310,8 +310,8 @@ class InterfaceVerifactu extends DolibarrTriggers
             }
 
             if ($claveRegimen == '08') {
-                if ($calificacionOperacion != 'N2' || empty($claveExencion)) {
-                    $errorMsg = "ERROR: Clave de régimen 08 solo es válida para clave de operación N2 con clave de exención.";
+                if ($calificacionOperacion != 'N2') {
+                    $errorMsg = "ERROR: Clave de régimen 08 solo es válida para calificacion operación N2";
                     setEventMessages($errorMsg, null, 'errors');
                     $object->error = $errorMsg;
                     return -1;
