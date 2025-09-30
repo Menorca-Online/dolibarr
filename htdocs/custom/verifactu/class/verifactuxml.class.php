@@ -409,7 +409,9 @@ class VerifactuXML
             $detalleDesglose = $dom->createElement('sum1:DetalleDesglose');
             $this->addElement($dom, $detalleDesglose, 'sum1:Impuesto', '01'); // IVA
             $this->addElement($dom, $detalleDesglose, 'sum1:ClaveRegimen', $data['ClaveRegimen']);
-            $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['CalificacionOperacion']);
+            if (!empty($data['CalificacionOperacion'])) {
+                $this->addElement($dom, $detalleDesglose, 'sum1:CalificacionOperacion', $data['CalificacionOperacion']);
+            }
             if (isset($data['OperacionExenta']) && $data['OperacionExenta']  != null) {
                 $this->addElement($dom, $detalleDesglose, 'sum1:OperacionExenta', $data['OperacionExenta']);
             }
