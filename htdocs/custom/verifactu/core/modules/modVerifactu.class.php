@@ -36,6 +36,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveoperacio
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistrooperacion.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
 
 
 /**
@@ -269,7 +270,8 @@ class modVerifactu extends DolibarrModules
 				MAIN_DB_PREFIX . "c_verifactu_clave_operaciones",
 				MAIN_DB_PREFIX . "c_verifactu_clave_exenciones",
 				MAIN_DB_PREFIX . "c_verifactu_registro_estados",
-				MAIN_DB_PREFIX . "c_verifactu_registro_operaciones"
+				MAIN_DB_PREFIX . "c_verifactu_registro_operaciones",
+				MAIN_DB_PREFIX . "c_verifactu_estado_batch"
 			),
 			'tablib' => array(
 				"Tipos de Factura Verifactu",
@@ -277,7 +279,8 @@ class modVerifactu extends DolibarrModules
 				"Claves de Operación Verifactu",
 				"Claves de Exención Verifactu",
 				"Estados de Registros Verifactu",
-				"Registros de Operaciones Verifactu"
+				"Registros de Operaciones Verifactu",
+				"Estados de Batch Verifactu"
 			),
 			'tabsql' => array(
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
@@ -285,9 +288,11 @@ class modVerifactu extends DolibarrModules
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operaciones as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f',
-				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones as f'
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_estado_batch as f'
 			),
 			'tabsqlsort' => array(
+				"code ASC",
 				"code ASC",
 				"code ASC",
 				"code ASC",
@@ -301,9 +306,11 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
+				"code,label",
 				"code,label"
 			),
 			'tabfieldvalue' => array(
+				"code,label",
 				"code,label",
 				"code,label",
 				"code,label",
@@ -317,6 +324,7 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
+				"code,label",
 				"code,label"
 			),
 			'tabrowid' => array(
@@ -325,9 +333,11 @@ class modVerifactu extends DolibarrModules
 				"rowid",
 				"rowid",
 				"rowid",
+				"rowid",
 				"rowid"
 			),
 			'tabcond' => array(
+				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
@@ -342,6 +352,7 @@ class modVerifactu extends DolibarrModules
 				array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código registro operacion'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código estado batch'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
 			)
 		);
 
@@ -752,6 +763,40 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_estado_batch (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			code varchar(50) NOT NULL,
+			label varchar(255) NOT NULL,
+			active tinyint(1) DEFAULT 1
+		) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+
+
+		//CREAMOS UNA TABLA DE BATCH DE REGISTROS PARA ENVIAR A VERIFACTU
+		//UN BATCH TENDRA MUCHOS REGISTROS DE FACTURAS Y SE ENVIARAN DE 1000 EN 1000
+		
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_batches (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			estado integer DEFAULT 1,
+			msg_error text DEFAULT NULL,
+			num_records integer DEFAULT 0,
+			csv nvarchar(255) DEFAULT NULL
+		) ENGINE=innodb;";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+
+
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			factureid integer NOT NULL,
@@ -761,7 +806,8 @@ class modVerifactu extends DolibarrModules
 			estado integer DEFAULT 1,
 			msg_error text DEFAULT NULL,
 			csv_line text DEFAULT NULL,
-			operation integer DEFAULT 1
+			operation integer DEFAULT 1,
+			fk_batch integer DEFAULT NULL
 		) ENGINE=innodb;";
 
 		$resql = $this->db->query($sql);
@@ -835,6 +881,31 @@ class modVerifactu extends DolibarrModules
 			array('code' => '2', 'label' => '2 - Registro alta subsanación'),
 			array('code' => '3', 'label' => '3 - Registro alta subsanación rechazada'),
 		);
+
+		$estadosBarch = array(
+			array('code' => '1', 'label' => '1 - Pendiente de envío'), //1
+			array('code' => '2', 'label' => '2 - Correcto'), //
+			array('code' => '3', 'label' => '3 - Incorrecto'),
+			array('code' => '4', 'label' => '4 - Parcialmente correcto'),
+		);
+		foreach ($estadosBarch as $estado) {
+			// Verificar si ya existe
+			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_estado_batch WHERE code = '" . $this->db->escape($estado['code']) . "'";
+			$resql_check = $this->db->query($sql_check);
+			if ($resql_check) {
+				$obj = $this->db->fetch_array($resql_check);
+				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
+
+				if ($count == 0) { // Solo crear si no existe
+					$estadoObj = new VerifactuEstadoBatch($this->db);
+					$estadoObj->code = $estado['code'];
+					$estadoObj->label = $estado['label'];
+					$estadoObj->active = 1;
+					$estadoObj->create($user);
+				}
+			}
+		}
+
 
 		foreach ($types as $type) {
 			// Verificar si ya existe
