@@ -134,14 +134,8 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregist
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
-$batch = new VerifactuBatch($db); 
-$batch->fecha = $now;
-$batch->estado = 1; // Pendiente
-$batch->msg_error = '';
-$batch->num_records = 0;
-$batch->csv = '';
-$batch->create($user);
-  
+
+
 
 /*
  * View
@@ -163,9 +157,11 @@ print '<tr class="liste_titre">';
 print '<th colspan="5">Batches de Envío</th>';
 print "</tr>\n";
 
-$sql = "SELECT b.rowid, b.fecha, b.estado, b.msg_error, b.num_records, eb.label as estado_label
+$sql = "SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label
         FROM ".MAIN_DB_PREFIX."verifactu_batches b
         LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid
+        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid
+        GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label
         ORDER BY b.fecha DESC";
 
 $resql = $db->query($sql);
@@ -212,70 +208,6 @@ print '</table>';
 print '</div>';
 
 print '</div>';
-
-// Si se solicita detalle de un batch
-if ($action == 'detail' && GETPOST('id', 'int')) {
-    $id = GETPOST('id', 'int');
-    print '<div class="fichecenter" style="margin-top: 20px;">';
-    print load_fiche_titre('Detalle del Batch ID ' . $id, '', '');
-
-    print '<div class="div-table-responsive-no-min">';
-    print '<table class="noborder centpercent">';
-    print '<tr class="liste_titre">';
-    print '<th>Factura</th>';
-    print '<th>Fecha</th>';
-    print '<th>Estado</th>';
-    print '<th>Mensaje Error</th>';
-    print '</tr>';
-
-    $sql_detail = "SELECT r.rowid, r.factureid, r.fecha, r.estado, r.msg_error, f.ref
-                   FROM ".MAIN_DB_PREFIX."verifactu_factura_registros r
-                   LEFT JOIN ".MAIN_DB_PREFIX."facture f ON r.factureid = f.rowid
-                   WHERE r.fk_batch = ".intval($id)."
-                   ORDER BY r.fecha DESC";
-
-    $resql_detail = $db->query($sql_detail);
-    if ($resql_detail) {
-        $num_detail = $db->num_rows($resql_detail);
-        if ($num_detail > 0) {
-            $i = 0;
-            while ($i < $num_detail) {
-                $obj_detail = $db->fetch_object($resql_detail);
-                print '<tr class="oddeven">';
-                print '<td><a href="'.DOL_URL_ROOT.'/compta/facture/card.php?facid='.$obj_detail->factureid.'">'.$obj_detail->ref.'</a></td>';
-                print '<td>'.dol_print_date($db->jdate($obj_detail->fecha), 'dayhour').'</td>';
-                // Estado
-                $estado_label = '';
-                switch ($obj_detail->estado) {
-                    case 1: $estado_label = '<span class="badge badge-warning">Pendiente</span>'; break;
-                    case 2: $estado_label = '<span class="badge badge-success">Correcto</span>'; break;
-                    case 3: $estado_label = '<span class="badge badge-warning">Aceptado con Errores</span>'; break;
-                    case 4: $estado_label = '<span class="badge badge-danger">Rechazado</span>'; break;
-                    case 5: $estado_label = '<span class="badge badge-danger">No Enviado</span>'; break;
-                    default: $estado_label = '<span class="badge badge-secondary">Desconocido</span>';
-                }
-                print '<td class="center">'.$estado_label.'</td>';
-                print '<td>'.($obj_detail->msg_error ? $obj_detail->msg_error : '-').'</td>';
-                print '</tr>';
-                $i++;
-            }
-        } else {
-            print '<tr class="oddeven"><td colspan="4" class="center">No hay registros en este batch</td></tr>';
-        }
-        $db->free($resql_detail);
-    } else {
-        print '<tr class="oddeven"><td colspan="4" class="center">Error consultando detalle</td></tr>';
-    }
-
-    print '</table>';
-    print '</div>';
-
-    print '<div class="center" style="margin-top: 10px;">';
-    print '<a href="'.$_SERVER["PHP_SELF"].'" class="butAction">Volver a Batches</a>';
-    print '</div>';
-
-    print '</div>';
-}
 
 // Si se solicita detalle de un batch
 if ($action == 'detail' && GETPOST('id', 'int')) {
