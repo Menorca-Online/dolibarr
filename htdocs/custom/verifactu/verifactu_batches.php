@@ -148,34 +148,84 @@ llxHeader("", $langs->trans("VerifactuArea"), '', '', 0, 0, '', '', '', 'mod-ver
 
 print load_fiche_titre($langs->trans("Verifactu Batches"), '', 'verifactu.png@verifactu');
 
+// Filtros
+$search_date_start = GETPOST('search_date_start', 'alpha');
+$search_date_end = GETPOST('search_date_end', 'alpha');
+$search_estado = GETPOST('search_estado', 'int');
+$search_msg_error = GETPOST('search_msg_error', 'alpha');
+
 print '<div class="fichecenter">';
 
-// Lista de batches
+// Formulario de filtros
+print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
-print '<tr class="liste_titre">';
-print '<th colspan="5">Batches de Envío</th>';
-print "</tr>\n";
+print '<tr class="liste_titre_filter">';
+print '<td class="liste_titre">';
+print '<input type="text" class="flat" name="search_date_start" value="'.$search_date_start.'" placeholder="Fecha desde (YYYY-MM-DD)" size="12">';
+print '</td>';
+print '<td class="liste_titre">';
+print '<input type="text" class="flat" name="search_date_end" value="'.$search_date_end.'" placeholder="Fecha hasta (YYYY-MM-DD)" size="12">';
+print '</td>';
+print '<td class="liste_titre center">';
+print '<select class="flat" name="search_estado">';
+print '<option value="">-- Estado --</option>';
+print '<option value="1"'.($search_estado == '1' ? ' selected' : '').'>Pendiente</option>';
+print '<option value="2"'.($search_estado == '2' ? ' selected' : '').'>Enviado</option>';
+print '<option value="3"'.($search_estado == '3' ? ' selected' : '').'>Error</option>';
+print '</select>';
+print '</td>';
+print '<td class="liste_titre">';
+print '<input type="text" class="flat" name="search_msg_error" value="'.$search_msg_error.'" placeholder="Mensaje error">';
+print '</td>';
+print '<td class="liste_titre maxwidthsearch">';
+$searchpicto = $form->showFilterButtons();
+print $searchpicto;
+print '</td>';
+print '</tr>';
 
+// Cabeceras de tabla
+print '<tr class="liste_titre">';
+print '<th>Fecha</th>';
+print '<th class="center">Estado</th>';
+print '<th class="center">Num. Registros</th>';
+print '<th>Mensaje Error</th>';
+print '<th class="center">Acciones</th>';
+print '</tr>';
+
+// Construir consulta con filtros
 $sql = "SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label
         FROM ".MAIN_DB_PREFIX."verifactu_batches b
         LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid
-        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid
-        GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label
-        ORDER BY b.fecha DESC";
+        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid";
+
+$where = array();
+if ($search_date_start) {
+    $where[] = "b.fecha >= '".$db->escape($search_date_start)." 00:00:00'";
+}
+if ($search_date_end) {
+    $where[] = "b.fecha <= '".$db->escape($search_date_end)." 23:59:59'";
+}
+if ($search_estado) {
+    $where[] = "b.estado = ".intval($search_estado);
+}
+if ($search_msg_error) {
+    $where[] = "b.msg_error LIKE '%".$db->escape($search_msg_error)."%'";
+}
+
+if (!empty($where)) {
+    $sql .= " WHERE " . implode(' AND ', $where);
+}
+
+$sql .= " GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label
+          ORDER BY b.fecha DESC";
 
 $resql = $db->query($sql);
 if ($resql) {
     $num = $db->num_rows($resql);
     if ($num > 0) {
-        print '<tr class="liste_titre">';
-        print '<th>Fecha</th>';
-        print '<th class="center">Estado</th>';
-        print '<th class="center">Num. Registros</th>';
-        print '<th>Mensaje Error</th>';
-        print '<th class="center">Acciones</th>';
-        print '</tr>';
-
         $i = 0;
         while ($i < $num) {
             $obj = $db->fetch_object($resql);
@@ -197,7 +247,7 @@ if ($resql) {
             $i++;
         }
     } else {
-        print '<tr class="oddeven"><td colspan="5" class="center">No hay batches creados aún</td></tr>';
+        print '<tr class="oddeven"><td colspan="5" class="center">No hay batches que coincidan con los filtros</td></tr>';
     }
     $db->free($resql);
 } else {
@@ -206,6 +256,7 @@ if ($resql) {
 
 print '</table>';
 print '</div>';
+print '</form>';
 
 print '</div>';
 
@@ -215,8 +266,37 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<div class="fichecenter" style="margin-top: 20px;">';
     print load_fiche_titre('Detalle del Batch ID ' . $id, '', '');
 
+    // Filtros para detalle
+    $search_detail_estado = GETPOST('search_detail_estado', 'int');
+    $search_detail_msg_error = GETPOST('search_detail_msg_error', 'alpha');
+
+    print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    print '<input type="hidden" name="action" value="detail">';
+    print '<input type="hidden" name="id" value="'.$id.'">';
+
     print '<div class="div-table-responsive-no-min">';
     print '<table class="noborder centpercent">';
+    print '<tr class="liste_titre_filter">';
+    print '<td class="liste_titre center">';
+    print '<select class="flat" name="search_detail_estado">';
+    print '<option value="">-- Estado Registro --</option>';
+    print '<option value="1"'.($search_detail_estado == '1' ? ' selected' : '').'>Pendiente</option>';
+    print '<option value="2"'.($search_detail_estado == '2' ? ' selected' : '').'>Correcto</option>';
+    print '<option value="3"'.($search_detail_estado == '3' ? ' selected' : '').'>Aceptado con Errores</option>';
+    print '<option value="4"'.($search_detail_estado == '4' ? ' selected' : '').'>Rechazado</option>';
+    print '<option value="5"'.($search_detail_estado == '5' ? ' selected' : '').'>No Enviado</option>';
+    print '</select>';
+    print '</td>';
+    print '<td class="liste_titre">';
+    print '<input type="text" class="flat" name="search_detail_msg_error" value="'.$search_detail_msg_error.'" placeholder="Mensaje error registro">';
+    print '</td>';
+    print '<td class="liste_titre maxwidthsearch">';
+    $searchpicto = $form->showFilterButtons();
+    print $searchpicto;
+    print '</td>';
+    print '</tr>';
+
     print '<tr class="liste_titre">';
     print '<th>Factura</th>';
     print '<th>Fecha</th>';
@@ -224,11 +304,25 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<th>Mensaje Error</th>';
     print '</tr>';
 
+    // Consulta con filtros
     $sql_detail = "SELECT r.rowid, r.factureid, r.fecha, r.estado, r.msg_error, f.ref
                    FROM ".MAIN_DB_PREFIX."verifactu_factura_registros r
                    LEFT JOIN ".MAIN_DB_PREFIX."facture f ON r.factureid = f.rowid
-                   WHERE r.fk_batch = ".intval($id)."
-                   ORDER BY r.fecha DESC";
+                   WHERE r.fk_batch = ".intval($id);
+
+    $where_detail = array();
+    if ($search_detail_estado) {
+        $where_detail[] = "r.estado = ".intval($search_detail_estado);
+    }
+    if ($search_detail_msg_error) {
+        $where_detail[] = "r.msg_error LIKE '%".$db->escape($search_detail_msg_error)."%'";
+    }
+
+    if (!empty($where_detail)) {
+        $sql_detail .= " AND " . implode(' AND ', $where_detail);
+    }
+
+    $sql_detail .= " ORDER BY r.fecha DESC";
 
     $resql_detail = $db->query($sql_detail);
     if ($resql_detail) {
@@ -256,7 +350,7 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
                 $i++;
             }
         } else {
-            print '<tr class="oddeven"><td colspan="4" class="center">No hay registros en este batch</td></tr>';
+            print '<tr class="oddeven"><td colspan="4" class="center">No hay registros que coincidan con los filtros</td></tr>';
         }
         $db->free($resql_detail);
     } else {
@@ -265,6 +359,7 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
 
     print '</table>';
     print '</div>';
+    print '</form>';
 
     print '<div class="center" style="margin-top: 10px;">';
     print '<a href="'.$_SERVER["PHP_SELF"].'" class="butAction">Volver a Batches</a>';
