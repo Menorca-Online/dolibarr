@@ -277,8 +277,8 @@ class InterfaceVerifactu extends DolibarrTriggers
                 }
             }
 
-            if ($claveRegimen == '04' && $calificacionOperacion != 'S2') {
-                $errorMsg = "ERROR: CalificacionOperacion inválida para clave de régimen 04.";
+            if ($claveRegimen == '04' && (!empty($calificacionOperacion) && $calificacionOperacion != 'S2')) {
+                $errorMsg = "ERROR: CalificacionOperacion inválida para clave de régimen 04. Solo se permite clave de operación S2.";
                 setEventMessages($errorMsg, null, 'errors');
                 $object->error = $errorMsg;
                 return -1;
