@@ -269,17 +269,11 @@ class InterfaceVerifactu extends DolibarrTriggers
 
             //Validacion ClaveRegimen
             if ($claveRegimen == '03') {
-                if ($calificacionOperacion == 'S2') {
-                    $errorMsg = "ERROR: Clave de régimen inválida para clave de operación S2. No se permite clave de régimen 03.";
+                if ($calificacionOperacion != 'S1') {
+                    $errorMsg = "ERROR: CalificacionOperacion inválida para clave de régimen 03. Solo se permite clave de operación S1.";
                     setEventMessages($errorMsg, null, 'errors');
                     $object->error = $errorMsg;
                     return -1;
-                }
-
-                if (in_array($calificacionOperacion, ['N1', 'N2'])) {
-                    $alertMsg = "ADVERTENCIA: Clave de régimen 03 utilizada con clave de operación N1 o N2. Verifique que esto es correcto.  artículo 137. Dos. 5ª de la Ley 37/1992, de 28 de diciembre";
-                    setEventMessages($alertMsg, null, 'warnings');
-                    // No bloqueamos la operación, solo advertimos
                 }
             }
 
