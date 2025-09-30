@@ -207,6 +207,9 @@ class VerifactuXML
      */
     public function generateEnvioRegistroAlta($registro)
     {
+
+        global $conf;
+
         // Validar registro
         if (!$registro || !$registro->factureid) {
             throw new Exception('Registro no válido para generar XML Verifactu');
@@ -255,6 +258,13 @@ class VerifactuXML
 
         $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
         $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+        if($conf->global->VERIFACTU_PODER_AEAT == "1"){
+            // sum1:Representante
+            $representante = $dom->createElement('sum1:Representante');
+            $cabecera->appendChild($representante);
+            $this->addElement($dom, $representante, 'sum1:NombreRazon', 'MENORCA ONLINE SL');
+            $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
+        }
 
         $this->generateRegistro($dom, $regFactu, $registro, $this->facture);
 
