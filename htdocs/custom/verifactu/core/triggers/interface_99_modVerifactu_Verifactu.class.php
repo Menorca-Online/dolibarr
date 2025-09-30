@@ -301,6 +301,12 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $object->error = $errorMsg;
                     return -1;
                 }
+                if (in_array(($claveExencion), ['E2', 'E3', 'E4', 'E5'])) {
+                    $errorMsg = "ERROR: Clave de exención inválida para clave de regimen 07. No se permite clave de exención E2, E3, E4 o E5.";
+                    setEventMessages($errorMsg, null, 'errors');
+                    $object->error = $errorMsg;
+                    return -1;
+                }
             }
 
             if ($claveRegimen == '08') {
