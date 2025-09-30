@@ -527,7 +527,7 @@ class modVerifactu extends DolibarrModules
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("verifactu")',
-			'perms' => '$user->hasRight("verifactu", "read")', // Accesible para todos los usuarios con acceso al módulo
+			'perms' => '1', 
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
