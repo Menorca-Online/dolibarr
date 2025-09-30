@@ -730,6 +730,7 @@ class VerifactuXML
         if (!$this->batch || !$this->batch->id) {
             throw new Exception('Batch no válido para enviar a Verifactu');
         }
+        $relatedFactures = $this->batch->getRegistrosFactures();
 
         $this->generateEnvioFromBatch();
 
@@ -739,6 +740,10 @@ class VerifactuXML
         //guardamos el xml a enviar en OUTBOX con el nombre de la factura
         $file = $outbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '.xml';
         file_put_contents($file, $this->xml);
+
+        //vinculamos el archivo a las facturas
+        $this->addFileToInvoice($file, 'Verifactu Batch ' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT), $relatedFactures);
+
         $return = "";
 
         $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
@@ -772,6 +777,9 @@ class VerifactuXML
             // Guardar respuesta en INBOX
             $responseFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_response.xml';
             file_put_contents($responseFile, $response);
+
+            //vinculamos el archivo de respuesta a las facturas
+            $this->addFileToInvoice($responseFile, 'Verifactu Batch Response ' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT), $relatedFactures);
 
             $this->processResponse($response);
         }
@@ -961,19 +969,61 @@ class VerifactuXML
      * @param string $description Descripción del archivo
      * @return bool True si se añadió correctamente
      */
-    private function addFileToInvoice($filePath, $description = '')
+    private function addFileToInvoice($filePath, $description = '', $factures = null)
     {
-        global $conf, $user;
 
         if (!file_exists($filePath)) {
             return false;
         }
 
         $fileName = basename($filePath);
-        $fileSize = filesize($filePath);
+        //$fileSize = filesize($filePath);
 
         // Directorio de destino para documentos de la factura
-        $upload_dir = $conf->facture->multidir_output[$this->facture->entity] . '/' . $this->facture->ref;
+        //$upload_dir = $conf->facture->multidir_output[$this->facture->entity] . '/' . $this->facture->ref;
+
+        // // Crear directorio si no existe
+        // if (!is_dir($upload_dir)) {
+        //     if (dol_mkdir($upload_dir) < 0) {
+        //         return false;
+        //     }
+        // }
+
+        // // Copiar archivo al directorio de documentos de la factura
+        // $destFile = $upload_dir . '/' . $fileName;
+        // if (!copy($filePath, $destFile)) {
+        //     return false;
+        // }
+
+        // Registrar el archivo en la base de datos
+
+        if ($factures && is_array($factures)) {
+            $result = true;
+            foreach ($factures as $facture) {
+                $result &= $this->addFileToInvoiceSingle($filePath, $fileName, $description, $facture);
+            }
+            return $result;
+        } else {
+            return $this->addFileToInvoiceSingle($filePath, $fileName, $description);
+        }
+    }
+
+    private function createSymLink($target, $link)
+    {
+        if (file_exists($link)) {
+            return true; // El enlace ya existe
+        }
+        return symlink($target, $link);
+    }
+
+    private function addFileToInvoiceSingle($filePath, $fileName, $description = '', $facture = null)
+    {
+
+        global $conf, $user;
+
+        //multidir_output = 1 porque no es multiempresa.
+
+        $upload_dir = $conf->facture->multidir_output[$facture ? $facture->entity : $this->facture->entity] . '/' . ($facture ? $facture->ref : $this->facture->ref);
 
         // Crear directorio si no existe
         if (!is_dir($upload_dir)) {
@@ -982,34 +1032,29 @@ class VerifactuXML
             }
         }
 
-        // Copiar archivo al directorio de documentos de la factura
-        $destFile = $upload_dir . '/' . $fileName;
-        if (!copy($filePath, $destFile)) {
-            return false;
-        }
+         $this->createSymLink($filePath, $conf->facture->multidir_output[$facture ? $facture->entity : $this->facture->entity] . '/' .  ($facture ? $facture->ref : $this->facture->ref) . '/' . $fileName);
+         return true;
+        // require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
+        // $ecmfile = new EcmFiles($this->db);
 
-        // Registrar el archivo en la base de datos
-        require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
-        $ecmfile = new EcmFiles($this->db);
+        // $ecmfile->filepath = $filePath;
+        // $ecmfile->filename = $fileName;
+        // $ecmfile->label = $description;
+        // $ecmfile->fullpath_orig = $filePath;
+        // $ecmfile->gen_or_uploaded = 'uploaded';
+        // $ecmfile->description = $description;
+        // $ecmfile->keywords = 'verifactu';
+        // $ecmfile->cover = 0;
+        // $ecmfile->position = 0;
+        // $ecmfile->acl = '';
+        // $ecmfile->date_c = dol_now();
+        // $ecmfile->date_m = dol_now();
+        // $ecmfile->fk_user_c = $user->id;
+        // $ecmfile->fk_user_m = $user->id;
+        // $ecmfile->src_object_type = 'facture';
+        // $ecmfile->src_object_id = $facture ? $facture->id : $this->facture->id;
 
-        $ecmfile->filepath = $this->facture->ref;
-        $ecmfile->filename = $fileName;
-        $ecmfile->label = $description;
-        $ecmfile->fullpath_orig = $filePath;
-        $ecmfile->gen_or_uploaded = 'uploaded';
-        $ecmfile->description = $description;
-        $ecmfile->keywords = 'verifactu';
-        $ecmfile->cover = 0;
-        $ecmfile->position = 0;
-        $ecmfile->acl = '';
-        $ecmfile->date_c = dol_now();
-        $ecmfile->date_m = dol_now();
-        $ecmfile->fk_user_c = $user->id;
-        $ecmfile->fk_user_m = $user->id;
-        $ecmfile->src_object_type = 'facture';
-        $ecmfile->src_object_id = $this->facture->id;
-
-        return $ecmfile->create($user) > 0;
+        // return $ecmfile->create($user) > 0;
     }
 
     /**

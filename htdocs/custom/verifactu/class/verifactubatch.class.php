@@ -29,7 +29,7 @@ class VerifactuBatch extends CommonObject
             'rowid'    => array('type' => 'integer', 'label' => 'ID', 'enabled' => 1, 'visible' => -2, 'notnull' => 1, 'index' => true),
             'fecha'    => array('type' => 'datetime', 'label' => 'Fecha', 'enabled' => 1, 'visible' => 1, 'notnull' => 1),
             'estado'   => array('type' => 'integer', 'label' => 'Estado',   'enabled' => 1, 'visible' => 1, 'notnull' => 1),
-            'msg_error'=> array('type' => 'text',    'label' => 'Mensaje Error', 'enabled' => 1, 'visible' => 1, 'notnull' => 0),
+            'msg_error' => array('type' => 'text',    'label' => 'Mensaje Error', 'enabled' => 1, 'visible' => 1, 'notnull' => 0),
             'num_records' => array('type' => 'integer', 'label' => 'Número de registros', 'enabled' => 1, 'visible' => 1, 'notnull' => 1),
             'csv'      => array('type' => 'text',    'label' => 'CSV', 'enabled' => 1, 'visible' => 0, 'notnull' => 0)
 
@@ -42,7 +42,7 @@ class VerifactuBatch extends CommonObject
     {
         return $this->createCommon($user, $notrigger);
     }
-        public function fetch($id, $ref = null, $ref_ext = null)
+    public function fetch($id, $ref = null, $ref_ext = null)
     {
         return $this->fetchCommon($id, $ref, $ref_ext);
     }
@@ -61,5 +61,22 @@ class VerifactuBatch extends CommonObject
             $this->db->free($result);
         }
         return $registros;
+    }
+
+    public function getRegistrosFactures(): array
+    {
+        $factures = array();
+        $sql = "SELECT DISTINCT factureid, entity, ref FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+        $sql.= " INNER JOIN " . MAIN_DB_PREFIX . "facture ON " . MAIN_DB_PREFIX . "facture.rowid = " . MAIN_DB_PREFIX . "verifactu_factura_registros.factureid";
+        $sql.= " WHERE fk_batch = " . (int)$this->id;
+
+        $result = $this->db->query($sql);
+        if ($result) {
+            while ($obj = $this->db->fetch_object($result)) {
+                $factures[] = $obj;
+            }
+            $this->db->free($result);
+        }
+        return $factures;
     }
 }
