@@ -319,8 +319,8 @@ class InterfaceVerifactu extends DolibarrTriggers
             }
 
             if ($claveRegimen == '10') {
-                $destinatarioEspañol = $object->thirdparty->country == 'ES';
-                if ($factureType != 'F1' || $calificacionOperacion != 'N1' || empty($claveExencion) || !$destinatarioEspañol) {
+                $destinatarioEspañol = $object->thirdparty->country_code == 'ES';
+                if ($factureType != 'F1' || $calificacionOperacion != 'N1' || !empty($claveExencion) || !$destinatarioEspañol) {
                     $errorMsg = "ERROR: Clave de régimen 10 solo es válida para facturas tipo F1, con clave de operación N1 y clave de exención.";
                     setEventMessages($errorMsg, null, 'errors');
                     $object->error = $errorMsg;
