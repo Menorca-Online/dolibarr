@@ -900,13 +900,13 @@ class modVerifactu extends DolibarrModules
 			array('code' => '3', 'label' => '3 - Registro alta subsanación rechazada'),
 		);
 
-		$estadosBarch = array(
+		$estadosBatch = array(
 			array('code' => '1', 'label' => '1 - Pendiente de envío'), //1
 			array('code' => '2', 'label' => '2 - Correcto'), //
 			array('code' => '3', 'label' => '3 - Incorrecto'),
 			array('code' => '4', 'label' => '4 - Parcialmente correcto'),
 		);
-		foreach ($estadosBarch as $estado) {
+		foreach ($estadosBatch as $estado) {
 			// Verificar si ya existe
 			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_estado_batch WHERE code = '" . $this->db->escape($estado['code']) . "'";
 			$resql_check = $this->db->query($sql_check);

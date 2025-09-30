@@ -134,7 +134,28 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregist
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 
+// //ESTADOS REGISTRO
+// const VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
+// const VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
+// const VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
+// const VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
+// const VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
+
+
+// //OPERACIONES
+// const VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
+// const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
+// const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
+
+
+
+// //ESTADOS BATCH
+// const VERIFACTU_ESTADO_BATCH_PENDIENTE = 1;
+// const VERIFACTU_ESTADO_BATCH_CORRECTO = 2;
+// const VERIFACTU_ESTADO_BATCH_INCORRECTO = 3;
+// const VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO = 4;
 
 
 /*
@@ -172,9 +193,10 @@ print '</td>';
 print '<td class="liste_titre center">';
 print '<select class="flat" name="search_estado">';
 print '<option value="">-- Estado --</option>';
-print '<option value="1"'.($search_estado == '1' ? ' selected' : '').'>Pendiente</option>';
-print '<option value="2"'.($search_estado == '2' ? ' selected' : '').'>Enviado</option>';
-print '<option value="3"'.($search_estado == '3' ? ' selected' : '').'>Error</option>';
+print '<option value="'.VERIFACTU_ESTADO_BATCH_PENDIENTE.'"'.($search_estado == VERIFACTU_ESTADO_BATCH_PENDIENTE ? ' selected' : '').'>Pendiente</option>';
+print '<option value="'.VERIFACTU_ESTADO_BATCH_CORRECTO.'"'.($search_estado == VERIFACTU_ESTADO_BATCH_CORRECTO ? ' selected' : '').'>Enviado</option>';
+print '<option value="'.VERIFACTU_ESTADO_BATCH_INCORRECTO.'"'.($search_estado == VERIFACTU_ESTADO_BATCH_INCORRECTO ? ' selected' : '').'>Error</option>';
+print '<option value="'.VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO.'"'.($search_estado == VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO ? ' selected' : '').'>Parcialmente correcto</option>';
 print '</select>';
 print '</td>';
 print '<td class="liste_titre">';
@@ -234,9 +256,10 @@ if ($resql) {
             // Estado
             $estado_badge = '';
             switch ($obj->estado) {
-                case 1: $estado_badge = '<span class="badge badge-warning">Pendiente</span>'; break;
-                case 2: $estado_badge = '<span class="badge badge-success">Enviado</span>'; break;
-                case 3: $estado_badge = '<span class="badge badge-danger">Error</span>'; break;
+                case VERIFACTU_ESTADO_BATCH_PENDIENTE: $estado_badge = '<span class="badge badge-warning">Pendiente</span>'; break;
+                case VERIFACTU_ESTADO_BATCH_CORRECTO: $estado_badge = '<span class="badge badge-success">Correcto</span>'; break;
+                case VERIFACTU_ESTADO_BATCH_INCORRECTO: $estado_badge = '<span class="badge badge-danger">Incorrecto</span>'; break;
+                case VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO: $estado_badge = '<span class="badge badge-info">Parcialmente correcto</span>'; break;
                 default: $estado_badge = '<span class="badge badge-secondary">'.$obj->estado_label.'</span>';
             }
             print '<td class="center">'.$estado_badge.'</td>';
@@ -278,14 +301,16 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<div class="div-table-responsive-no-min">';
     print '<table class="noborder centpercent">';
     print '<tr class="liste_titre_filter">';
+    print '<td class="liste_titre"></td>'; // Factura (sin filtro)
+    print '<td class="liste_titre"></td>'; // Fecha (sin filtro)
     print '<td class="liste_titre center">';
     print '<select class="flat" name="search_detail_estado">';
     print '<option value="">-- Estado Registro --</option>';
-    print '<option value="1"'.($search_detail_estado == '1' ? ' selected' : '').'>Pendiente</option>';
-    print '<option value="2"'.($search_detail_estado == '2' ? ' selected' : '').'>Correcto</option>';
-    print '<option value="3"'.($search_detail_estado == '3' ? ' selected' : '').'>Aceptado con Errores</option>';
-    print '<option value="4"'.($search_detail_estado == '4' ? ' selected' : '').'>Rechazado</option>';
-    print '<option value="5"'.($search_detail_estado == '5' ? ' selected' : '').'>No Enviado</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO ? ' selected' : '').'>Pendiente</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_CORRECTO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_CORRECTO ? ' selected' : '').'>Correcto</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES ? ' selected' : '').'>Aceptado con Errores</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_INCORRECTO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_INCORRECTO ? ' selected' : '').'>Incorrecto</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO ? ' selected' : '').'>No Enviado</option>';
     print '</select>';
     print '</td>';
     print '<td class="liste_titre">';
@@ -302,6 +327,7 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<th>Fecha</th>';
     print '<th>Estado</th>';
     print '<th>Mensaje Error</th>';
+    print '<th></th>'; // Para botones de filtros
     print '</tr>';
 
     // Consulta con filtros
@@ -346,15 +372,16 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
                 }
                 print '<td class="center">'.$estado_label.'</td>';
                 print '<td>'.($obj_detail->msg_error ? $obj_detail->msg_error : '-').'</td>';
+                print '<td></td>'; // Para alinear con filtros
                 print '</tr>';
                 $i++;
             }
         } else {
-            print '<tr class="oddeven"><td colspan="4" class="center">No hay registros que coincidan con los filtros</td></tr>';
+            print '<tr class="oddeven"><td colspan="5" class="center">No hay registros que coincidan con los filtros</td></tr>';
         }
         $db->free($resql_detail);
     } else {
-        print '<tr class="oddeven"><td colspan="4" class="center">Error consultando detalle</td></tr>';
+        print '<tr class="oddeven"><td colspan="5" class="center">Error consultando detalle</td></tr>';
     }
 
     print '</table>';
