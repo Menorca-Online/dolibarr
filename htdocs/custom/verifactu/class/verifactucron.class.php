@@ -25,7 +25,7 @@ include_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregistro.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
-
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
 /**
  * Class VerifactuCron
  */
@@ -60,7 +60,17 @@ class VerifactuCron extends CommonObject
 		$sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE estado = 1 ORDER BY rowid ASC LIMIT 1000";
 		$result = $this->db->query($sql);
 
-		if ($result) {
+
+		if ($result && $this->db->num_rows($result) > 0) {
+            
+            $batch = new VerifactuBatch($this->db);
+            $batch->fecha = dol_now();
+            $batch->estado = VERIFACTU_ESTADO_BATCH_PENDIENTE;
+            $batch->msg_error = '';
+            $batch->num_records = $this->db->num_rows($result);
+            $batch->csv = '';
+            $batch->create($user);
+            die();
 			$registrosProcesados = 0;
 			$errores = 0;
 
@@ -95,8 +105,7 @@ class VerifactuCron extends CommonObject
 			// 	return -1; // Indicar que hubo errores
 			// }
 		} else {
-			dol_syslog("Verifactu Cron: Error al consultar registros pendientes - " . $this->db->lasterror(), LOG_ERR);
-			$message = "Error al consultar registros pendientes";
+			$message = "No hay registros pendientes de envío.";
 			return -1;
 		}
 
