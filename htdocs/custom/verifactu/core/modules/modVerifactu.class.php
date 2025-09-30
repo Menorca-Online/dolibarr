@@ -515,6 +515,24 @@ class modVerifactu extends DolibarrModules
 		);
 
 
+		//quiero crear una pagina de batches para ver todos los batches enviados, su estado
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Batches Verifactu',
+			'prefix' => img_picto('', 'fa-tasks', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_batches',
+			'url' => '/verifactu/verifactu_batches.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '$user->hasRight("verifactu", "read")', // Accesible para todos los usuarios con acceso al módulo
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
+
+
 		// Exports profiles provided by this module
 		$r = 0;
 		/* BEGIN MODULEBUILDER EXPORT MYOBJECT */
