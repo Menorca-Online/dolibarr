@@ -89,7 +89,15 @@ class VerifactuCron extends CommonObject
 			}
             $this->db->commit();
             $message = "Se han marcado " . $count . " registros para envío en batch ID " . $batch->rowid . ".";
-            
+            $xml = new VerifactuXML($this->db, $batch);
+            $result = $xml->sendBatch();
+
+            if ($result < 0) {
+                $this->db->rollback();
+                $message .= "Error al enviar el batch ID " . $batch->rowid . "\n";
+                return -1;
+            }
+
             // Aquí podrías llamar a una función para procesar el batch si es necesario
             // Por ejemplo: $this->procesarBatch($batch, $user, $count, $message);
 			// $this->db->free($result);

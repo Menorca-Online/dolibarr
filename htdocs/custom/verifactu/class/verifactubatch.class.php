@@ -1,5 +1,6 @@
 <?php
 require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
+require_once __DIR__ . '/verifactufacturaregistro.class.php';
 
 class VerifactuBatch extends CommonObject
 {
@@ -44,5 +45,21 @@ class VerifactuBatch extends CommonObject
         public function fetch($id, $ref = null, $ref_ext = null)
     {
         return $this->fetchCommon($id, $ref, $ref_ext);
+    }
+
+    public function registros()
+    {
+        $registros = array();
+        $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE fk_batch = " . (int)$this->id;
+        $result = $this->db->query($sql);
+        if ($result) {
+            while ($obj = $this->db->fetch_object($result)) {
+                $registro = new VerifactuFacturaRegistro($this->db);
+                $registro->fetch($obj->rowid);
+                $registros[] = $registro;
+            }
+            $this->db->free($result);
+        }
+        return $registros;
     }
 }

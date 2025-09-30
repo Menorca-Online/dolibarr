@@ -32,6 +32,8 @@ class VerifactuXML
 
     private $registro;
 
+    private $batch;
+
     /**
      * @var array Configuración del módulo
      */
@@ -42,9 +44,10 @@ class VerifactuXML
      *
      * @param DoliDB $db Database handler
      */
-    public function __construct($db)
+    public function __construct($db, VerifactuBatch $batch)
     {
         $this->db = $db;
+        $this->batch = $batch;
         $this->loadConfig();
     }
 
@@ -258,7 +261,7 @@ class VerifactuXML
 
         $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
         $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
-        if($conf->global->VERIFACTU_PODER_AEAT == "1"){
+        if ($conf->global->VERIFACTU_PODER_AEAT == "1") {
             // sum1:Representante
             $representante = $dom->createElement('sum1:Representante');
             $cabecera->appendChild($representante);
@@ -270,6 +273,63 @@ class VerifactuXML
 
         $this->xml = $dom->saveXML();
         return $this->xml;
+    }
+
+    private function generateEnvioFromBatch()
+    {
+        global $conf;
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para generar XML Verifactu');
+        }
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+
+        // Crear elemento raíz soapenv:Envelope con todos los namespaces
+        $envelope = $dom->createElement('soapenv:Envelope');
+        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
+        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
+        $dom->appendChild($envelope);
+
+        // soapenv:Header (vacío)
+        $header = $dom->createElement('soapenv:Header');
+        $envelope->appendChild($header);
+
+        // soapenv:Body
+        $body = $dom->createElement('soapenv:Body');
+        $envelope->appendChild($body);
+
+        // sum:RegFactuSistemaFacturacion
+        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
+        $body->appendChild($regFactu);
+
+        // sum:Cabecera
+        $cabecera = $dom->createElement('sum:Cabecera');
+        $regFactu->appendChild($cabecera);
+
+        // sum1:ObligadoEmision
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $cabecera->appendChild($obligadoEmision);
+
+        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
+        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+        if ($conf->global->VERIFACTU_PODER_AEAT == "1") {
+            // sum1:Representante
+            $representante = $dom->createElement('sum1:Representante');
+            $cabecera->appendChild($representante);
+            $this->addElement($dom, $representante, 'sum1:NombreRazon', 'MENORCA ONLINE SL');
+            $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
+        }
+        foreach ($this->batch->registros() as $registro) {
+            $facture = new Facture($this->db);
+            $facture->fetch($registro->factureid);
+            $facture->fetch_lines();
+            $facture->fetch_thirdparty();
+            $this->generateRegistro($dom, $regFactu, $registro, $facture);
+        }
+        $this->xml = $dom->saveXML();
     }
 
     /**
@@ -661,6 +721,66 @@ class VerifactuXML
         return $return;
     }
 
+
+    public function sendBatch()
+    {
+        global $conf;
+
+
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para enviar a Verifactu');
+        }
+
+        $this->generateEnvioFromBatch();
+
+        $verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+        $outbox_dir = $verifactu_dir . '/OUTBOX';
+        $inbox_dir = $verifactu_dir . '/INBOX';
+        //guardamos el xml a enviar en OUTBOX con el nombre de la factura
+        $file = $outbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '.xml';
+        file_put_contents($file, $this->xml);
+        $return = "";
+
+        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        #$url = "https://google.com";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: RegFactuSistemaFacturacion"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
+        $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
+
+        curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
+        curl_setopt($ch, CURLOPT_SSLKEY, $keyPath);
+
+        // Debug si quieres ver errores SSL
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $return = 'Error en cURL: ' . curl_error($ch);
+            // Guardar error en INBOX
+            $errorFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_error.txt';
+            file_put_contents($errorFile, $return);
+        } else {
+            $return = $response;
+            // Guardar respuesta en INBOX
+            $responseFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_response.xml';
+            file_put_contents($responseFile, $response);
+
+            $this->processResponse($response);
+        }
+
+        curl_close($ch);
+        return $return;
+    }
+
+
     /**
      * Procesa la respuesta XML de la AEAT y actualiza el registro en la base de datos
      *
@@ -673,112 +793,129 @@ class VerifactuXML
         if (empty($response)) {
             return;
         }
+        if (empty($this->batch)) {
+            return;
+        }
+        $this->db->begin();
+        try {
+            $dom = new DOMDocument();
+            $dom->loadXML($response);
+            // Verificar si hay un error de esquema (SOAP Fault)
+            $faults = $dom->getElementsByTagNameNS('http://schemas.xmlsoap.org/soap/envelope/', 'Fault');
+            if ($faults->length > 0) {
+                $fault = $faults->item(0);
+                $faultstring = $fault->getElementsByTagName('faultstring')->item(0);
+                if ($faultstring) {
+                    $errorMsg = $faultstring->textContent;
+                    // Actualizar registro con error de esquema
+                    $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
+                    // $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                    // $invoice->update($user);
+                    $this->batch->msg_error = $errorMsg;
+                    $this->batch->updateCommon($user);
+                }
+                $this->db->commit();
+                return 0;
+            }
 
-        $invoice = new Facture($this->db);
-        $invoice->fetch($this->registro->factureid);
+            // Procesar respuesta normal
+            $xpath = new DOMXPath($dom);
+            $xpath->registerNamespace('tikR', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd');
+            $xpath->registerNamespace('tik', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
 
-        $dom = new DOMDocument();
-        $dom->loadXML($response);
-
-        // Verificar si hay un error de esquema (SOAP Fault)
-        $faults = $dom->getElementsByTagNameNS('http://schemas.xmlsoap.org/soap/envelope/', 'Fault');
-        if ($faults->length > 0) {
-            $fault = $faults->item(0);
-            $faultstring = $fault->getElementsByTagName('faultstring')->item(0);
-            if ($faultstring) {
-                $errorMsg = $faultstring->textContent;
+            $respuesta = $xpath->query('//tikR:RespuestaRegFactuSistemaFacturacion')->item(0);
+            if (!$respuesta) {
+                $errorMsg = "Respuesta inválida o no contiene RespuestaRegFactuSistemaFacturacion";
                 // Actualizar registro con error de esquema
-                $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
-                $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
-                $invoice->update($user);
-                $this->registro->msg_error = $errorMsg;
-                $this->registro->updateCommon($user);
+                $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
+                // $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                // $invoice->update($user);
+                $this->batch->msg_error = $errorMsg;
+                $this->batch->updateCommon($user);
+                $this->db->commit();
+                return 0;
             }
-            return;
-        }
 
-        // Procesar respuesta normal
-        $xpath = new DOMXPath($dom);
-        $xpath->registerNamespace('tikR', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd');
-        $xpath->registerNamespace('tik', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+            // Extraer CSV si existe
+            $csvNode = $xpath->query('//tikR:CSV')->item(0);
+            if ($csvNode) {
+                $this->batch->csv = $csvNode->textContent;
+            }
 
-        $respuesta = $xpath->query('//tikR:RespuestaRegFactuSistemaFacturacion')->item(0);
-        if (!$respuesta) {
-            $errorMsg = "Respuesta inválida o no contiene RespuestaRegFactuSistemaFacturacion";
-            // Actualizar registro con error de esquema
-            $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
-            $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
-            $invoice->update($user);
-            $this->registro->msg_error = $errorMsg;
-            $this->registro->updateCommon($user);
-            return;
-        }
-
-        // Extraer CSV si existe
-        $csvNode = $xpath->query('//tikR:CSV')->item(0);
-        if ($csvNode) {
-            $this->registro->csv_line = $csvNode->textContent;
-        }
-
-        // Extraer EstadoEnvio
-        $estadoEnvioNode = $xpath->query('//tikR:EstadoEnvio')->item(0);
-        if ($estadoEnvioNode) {
-            $estadoEnvio = $estadoEnvioNode->textContent;
-            // Aquí puedes mapear EstadoEnvio si es necesario
-        }
-
-        // Procesar RespuestaLinea
-        $respuestaLineas = $xpath->query('//tikR:RespuestaLinea');
-        foreach ($respuestaLineas as $linea) {
-            // Verificar RefExterna para confirmar que es el registro correcto
-            $refExternaNode = $xpath->query('tikR:RefExterna', $linea)->item(0);
-            if ($refExternaNode) {
-                $refExterna = $refExternaNode->textContent;
-                $expectedRef = str_pad($this->registro->id, 20, '0', STR_PAD_LEFT);
-                if ($refExterna !== $expectedRef) {
-                    continue; // No es el registro correcto
+            // Extraer EstadoEnvio
+            $estadoEnvioNode = $xpath->query('//tikR:EstadoEnvio')->item(0);
+            if ($estadoEnvioNode) {
+                $estadoEnvio = $estadoEnvioNode->textContent;
+                if ($estadoEnvio == 'Correcto') {
+                    $this->batch->estado = VERIFACTU_ESTADO_BATCH_CORRECTO;
+                } elseif ($estadoEnvio == 'ParcialmenteCorrecto') {
+                    $this->batch->estado = VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO;
+                } elseif ($estadoEnvio == 'Incorrecto') {
+                    $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
+                } else {
+                    $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO; // Estado desconocido
+                    $this->batch->msg_error = "EstadoEnvio desconocido: $estadoEnvio";
                 }
             }
 
-            // Extraer EstadoRegistro
-            $estadoRegistroNode = $xpath->query('tikR:EstadoRegistro', $linea)->item(0);
-            if ($estadoRegistroNode) {
-                $estadoRegistro = $estadoRegistroNode->textContent;
-                switch ($estadoRegistro) {
-                    case 'Correcto':
-                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_CORRECTO;
-                        $this->registro->msg_error = '';
-                        break;
-                    case 'AceptadoConErrores':
-                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES;
-                        $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
-                        $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
-                        $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
-                            "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
-
-                        break;
-                    case 'Incorrecto':
-                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_INCORRECTO;
-                        $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
-                        $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
-                        $this->registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
-                            "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
-                        break;
-                    // case 'Rechazado':
-                    //     $this->registro->estado = 3;
-                    //     break;
-                    default:
-                        $this->registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO; // Estado desconocido
-                        $this->registro->msg_error = "EstadoRegistro desconocido: $estadoRegistro";
-                        break;
+            // Procesar RespuestaLinea
+            $respuestaLineas = $xpath->query('//tikR:RespuestaLinea');
+            foreach ($respuestaLineas as $linea) {
+                // Verificar RefExterna para confirmar que es el registro correcto
+                $refExternaNode = $xpath->query('tikR:RefExterna', $linea)->item(0);
+                if ($refExternaNode) {
+                    $registro = new VerifactuFacturaRegistro($this->db);
+                    $refExterna = $refExternaNode->textContent;
+                    $expectedRef = ltrim($refExterna, '0');
+                    $registro->fetch($expectedRef);
+                    if (!$registro || $registro->id != $expectedRef) {
+                        continue; // No es el registro que buscamos
+                    }
                 }
-            }
 
-            $invoice->array_options['fk_verifactu_registro_estado'] = $this->registro->estado;
-            $invoice->update($user);
-            $this->registro->updateCommon($user);
-            break; // Asumiendo un solo registro por envío
+                // Extraer EstadoRegistro
+                $estadoRegistroNode = $xpath->query('tikR:EstadoRegistro', $linea)->item(0);
+                if ($estadoRegistroNode) {
+                    $estadoRegistro = $estadoRegistroNode->textContent;
+                    switch ($estadoRegistro) {
+                        case 'Correcto':
+                            $registro->estado = VERIFACTU_ESTADO_REGISTRO_CORRECTO;
+                            $registro->msg_error = '';
+                            break;
+                        case 'AceptadoConErrores':
+                            $registro->estado = VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES;
+                            $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
+                            $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
+                            $registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
+                                "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
+
+                            break;
+                        case 'Incorrecto':
+                            $registro->estado = VERIFACTU_ESTADO_REGISTRO_INCORRECTO;
+                            $codigoErrorRegistroNode = $xpath->query('tikR:CodigoErrorRegistro', $linea)->item(0);
+                            $descripcionErrorRegistroNode = $xpath->query('tikR:DescripcionErrorRegistro', $linea)->item(0);
+                            $registro->msg_error = "CodigoErrorRegistro: " . ($codigoErrorRegistroNode ? $codigoErrorRegistroNode->textContent : '') .
+                                "- DescripcionErrorRegistro: " . ($descripcionErrorRegistroNode ? $descripcionErrorRegistroNode->textContent : '');
+                            break;
+                        // case 'Rechazado':
+                        //     $this->registro->estado = 3;
+                        //     break;
+                        default:
+                            $registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO; // Estado desconocido
+                            $registro->msg_error = "EstadoRegistro desconocido: $estadoRegistro";
+                            break;
+                    }
+                }
+
+                $registro->updateCommon($user);
+            }
+            $this->batch->updateCommon($user);
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+            return -1;
         }
+        return 0;
     }
 
     /**

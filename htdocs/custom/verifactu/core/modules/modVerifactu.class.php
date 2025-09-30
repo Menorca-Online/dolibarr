@@ -834,6 +834,46 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		//añadimos este trigger a la tabla
+
+	// 		CREATE DEFINER = CURRENT_USER TRIGGER `dolibarr_local`.`llx_verifactu_factura_registros_AFTER_INSERT`
+	// AFTER INSERT ON `llx_verifactu_factura_registros`
+	// FOR EACH ROW
+	// BEGIN
+	// 	UPDATE llx_facture_extrafields
+	// 	SET fk_verifactu_registro_estado = NEW.estado
+	// 	WHERE llx_facture_extrafields.rowid = NEW.factureid;
+	// END$$
+	// DELIMITER ;
+
+		$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
+		AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+		FOR EACH ROW
+		BEGIN
+			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+			SET fk_verifactu_registro_estado = NEW.estado
+			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+		END$$";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		//el mismo trigger para el update
+		$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE
+		AFTER UPDATE ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+		FOR EACH ROW
+		BEGIN
+			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+			SET fk_verifactu_registro_estado = NEW.estado
+			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+		END$$";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
 
 		//L10
 		$claveExencion = array(
