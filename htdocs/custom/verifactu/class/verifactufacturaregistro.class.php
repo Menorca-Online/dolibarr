@@ -19,6 +19,7 @@ class VerifactuFacturaRegistro extends CommonObject
     public $msg_error;
     public $csv_line;
     public $operation;
+    public $fk_batch; // Nuevo campo para enlazar con verifactu_batches
     /**
      * Constructor
      */
@@ -42,7 +43,8 @@ class VerifactuFacturaRegistro extends CommonObject
                 'visible' => 1,
                 'notnull' => 1,
                 'foreignkey' => 'c_verifactu_registro_operaciones.rowid'
-            )
+            ),
+            'fk_batch'   => array('type' => 'integer', 'label' => 'Batch',   'enabled' => 1, 'visible' => 1, 'notnull' => 0, 'index' => true, 'foreignkey' => 'verifactu_batches.rowid')
 
         );
     }

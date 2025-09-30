@@ -311,6 +311,7 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<option value="'.VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES ? ' selected' : '').'>Aceptado con Errores</option>';
     print '<option value="'.VERIFACTU_ESTADO_REGISTRO_INCORRECTO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_INCORRECTO ? ' selected' : '').'>Incorrecto</option>';
     print '<option value="'.VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO ? ' selected' : '').'>No Enviado</option>';
+    print '<option value="'.VERIFACTU_ESTADO_REGISTRO_ENVIANDO.'"'.($search_detail_estado == VERIFACTU_ESTADO_REGISTRO_ENVIANDO ? ' selected' : '').'>Enviando</option>';
     print '</select>';
     print '</td>';
     print '<td class="liste_titre">';
@@ -368,6 +369,7 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
                     case VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES: $estado_label = '<span class="badge badge-warning">Aceptado con Errores</span>'; break;
                     case VERIFACTU_ESTADO_REGISTRO_INCORRECTO: $estado_label = '<span class="badge badge-danger">Rechazado</span>'; break;
                     case VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO: $estado_label = '<span class="badge badge-danger">No Enviado</span>'; break;
+                    case VERIFACTU_ESTADO_REGISTRO_ENVIANDO: $estado_label = '<span class="badge badge-info">Enviando</span>'; break;
                     default: $estado_label = '<span class="badge badge-secondary">Desconocido</span>';
                 }
                 print '<td class="center">'.$estado_label.'</td>';

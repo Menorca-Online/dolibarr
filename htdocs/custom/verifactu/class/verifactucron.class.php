@@ -56,7 +56,9 @@ class VerifactuCron extends CommonObject
 		$count = 0;
 		$message = '';
 
-		// Obtener hasta 1000 registros pendientes de envío
+        //abrimos una transcaccion
+        $this->db->begin();
+
 		$sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE estado = 1 ORDER BY rowid ASC LIMIT 1000";
 		$result = $this->db->query($sql);
 
@@ -70,32 +72,26 @@ class VerifactuCron extends CommonObject
             $batch->num_records = $this->db->num_rows($result);
             $batch->csv = '';
             $batch->create($user);
-            die();
-			$registrosProcesados = 0;
-			$errores = 0;
+
 
 			while ($obj = $this->db->fetch_object($result)) {
 				$registro = new VerifactuFacturaRegistro($this->db);
 				if ($registro->fetch($obj->rowid) > 0) {
-                    print "Procesando registro ID " . $obj->rowid . "\n";
-				// 	// Generar y enviar XML
-				// 	$verifactuXML = new VerifactuXML($this->db);
-				// 	$resultadoEnvio = $verifactuXML->enviarYVincular($registro, $user);
-
-				// 	if ($resultadoEnvio) {
-				// 		$registrosProcesados++;
-				// 		dol_syslog("Verifactu Cron: Registro ID " . $obj->rowid . " enviado correctamente", LOG_INFO);
-				// 	} else {
-				// 		$errores++;
-				// 		dol_syslog("Verifactu Cron: Error al enviar registro ID " . $obj->rowid, LOG_ERR);
-				// 	}
-				// } else {
-				// 	$errores++;
-				// 	dol_syslog("Verifactu Cron: Error al cargar registro ID " . $obj->rowid, LOG_ERR);
-				// }
+                    $registro->fk_batch = $batch->id;
+                    $registro->estado = VERIFACTU_ESTADO_REGISTRO_ENVIANDO;
+                    $registro->updateCommon($user);
+                    $count++;
+                } else {
+                    $this->db->rollback();
+                    $message .= "Error al cargar el registro ID " . $obj->rowid . "\n";
+                    return -1;
                 }
 			}
-
+            $this->db->commit();
+            $message = "Se han marcado " . $count . " registros para envío en batch ID " . $batch->rowid . ".";
+            
+            // Aquí podrías llamar a una función para procesar el batch si es necesario
+            // Por ejemplo: $this->procesarBatch($batch, $user, $count, $message);
 			// $this->db->free($result);
 
 			// $count = $registrosProcesados;

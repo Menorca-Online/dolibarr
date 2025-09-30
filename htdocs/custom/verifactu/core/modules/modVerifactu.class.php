@@ -892,6 +892,7 @@ class modVerifactu extends DolibarrModules
 			array('code' => '3', 'label' => '3 - AceptadoConErrores'),
 			array('code' => '4', 'label' => '4 - Incorrecto'),
 			array('code' => '5', 'label' => '5 - Error de sistema, no enviado'),
+			array('code' => '6', 'label' => '6 - Enviando, generando batch de envio'),
 		);
 
 		$registroOperaciones = array(
