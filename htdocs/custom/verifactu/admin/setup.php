@@ -27,7 +27,7 @@
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
-	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"] . "/main.inc.php";
 }
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
 $tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
@@ -38,11 +38,11 @@ while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $t
 	$i--;
 	$j--;
 }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1)) . "/main.inc.php")) {
+	$res = @include substr($tmp, 0, ($i + 1)) . "/main.inc.php";
 }
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php")) {
+	$res = @include dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php";
 }
 // Try main.inc.php using relative path
 if (!$res && file_exists("../../main.inc.php")) {
@@ -56,7 +56,7 @@ if (!$res) {
 }
 
 // Libraries
-require_once DOL_DOCUMENT_ROOT."/core/lib/admin.lib.php";
+require_once DOL_DOCUMENT_ROOT . "/core/lib/admin.lib.php";
 require_once '../lib/verifactu.lib.php';
 //require_once "../class/myclass.class.php";
 
@@ -98,7 +98,7 @@ if (!$user->admin) {
 $useFormSetup = 1;
 
 if (!class_exists('FormSetup')) {
-	require_once DOL_DOCUMENT_ROOT.'/core/class/html.formsetup.class.php';
+	require_once DOL_DOCUMENT_ROOT . '/core/class/html.formsetup.class.php';
 }
 $formSetup = new FormSetup($db);
 
@@ -140,27 +140,27 @@ $item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/Valida
 $item->cssClass = 'minwidth500';
 
 $item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
-$item->helpText ='URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
+$item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 
 $item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
 $item->cssClass = 'minwidth500';
-$item->helpText ='Ruta completa al certificado digital en formato PEM.';
+$item->helpText = 'Ruta completa al certificado digital en formato PEM.';
 
 
 
 $arrayofcustomers = array();
-$sql = "SELECT rowid, nom FROM ".MAIN_DB_PREFIX."societe WHERE client = 1 AND entity = ".$conf->entity." ORDER BY nom";
+$sql = "SELECT rowid, nom FROM " . MAIN_DB_PREFIX . "societe WHERE client = 1 AND entity = " . $conf->entity . " ORDER BY nom";
 $result = $db->query($sql);
 if ($result) {
-    while ($obj = $db->fetch_object($result)) {
-        $arrayofcustomers[$obj->rowid] = $obj->nom;
-    }
+	while ($obj = $db->fetch_object($result)) {
+		$arrayofcustomers[$obj->rowid] = $obj->nom;
+	}
 }
 $item = $formSetup->newItem('INVOICE_CLIENTE_GENERICO');
 $item->setAsSelect($arrayofcustomers);
-$item->helpText ='Cliente genérico para facturas simplificadas. Crear previamente el tercero con NIF 00000000T.';
+$item->helpText = 'Cliente genérico para facturas simplificadas. Crear previamente el tercero con NIF 00000000T.';
 $item->fieldParams['isMandatory'] = 1;
 $item->cssClass = 'minwidth500';
 
@@ -173,38 +173,38 @@ $item->fieldParams['isMandatory'] = 1;
 $item = $formSetup->newItem('VERIFACTU_SISTEMA_NOMBRE');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = 'MENORCAONLINE S.L.';
-$item->helpText ='Nombre del sistema informático que emite la factura electrónica. Por defecto, MENORCAONLINE S.L.';
+$item->helpText = 'Nombre del sistema informático que emite la factura electrónica. Por defecto, MENORCAONLINE S.L.';
 
 $item = $formSetup->newItem('VERIFACTU_SOFTWARE_NOMBRE');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = 'Verifactu';
-$item->helpText ='Nombre del software que genera la factura electrónica. Por defecto, Verifactu';
+$item->helpText = 'Nombre del software que genera la factura electrónica. Por defecto, Verifactu';
 
 $item = $formSetup->newItem('VERIFACTU_SISTEMA_ID');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '123456789';
-$item->helpText ='Identificador del sistema informático que emite la factura electrónica. Por defecto, 123456789';
+$item->helpText = 'Identificador del sistema informático que emite la factura electrónica. Por defecto, 123456789';
 
 $item = $formSetup->newItem('VERIFACTU_SOFTWARE_VERSION');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '1.0.0';
-$item->helpText ='Versión del software que genera la factura electrónica. Por defecto, 1.0.0';
+$item->helpText = 'Versión del software que genera la factura electrónica. Por defecto, 1.0.0';
 
 $item = $formSetup->newItem('VERIFACTU_NUM_INSTALACION');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '123456789';
-$item->helpText ='Número de instalación del sistema informático que emite la factura electrónica. Por defecto, 123456789';
+$item->helpText = 'Número de instalación del sistema informático que emite la factura electrónica. Por defecto, 123456789';
 $item = $formSetup->newItem('VERIFACTU_SOLO_VERIFACTU');
 $item->fieldParams['isMandatory'] = 1;
-$item->helpText ='Si está activado, solo se permitirá el uso de tipos de factura Verifactu en las facturas electrónicas.';
+$item->helpText = 'Si está activado, solo se permitirá el uso de tipos de factura Verifactu en las facturas electrónicas.';
 
 $item = $formSetup->newItem('VERIFACTU_MULTI_OT');
 $item->fieldParams['isMandatory'] = 1;
-$item->helpText ='Si está activado, se permitirá el uso de múltiples operaciones de tipo Verifactu en las facturas electrónicas.';
+$item->helpText = 'Si está activado, se permitirá el uso de múltiples operaciones de tipo Verifactu en las facturas electrónicas.';
 
 $item = $formSetup->newItem('VERIFACTU_INDICADOR_MULTI');
 $item->fieldParams['isMandatory'] = 1;
-$item->helpText ='Si está activado, se permitirá el uso de múltiples indicadores de tipo Verifactu en las facturas electrónicas.';
+$item->helpText = 'Si está activado, se permitirá el uso de múltiples indicadores de tipo Verifactu en las facturas electrónicas.';
 
 
 // // Setup conf for a selection of a secured key
@@ -282,34 +282,54 @@ if ($tmpobjectkey && !array_key_exists($tmpobjectkey, $myTmpObjects)) {
  */
 
 // Crear carpetas necesarias para Verifactu
-$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
-$outbox_dir = $verifactu_dir.'/OUTBOX';
-$inbox_dir = $verifactu_dir.'/INBOX';
+$verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+$outbox_dir = $verifactu_dir . '/OUTBOX';
+$inbox_dir = $verifactu_dir . '/INBOX';
+$outbox_event_dir = $verifactu_dir . '/EVENT_OUTBOX';
+$inbox_event_dir = $verifactu_dir . '/EVENT_INBOX';
 
 // Crear directorio principal de verifactu si no existe
 if (!is_dir($verifactu_dir)) {
 	if (dol_mkdir($verifactu_dir) < 0) {
-		setEventMessages('Error creando directorio '.$verifactu_dir, null, 'errors');
+		setEventMessages('Error creando directorio ' . $verifactu_dir, null, 'errors');
 	} else {
-		setEventMessages('Directorio '.$verifactu_dir.' creado correctamente', null, 'mesgs');
+		setEventMessages('Directorio ' . $verifactu_dir . ' creado correctamente', null, 'mesgs');
 	}
 }
 
 // Crear directorio OUTBOX si no existe
 if (!is_dir($outbox_dir)) {
 	if (dol_mkdir($outbox_dir) < 0) {
-		setEventMessages('Error creando directorio OUTBOX: '.$outbox_dir, null, 'errors');
+		setEventMessages('Error creando directorio OUTBOX: ' . $outbox_dir, null, 'errors');
 	} else {
-		setEventMessages('Directorio OUTBOX creado correctamente: '.$outbox_dir, null, 'mesgs');
+		setEventMessages('Directorio OUTBOX creado correctamente: ' . $outbox_dir, null, 'mesgs');
 	}
 }
 
 // Crear directorio INBOX si no existe
 if (!is_dir($inbox_dir)) {
 	if (dol_mkdir($inbox_dir) < 0) {
-		setEventMessages('Error creando directorio INBOX: '.$inbox_dir, null, 'errors');
+		setEventMessages('Error creando directorio INBOX: ' . $inbox_dir, null, 'errors');
 	} else {
-		setEventMessages('Directorio INBOX creado correctamente: '.$inbox_dir, null, 'mesgs');
+		setEventMessages('Directorio INBOX creado correctamente: ' . $inbox_dir, null, 'mesgs');
+	}
+}
+
+// Crear directorio EVENT_OUTBOX si no existe
+if (!is_dir($outbox_event_dir)) {
+	if (dol_mkdir($outbox_event_dir) < 0) {
+		setEventMessages('Error creando directorio EVENT_OUTBOX: ' . $outbox_event_dir, null, 'errors');
+	} else {
+		setEventMessages('Directorio EVENT_OUTBOX creado correctamente: ' . $outbox_event_dir, null, 'mesgs');
+	}
+}
+
+// Crear directorio EVENT_INBOX si no existe
+if (!is_dir($inbox_event_dir)) {
+	if (dol_mkdir($inbox_event_dir) < 0) {
+		setEventMessages('Error creando directorio EVENT_INBOX: ' . $inbox_event_dir, null, 'errors');
+	} else {
+		setEventMessages('Directorio EVENT_INBOX creado correctamente: ' . $inbox_event_dir, null, 'mesgs');
 	}
 }
 
@@ -318,13 +338,13 @@ if (versioncompare(explode('.', DOL_VERSION), array(15)) < 0 && $action == 'upda
 	$formSetup->saveConfFromPost();
 }
 
-include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
+include DOL_DOCUMENT_ROOT . '/core/actions_setmoduleoptions.inc.php';
 
 // Acción para crear carpetas manualmente
 if ($action == 'create_folders') {
-	$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
-	$outbox_dir = $verifactu_dir.'/OUTBOX';
-	$inbox_dir = $verifactu_dir.'/INBOX';
+	$verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+	$outbox_dir = $verifactu_dir . '/OUTBOX';
+	$inbox_dir = $verifactu_dir . '/INBOX';
 
 	$errors = 0;
 	$messages = array();
@@ -333,36 +353,36 @@ if ($action == 'create_folders') {
 	if (!is_dir($verifactu_dir)) {
 		if (dol_mkdir($verifactu_dir) < 0) {
 			$errors++;
-			$messages[] = 'Error creando directorio principal: '.$verifactu_dir;
+			$messages[] = 'Error creando directorio principal: ' . $verifactu_dir;
 		} else {
-			$messages[] = 'Directorio principal creado: '.$verifactu_dir;
+			$messages[] = 'Directorio principal creado: ' . $verifactu_dir;
 		}
 	} else {
-		$messages[] = 'Directorio principal ya existe: '.$verifactu_dir;
+		$messages[] = 'Directorio principal ya existe: ' . $verifactu_dir;
 	}
 
 	// Crear OUTBOX
 	if (!is_dir($outbox_dir)) {
 		if (dol_mkdir($outbox_dir) < 0) {
 			$errors++;
-			$messages[] = 'Error creando OUTBOX: '.$outbox_dir;
+			$messages[] = 'Error creando OUTBOX: ' . $outbox_dir;
 		} else {
-			$messages[] = 'Directorio OUTBOX creado: '.$outbox_dir;
+			$messages[] = 'Directorio OUTBOX creado: ' . $outbox_dir;
 		}
 	} else {
-		$messages[] = 'Directorio OUTBOX ya existe: '.$outbox_dir;
+		$messages[] = 'Directorio OUTBOX ya existe: ' . $outbox_dir;
 	}
 
 	// Crear INBOX
 	if (!is_dir($inbox_dir)) {
 		if (dol_mkdir($inbox_dir) < 0) {
 			$errors++;
-			$messages[] = 'Error creando INBOX: '.$inbox_dir;
+			$messages[] = 'Error creando INBOX: ' . $inbox_dir;
 		} else {
-			$messages[] = 'Directorio INBOX creado: '.$inbox_dir;
+			$messages[] = 'Directorio INBOX creado: ' . $inbox_dir;
 		}
 	} else {
-		$messages[] = 'Directorio INBOX ya existe: '.$inbox_dir;
+		$messages[] = 'Directorio INBOX ya existe: ' . $inbox_dir;
 	}
 
 	if ($errors > 0) {
@@ -401,9 +421,9 @@ if ($action == 'updateMask') {
 	$className = '';
 	$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 	foreach ($dirmodels as $reldir) {
-		$file = dol_buildpath($reldir."core/modules/verifactu/doc/pdf_".$modele."_".strtolower($tmpobjectkey).".modules.php", 0);
+		$file = dol_buildpath($reldir . "core/modules/verifactu/doc/pdf_" . $modele . "_" . strtolower($tmpobjectkey) . ".modules.php", 0);
 		if (file_exists($file)) {
-			$className = "pdf_".$modele."_".strtolower($tmpobjectkey);
+			$className = "pdf_" . $modele . "_" . strtolower($tmpobjectkey);
 			break;
 		}
 	}
@@ -417,7 +437,7 @@ if ($action == 'updateMask') {
 		'@phan-var-force ModelePDFMyObject $module';
 
 		if ($module->write_file($tmpobject, $langs) > 0) {
-			header("Location: ".DOL_URL_ROOT."/document.php?modulepart=verifactu-".strtolower($tmpobjectkey)."&file=SPECIMEN.pdf");
+			header("Location: " . DOL_URL_ROOT . "/document.php?modulepart=verifactu-" . strtolower($tmpobjectkey) . "&file=SPECIMEN.pdf");
 			return;
 		} else {
 			setEventMessages($module->error, null, 'errors');
@@ -430,7 +450,7 @@ if ($action == 'updateMask') {
 } elseif ($action == 'setmod') {
 	// TODO Check if numbering module chosen can be activated by calling method canBeActivated
 	if (!empty($tmpobjectkey)) {
-		$constforval = 'VERIFACTU_'.strtoupper($tmpobjectkey)."_ADDON";
+		$constforval = 'VERIFACTU_' . strtoupper($tmpobjectkey) . "_ADDON";
 		dolibarr_set_const($db, $constforval, $value, 'chaine', 0, '', $conf->entity);
 	}
 } elseif ($action == 'set') {
@@ -440,7 +460,7 @@ if ($action == 'updateMask') {
 	$ret = delDocumentModel($value, $type);
 	if ($ret > 0) {
 		if (!empty($tmpobjectkey)) {
-			$constforval = 'VERIFACTU_'.strtoupper($tmpobjectkey).'_ADDON_PDF';
+			$constforval = 'VERIFACTU_' . strtoupper($tmpobjectkey) . '_ADDON_PDF';
 			if (getDolGlobalString($constforval) == "$value") {
 				dolibarr_del_const($db, $constforval, $conf->entity);
 			}
@@ -449,7 +469,7 @@ if ($action == 'updateMask') {
 } elseif ($action == 'setdoc') {
 	// Set or unset default model
 	if (!empty($tmpobjectkey)) {
-		$constforval = 'VERIFACTU_'.strtoupper($tmpobjectkey).'_ADDON_PDF';
+		$constforval = 'VERIFACTU_' . strtoupper($tmpobjectkey) . '_ADDON_PDF';
 		if (dolibarr_set_const($db, $constforval, $value, 'chaine', 0, '', $conf->entity)) {
 			// The constant that was read before the new set
 			// We therefore requires a variable to have a coherent view
@@ -464,7 +484,7 @@ if ($action == 'updateMask') {
 	}
 } elseif ($action == 'unsetdoc') {
 	if (!empty($tmpobjectkey)) {
-		$constforval = 'VERIFACTU_'.strtoupper($tmpobjectkey).'_ADDON_PDF';
+		$constforval = 'VERIFACTU_' . strtoupper($tmpobjectkey) . '_ADDON_PDF';
 		dolibarr_del_const($db, $constforval, $conf->entity);
 	}
 }
@@ -484,7 +504,7 @@ $title = "VerifactuSetup";
 llxHeader('', $langs->trans($title), $help_url, '', 0, 0, '', '', '', 'mod-verifactu page-admin');
 
 // Subheader
-$linkback = '<a href="'.($backtopage ? $backtopage : DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1').'">'.$langs->trans("BackToModuleList").'</a>';
+$linkback = '<a href="' . ($backtopage ? $backtopage : DOL_URL_ROOT . '/admin/modules.php?restore_lastsearch_values=1') . '">' . $langs->trans("BackToModuleList") . '</a>';
 
 print load_fiche_titre($langs->trans($title), $linkback, 'title_setup');
 
@@ -493,7 +513,7 @@ $head = verifactuAdminPrepareHead();
 print dol_get_fiche_head($head, 'settings', $langs->trans($title), -1, "verifactu@verifactu");
 
 // Setup page goes here
-echo '<span class="opacitymedium">'.$langs->trans("VerifactuSetupPage").'</span><br><br>';
+echo '<span class="opacitymedium">' . $langs->trans("VerifactuSetupPage") . '</span><br><br>';
 
 
 /*if ($action == 'edit') {
@@ -517,14 +537,14 @@ print load_fiche_titre($langs->trans("VerifactuFolders"), '', '');
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
-print '<th>'.$langs->trans("Folder").'</th>';
-print '<th>'.$langs->trans("Path").'</th>';
-print '<th class="center">'.$langs->trans("Status").'</th>';
+print '<th>' . $langs->trans("Folder") . '</th>';
+print '<th>' . $langs->trans("Path") . '</th>';
+print '<th class="center">' . $langs->trans("Status") . '</th>';
 print '</tr>';
 
-$verifactu_dir = DOL_DATA_ROOT.'/verifactu';
-$outbox_dir = $verifactu_dir.'/OUTBOX';
-$inbox_dir = $verifactu_dir.'/INBOX';
+$verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+$outbox_dir = $verifactu_dir . '/OUTBOX';
+$inbox_dir = $verifactu_dir . '/INBOX';
 
 // Mostrar estado de las carpetas
 $folders = array(
@@ -535,13 +555,13 @@ $folders = array(
 
 foreach ($folders as $name => $path) {
 	print '<tr class="oddeven">';
-	print '<td>'.$name.'</td>';
-	print '<td><code>'.$path.'</code></td>';
+	print '<td>' . $name . '</td>';
+	print '<td><code>' . $path . '</code></td>';
 	print '<td class="center">';
 	if (is_dir($path)) {
-		print '<span class="badge badge-status4 badge-status">'.$langs->trans("Exists").'</span>';
+		print '<span class="badge badge-status4 badge-status">' . $langs->trans("Exists") . '</span>';
 	} else {
-		print '<span class="badge badge-status8 badge-status">'.$langs->trans("NotExists").'</span>';
+		print '<span class="badge badge-status8 badge-status">' . $langs->trans("NotExists") . '</span>';
 	}
 	print '</td>';
 	print '</tr>';
@@ -552,7 +572,7 @@ print '</div>';
 
 // Botón para crear carpetas
 print '<div class="tabsAction">';
-print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=create_folders&token='.newToken().'">'.$langs->trans("CreateFolders").'</a>';
+print '<a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?action=create_folders&token=' . newToken() . '">' . $langs->trans("CreateFolders") . '</a>';
 print '</div>';
 print '<br>';
 
@@ -567,26 +587,26 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 
 		print '<table class="noborder centpercent">';
 		print '<tr class="liste_titre">';
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="nowrap">'.$langs->trans("Example").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status").'</td>';
-		print '<td class="center" width="16">'.$langs->trans("ShortInfo").'</td>';
-		print '</tr>'."\n";
+		print '<td>' . $langs->trans("Name") . '</td>';
+		print '<td>' . $langs->trans("Description") . '</td>';
+		print '<td class="nowrap">' . $langs->trans("Example") . '</td>';
+		print '<td class="center" width="60">' . $langs->trans("Status") . '</td>';
+		print '<td class="center" width="16">' . $langs->trans("ShortInfo") . '</td>';
+		print '</tr>' . "\n";
 
 		clearstatcache();
 
 		foreach ($dirmodels as $reldir) {
-			$dir = dol_buildpath($reldir."core/modules/".$moduledir);
+			$dir = dol_buildpath($reldir . "core/modules/" . $moduledir);
 
 			if (is_dir($dir)) {
 				$handle = opendir($dir);
 				if (is_resource($handle)) {
 					while (($file = readdir($handle)) !== false) {
-						if (strpos($file, 'mod_'.strtolower($myTmpObjectKey).'_') === 0 && substr($file, dol_strlen($file) - 3, 3) == 'php') {
+						if (strpos($file, 'mod_' . strtolower($myTmpObjectKey) . '_') === 0 && substr($file, dol_strlen($file) - 3, 3) == 'php') {
 							$file = substr($file, 0, dol_strlen($file) - 4);
 
-							require_once $dir.'/'.$file.'.php';
+							require_once $dir . '/' . $file . '.php';
 
 							$module = new $file($db);
 							'@phan-var-force ModeleNumRefMyObject $module';
@@ -600,9 +620,9 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 							}
 
 							if ($module->isEnabled()) {
-								dol_include_once('/'.$moduledir.'/class/'.strtolower($myTmpObjectKey).'.class.php');
+								dol_include_once('/' . $moduledir . '/class/' . strtolower($myTmpObjectKey) . '.class.php');
 
-								print '<tr class="oddeven"><td>'.$module->getName($langs)."</td><td>\n";
+								print '<tr class="oddeven"><td>' . $module->getName($langs) . "</td><td>\n";
 								print $module->info($langs);
 								print '</td>';
 
@@ -611,22 +631,22 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 								$tmp = $module->getExample();
 								if (preg_match('/^Error/', $tmp)) {
 									$langs->load("errors");
-									print '<div class="error">'.$langs->trans($tmp).'</div>';
+									print '<div class="error">' . $langs->trans($tmp) . '</div>';
 								} elseif ($tmp == 'NotConfigured') {
 									print $langs->trans($tmp);
 								} else {
 									print $tmp;
 								}
-								print '</td>'."\n";
+								print '</td>' . "\n";
 
 								print '<td class="center">';
-								$constforvar = 'VERIFACTU_'.strtoupper($myTmpObjectKey).'_ADDON';
+								$constforvar = 'VERIFACTU_' . strtoupper($myTmpObjectKey) . '_ADDON';
 								$defaultifnotset = 'thevaluetousebydefault';
 								$activenumberingmodel = getDolGlobalString($constforvar, $defaultifnotset);
 								if ($activenumberingmodel == $file) {
 									print img_picto($langs->trans("Activated"), 'switch_on');
 								} else {
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setmod&token='.newToken().'&object='.strtolower($myTmpObjectKey).'&value='.urlencode($file).'">';
+									print '<a href="' . $_SERVER["PHP_SELF"] . '?action=setmod&token=' . newToken() . '&object=' . strtolower($myTmpObjectKey) . '&value=' . urlencode($file) . '">';
 									print img_picto($langs->trans("Disabled"), 'switch_off');
 									print '</a>';
 								}
@@ -639,18 +659,18 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 
 								// Info
 								$htmltooltip = '';
-								$htmltooltip .= ''.$langs->trans("Version").': <b>'.$module->getVersion().'</b><br>';
+								$htmltooltip .= '' . $langs->trans("Version") . ': <b>' . $module->getVersion() . '</b><br>';
 
 								$nextval = $module->getNextValue($mytmpinstance);
 								if ("$nextval" != $langs->trans("NotAvailable")) {  // Keep " on nextval
-									$htmltooltip .= ''.$langs->trans("NextValue").': ';
+									$htmltooltip .= '' . $langs->trans("NextValue") . ': ';
 									if ($nextval) {
 										if (preg_match('/^Error/', $nextval) || $nextval == 'NotConfigured') {
 											$nextval = $langs->trans($nextval);
 										}
-										$htmltooltip .= $nextval.'<br>';
+										$htmltooltip .= $nextval . '<br>';
 									} else {
-										$htmltooltip .= $langs->trans($module->error).'<br>';
+										$htmltooltip .= $langs->trans($module->error) . '<br>';
 									}
 								}
 
@@ -681,9 +701,9 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 		// Load array def with activated templates
 		$def = array();
 		$sql = "SELECT nom";
-		$sql .= " FROM ".$db->prefix()."document_model";
-		$sql .= " WHERE type = '".$db->escape($type)."'";
-		$sql .= " AND entity = ".$conf->entity;
+		$sql .= " FROM " . $db->prefix() . "document_model";
+		$sql .= " WHERE type = '" . $db->escape($type) . "'";
+		$sql .= " AND entity = " . $conf->entity;
 		$resql = $db->query($sql);
 		if ($resql) {
 			$i = 0;
@@ -697,21 +717,21 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 			dol_print_error($db);
 		}
 
-		print '<table class="noborder centpercent">'."\n";
-		print '<tr class="liste_titre">'."\n";
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status")."</td>\n";
-		print '<td class="center" width="60">'.$langs->trans("Default")."</td>\n";
-		print '<td class="center" width="38">'.$langs->trans("ShortInfo").'</td>';
-		print '<td class="center" width="38">'.$langs->trans("Preview").'</td>';
+		print '<table class="noborder centpercent">' . "\n";
+		print '<tr class="liste_titre">' . "\n";
+		print '<td>' . $langs->trans("Name") . '</td>';
+		print '<td>' . $langs->trans("Description") . '</td>';
+		print '<td class="center" width="60">' . $langs->trans("Status") . "</td>\n";
+		print '<td class="center" width="60">' . $langs->trans("Default") . "</td>\n";
+		print '<td class="center" width="38">' . $langs->trans("ShortInfo") . '</td>';
+		print '<td class="center" width="38">' . $langs->trans("Preview") . '</td>';
 		print "</tr>\n";
 
 		clearstatcache();
 
 		foreach ($dirmodels as $reldir) {
 			foreach (array('', '/doc') as $valdir) {
-				$realpath = $reldir."core/modules/".$moduledir.$valdir;
+				$realpath = $reldir . "core/modules/" . $moduledir . $valdir;
 				$dir = dol_buildpath($realpath);
 
 				if (is_dir($dir)) {
@@ -726,11 +746,11 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 
 						foreach ($filelist as $file) {
 							if (preg_match('/\.modules\.php$/i', $file) && preg_match('/^(pdf_|doc_)/', $file)) {
-								if (file_exists($dir.'/'.$file)) {
+								if (file_exists($dir . '/' . $file)) {
 									$name = substr($file, 4, dol_strlen($file) - 16);
 									$className = substr($file, 0, dol_strlen($file) - 12);
 
-									require_once $dir.'/'.$file;
+									require_once $dir . '/' . $file;
 									$module = new $className($db);
 									'@phan-var-force ModelePDFMyObject $module';
 
@@ -755,40 +775,40 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 
 										// Active
 										if (in_array($name, $def)) {
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&token='.newToken().'&value='.urlencode($name).'">';
+											print '<td class="center">' . "\n";
+											print '<a href="' . $_SERVER["PHP_SELF"] . '?action=del&token=' . newToken() . '&value=' . urlencode($name) . '">';
 											print img_picto($langs->trans("Enabled"), 'switch_on');
 											print '</a>';
 											print '</td>';
 										} else {
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
+											print '<td class="center">' . "\n";
+											print '<a href="' . $_SERVER["PHP_SELF"] . '?action=set&token=' . newToken() . '&value=' . urlencode($name) . '&scan_dir=' . urlencode($module->scandir) . '&label=' . urlencode($module->name) . '">' . img_picto($langs->trans("Disabled"), 'switch_off') . '</a>';
 											print "</td>";
 										}
 
 										// Default
 										print '<td class="center">';
-										$constforvar = 'VERIFACTU_'.strtoupper($myTmpObjectKey).'_ADDON_PDF';
+										$constforvar = 'VERIFACTU_' . strtoupper($myTmpObjectKey) . '_ADDON_PDF';
 										if (getDolGlobalString($constforvar) == $name) {
 											//print img_picto($langs->trans("Default"), 'on');
 											// Even if choice is the default value, we allow to disable it. Replace this with previous line if you need to disable unset
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=unsetdoc&token='.newToken().'&object='.urlencode(strtolower($myTmpObjectKey)).'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'&amp;type='.urlencode($type).'" alt="'.$langs->trans("Disable").'">'.img_picto($langs->trans("Enabled"), 'on').'</a>';
+											print '<a href="' . $_SERVER["PHP_SELF"] . '?action=unsetdoc&token=' . newToken() . '&object=' . urlencode(strtolower($myTmpObjectKey)) . '&value=' . urlencode($name) . '&scan_dir=' . urlencode($module->scandir) . '&label=' . urlencode($module->name) . '&amp;type=' . urlencode($type) . '" alt="' . $langs->trans("Disable") . '">' . img_picto($langs->trans("Enabled"), 'on') . '</a>';
 										} else {
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&object='.urlencode(strtolower($myTmpObjectKey)).'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
+											print '<a href="' . $_SERVER["PHP_SELF"] . '?action=setdoc&token=' . newToken() . '&object=' . urlencode(strtolower($myTmpObjectKey)) . '&value=' . urlencode($name) . '&scan_dir=' . urlencode($module->scandir) . '&label=' . urlencode($module->name) . '" alt="' . $langs->trans("Default") . '">' . img_picto($langs->trans("Disabled"), 'off') . '</a>';
 										}
 										print '</td>';
 
 										// Info
-										$htmltooltip = ''.$langs->trans("Name").': '.$module->name;
-										$htmltooltip .= '<br>'.$langs->trans("Type").': '.($module->type ? $module->type : $langs->trans("Unknown"));
+										$htmltooltip = '' . $langs->trans("Name") . ': ' . $module->name;
+										$htmltooltip .= '<br>' . $langs->trans("Type") . ': ' . ($module->type ? $module->type : $langs->trans("Unknown"));
 										if ($module->type == 'pdf') {
-											$htmltooltip .= '<br>'.$langs->trans("Width").'/'.$langs->trans("Height").': '.$module->page_largeur.'/'.$module->page_hauteur;
+											$htmltooltip .= '<br>' . $langs->trans("Width") . '/' . $langs->trans("Height") . ': ' . $module->page_largeur . '/' . $module->page_hauteur;
 										}
-										$htmltooltip .= '<br>'.$langs->trans("Path").': '.preg_replace('/^\//', '', $realpath).'/'.$file;
+										$htmltooltip .= '<br>' . $langs->trans("Path") . ': ' . preg_replace('/^\//', '', $realpath) . '/' . $file;
 
-										$htmltooltip .= '<br><br><u>'.$langs->trans("FeaturesSupported").':</u>';
-										$htmltooltip .= '<br>'.$langs->trans("Logo").': '.yn($module->option_logo, 1, 1);
-										$htmltooltip .= '<br>'.$langs->trans("MultiLanguage").': '.yn($module->option_multilang, 1, 1);
+										$htmltooltip .= '<br><br><u>' . $langs->trans("FeaturesSupported") . ':</u>';
+										$htmltooltip .= '<br>' . $langs->trans("Logo") . ': ' . yn($module->option_logo, 1, 1);
+										$htmltooltip .= '<br>' . $langs->trans("MultiLanguage") . ': ' . yn($module->option_multilang, 1, 1);
 
 										print '<td class="center">';
 										print $form->textwithpicto('', $htmltooltip, 1, 'info');
@@ -797,8 +817,8 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 										// Preview
 										print '<td class="center">';
 										if ($module->type == 'pdf') {
-											$newname = preg_replace('/_'.preg_quote(strtolower($myTmpObjectKey), '/').'/', '', $name);
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&module='.urlencode($newname).'&object='.urlencode($myTmpObjectKey).'">'.img_object($langs->trans("Preview"), 'pdf').'</a>';
+											$newname = preg_replace('/_' . preg_quote(strtolower($myTmpObjectKey), '/') . '/', '', $name);
+											print '<a href="' . $_SERVER["PHP_SELF"] . '?action=specimen&module=' . urlencode($newname) . '&object=' . urlencode($myTmpObjectKey) . '">' . img_object($langs->trans("Preview"), 'pdf') . '</a>';
 										} else {
 											print img_object($langs->transnoentitiesnoconv("PreviewNotAvailable"), 'generic');
 										}
@@ -819,7 +839,7 @@ foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
 }
 
 if (empty($setupnotempty)) {
-	print '<br>'.$langs->trans("NothingToSetup");
+	print '<br>' . $langs->trans("NothingToSetup");
 }
 
 // Page end

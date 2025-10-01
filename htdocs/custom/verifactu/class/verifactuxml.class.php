@@ -44,7 +44,7 @@ class VerifactuXML
      *
      * @param DoliDB $db Database handler
      */
-    public function __construct($db, VerifactuBatch $batch)
+    public function __construct($db, VerifactuBatch|VerifactuEventBatch $batch)
     {
         $this->db = $db;
         $this->batch = $batch;
@@ -104,7 +104,7 @@ class VerifactuXML
      * @return string XML generado
      * @throws Exception Si hay errores en la generación
      */
-    public function generateRegistro($dom, $parent, $registro, $facture)
+    public function generateRegistroFactura($dom, $parent, $registro, $facture)
     {
 
         $registroFactura = $dom->createElement('sum:RegistroFactura');
@@ -200,6 +200,60 @@ class VerifactuXML
     }
 
 
+    public function generateRegistroEvento($dom, $parent, $registro)
+    {
+
+        $nodoPrincipal = $dom->createElement('sum:NodoPrincipal');
+        $parent->appendChild($nodoPrincipal);
+
+        $hashData = json_decode($registro->hash_data, true);
+
+
+        // sum1:RegistroEvento
+        $registroevento = $dom->createElement('sum1:RegistroEvento');
+        $nodoPrincipal->appendChild($registroevento);
+
+        // 1. IDVersion
+        $this->addElement($dom, $registroevento, 'sum1:IDVersion', '1.0');
+
+        // 2.Evento
+        $evento = $dom->createElement('sum1:Evento');
+        $registroevento->appendChild($evento);
+
+        // 3. Sistema Informatico
+        $this->addSistemaInformatico($dom, $evento);
+
+        // 4. ObligadoEmisión
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $evento->appendChild($obligadoEmision);
+
+        // 5. FechahoraHusoGenEvento
+        $fechaHora = $hashData['FechaHoraHusoGenRegistro'];
+        $this->addElement($dom, $evento, 'sum1:FechaHoraHusoGenEvento', $fechaHora);
+
+        // 6. TipoEvento
+        $this->addElement($dom, $evento, 'sum1:TipoEvento', $registro->tipo_evento_id);
+
+        // 7. DatosPropiosEvento
+
+        $this->addDatosPropiosEvento($dom, $evento, $registro->datos_propio_evento);
+
+        // 8. OtrosDatosEvento (enviaremos el str pad left con 0s de 20 posiciones del id del registro)
+        $refExterna = str_pad($registro->id, 20, '0', STR_PAD_LEFT);
+        $this->addElement($dom, $evento, 'sum1:OtrosDatosEvento', $refExterna);
+
+        // 9. Encadenamiento
+        $this->addEncadenamiento($dom, $evento, $registro);
+
+        // 10. TipoHuella
+        $this->addElement($dom, $evento, 'sum1:TipoHuella', '01');
+
+        // 11. HuellaEvento
+        $huella = $registro->hash;
+        $this->addElement($dom, $evento, 'sum1:HuellaEvento', $huella);
+    }
+
+
 
     /**
      * Genera el XML de un RegistroAlta para una factura
@@ -269,7 +323,7 @@ class VerifactuXML
             $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
         }
 
-        $this->generateRegistro($dom, $regFactu, $registro, $this->facture);
+        $this->generateRegistroFactura($dom, $regFactu, $registro, $this->facture);
 
         $this->xml = $dom->saveXML();
         return $this->xml;
@@ -327,7 +381,60 @@ class VerifactuXML
             $facture->fetch($registro->factureid);
             $facture->fetch_lines();
             $facture->fetch_thirdparty();
-            $this->generateRegistro($dom, $regFactu, $registro, $facture);
+            $this->generateRegistroFactura($dom, $regFactu, $registro, $facture);
+        }
+        $this->xml = $dom->saveXML();
+    }
+
+    private function generateEnvioFromBatchEvento()
+    {
+        global $conf;
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para generar XML Verifactu');
+        }
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+
+        // Crear elemento raíz soapenv:Envelope con todos los namespaces
+        $envelope = $dom->createElement('soapenv:Envelope');
+        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
+        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
+        $dom->appendChild($envelope);
+
+        // soapenv:Header (vacío)
+        $header = $dom->createElement('soapenv:Header');
+        $envelope->appendChild($header);
+
+        // soapenv:Body
+        $body = $dom->createElement('soapenv:Body');
+        $envelope->appendChild($body);
+
+        // sum:RegFactuSistemaFacturacion
+        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
+        $body->appendChild($regFactu);
+
+        // sum:Cabecera
+        $cabecera = $dom->createElement('sum:Cabecera');
+        $regFactu->appendChild($cabecera);
+
+        // sum1:ObligadoEmision
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $cabecera->appendChild($obligadoEmision);
+
+        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
+        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+        if ($conf->global->VERIFACTU_PODER_AEAT == "1") {
+            // sum1:Representante
+            $representante = $dom->createElement('sum1:Representante');
+            $cabecera->appendChild($representante);
+            $this->addElement($dom, $representante, 'sum1:NombreRazon', 'MENORCA ONLINE SL');
+            $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
+        }
+        foreach ($this->batch->registros() as $registro) {
+            $this->generateRegistroEvento($dom, $regFactu, $registro);
         }
         $this->xml = $dom->saveXML();
     }
@@ -606,27 +713,43 @@ class VerifactuXML
     /**
      * Agrega elemento Encadenamiento al XML
      */
-    private function addEncadenamiento($dom, $parent, VerifactuFacturaRegistro $registro)
+    private function addEncadenamiento($dom, $parent, VerifactuFacturaRegistro|VerifactuEventRegistro $registro)
     {
 
         $encadenamiento = $dom->createElement('sum1:Encadenamiento');
 
         $registroAnteriorData = $registro->getPreviousRegister();
 
+        $esRegistroFactura = $registro instanceof VerifactuFacturaRegistro;
 
         if ($registroAnteriorData) {
             $data = json_decode($registroAnteriorData->hash_data, true);
             if ($data) {
-                $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
-                $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
-                $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $data['NumSerieFactura'] ? $data['NumSerieFactura'] : $data['NumSerieFacturaAnulada']);
-                $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $data['FechaExpedicionFactura'] ? $data['FechaExpedicionFactura'] : $data['FechaExpedicionFacturaAnulada']);
-                $this->addElement($dom, $registroAnterior, 'sum1:Huella', $registroAnteriorData->hash);
-                $encadenamiento->appendChild($registroAnterior);
+                if ($esRegistroFactura) {
+                    $registroAnterior = $dom->createElement('sum1:RegistroAnterior');
+                    $this->addElement($dom, $registroAnterior, 'sum1:IDEmisorFactura', $this->config['emisor_nif']);
+                    $this->addElement($dom, $registroAnterior, 'sum1:NumSerieFactura', $data['NumSerieFactura'] ? $data['NumSerieFactura'] : $data['NumSerieFacturaAnulada']);
+                    $this->addElement($dom, $registroAnterior, 'sum1:FechaExpedicionFactura', $data['FechaExpedicionFactura'] ? $data['FechaExpedicionFactura'] : $data['FechaExpedicionFacturaAnulada']);
+                    $this->addElement($dom, $registroAnterior, 'sum1:Huella', $registroAnteriorData->hash);
+                    $encadenamiento->appendChild($registroAnterior);
+                } else {
+                    //registro de evento
+                    $registroAnterior = $dom->createElement('sum1:EventoAnterior');
+                    $this->addElement($dom, $registroAnterior, 'sum1:TipoEvento', $data['TipoEvento']);
+                    $this->addElement($dom, $registroAnterior, 'sum1:FechaHoraHusoGenEvento', $data['FechaHoraHusoGenEvento']);
+                    $this->addElement($dom, $registroAnterior, 'sum1:HuellaEvento', $registroAnteriorData->hash);
+                    $encadenamiento->appendChild($registroAnterior);
+                }
             }
         } else {
-            $primerRegistro = $dom->createElement('sum1:PrimerRegistro', 'S');
-            $encadenamiento->appendChild($primerRegistro);
+            if ($esRegistroFactura) {
+                $primerRegistro = $dom->createElement('sum1:PrimerRegistro', 'S');
+                $encadenamiento->appendChild($primerRegistro);
+            } else {
+                //registro de evento
+                $primerRegistro = $dom->createElement('sum1:PrimerEvento', 'S');
+                $encadenamiento->appendChild($primerRegistro);
+            }
         }
         $parent->appendChild($encadenamiento);
     }
@@ -651,6 +774,21 @@ class VerifactuXML
 
         $parent->appendChild($sistema);
     }
+
+    /* 
+     * Agrega elemento DatosPropiosEvento al XML
+     */
+    private function addDatosPropiosEvento($dom, $parent, $datosPropiosEvento)
+    {
+        $datosPropiosEventoElem = $dom->createElement('sum1:DatosPropiosEvento');
+
+        foreach ($datosPropiosEvento as $key => $value) {
+            $this->addElement($dom, $datosPropiosEventoElem, 'sum1:' . $key, $value);
+        }
+
+        $parent->appendChild($datosPropiosEventoElem);
+    }
+
 
     /**
      * Genera timestamp en formato ISO 8601
@@ -782,6 +920,62 @@ class VerifactuXML
             $this->addFileToInvoice($responseFile, 'Verifactu Batch Response ' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT), $relatedFactures);
 
             $this->processResponse($response);
+        }
+
+        curl_close($ch);
+        return $return;
+    }
+    public function sendBatchEvent()
+    {
+        global $conf;
+
+
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para enviar a Verifactu');
+        }
+
+        $this->generateEnvioFromBatchEvento();
+
+        $verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+        $outbox_dir = $verifactu_dir . '/EVENT_OUTBOX';
+        $inbox_dir = $verifactu_dir . '/EVENT_INBOX';
+        //guardamos el xml a enviar en OUTBOX con el nombre de la factura
+        $file = $outbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '.xml';
+        file_put_contents($file, $this->xml);
+
+        $return = "";
+
+        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        #$url = "https://google.com";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: RegFactuSistemaFacturacion"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
+        $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
+
+        curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
+        curl_setopt($ch, CURLOPT_SSLKEY, $keyPath);
+
+        // Debug si quieres ver errores SSL
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $return = 'Error en cURL: ' . curl_error($ch);
+            // Guardar error en INBOX
+            $errorFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_error.txt';
+            file_put_contents($errorFile, $return);
+        } else {
+            $return = $response;
+            // Guardar respuesta en INBOX
+            $responseFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_response.xml';
+            file_put_contents($responseFile, $response);
         }
 
         curl_close($ch);
@@ -1032,8 +1226,8 @@ class VerifactuXML
             }
         }
 
-         $this->createSymLink($filePath, $conf->facture->multidir_output[$facture ? $facture->entity : $this->facture->entity] . '/' .  ($facture ? $facture->ref : $this->facture->ref) . '/' . $fileName);
-         return true;
+        $this->createSymLink($filePath, $conf->facture->multidir_output[$facture ? $facture->entity : $this->facture->entity] . '/' .  ($facture ? $facture->ref : $this->facture->ref) . '/' . $fileName);
+        return true;
         // require_once DOL_DOCUMENT_ROOT . '/ecm/class/ecmfiles.class.php';
         // $ecmfile = new EcmFiles($this->db);
 
