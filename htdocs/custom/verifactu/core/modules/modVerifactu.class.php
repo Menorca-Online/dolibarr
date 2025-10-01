@@ -1265,7 +1265,7 @@ class modVerifactu extends DolibarrModules
 				$default_regimen,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_regimenes:label:rowid:::(active:=:1)" => null
+						"c_verifactu_clave_regimenes:label:rowid::(active:=:1)" => null
 					]
 				]),
 				1,                                    // $alwayseditable
