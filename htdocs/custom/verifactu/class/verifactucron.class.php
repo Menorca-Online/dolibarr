@@ -55,70 +55,54 @@ class VerifactuCron extends CommonObject
 
 		$count = 0;
 		$message = '';
+		$this->db->begin();
+		try {
+			$sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE estado = 1 ORDER BY rowid ASC LIMIT 1000";
+			$result = $this->db->query($sql);
+			if ($result && $this->db->num_rows($result) > 0) {
+				$batch = new VerifactuBatch($this->db);
+				$batch->fecha = dol_now();
+				$batch->estado = VERIFACTU_ESTADO_BATCH_PENDIENTE;
+				$batch->msg_error = '';
+				$batch->num_records = $this->db->num_rows($result);
+				$batch->csv = '';
+				$batch->create($user);
 
-		return 0;
-        //permite hacer envio?
-        //sino returnr 0
-        
+				while ($obj = $this->db->fetch_object($result)) {
+					$registro = new VerifactuFacturaRegistro($this->db);
+					if ($registro->fetch($obj->rowid) > 0) {
+						$registro->fk_batch = $batch->id;
+						$registro->estado = VERIFACTU_ESTADO_REGISTRO_ENVIANDO;
+						$registro->updateCommon($user);
+						$count++;
+					} else {
+						$this->db->rollback();
+						$message .= "Error al cargar el registro ID " . $obj->rowid . "\n";
+						return -1;
+					}
+				}
 
-        //abrimos una transcaccion
-        $this->db->begin();
+				$message = "Se han marcado " . $count . " registros para envío en batch ID " . $batch->rowid . ".";
+				
 
-		$sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE estado = 1 ORDER BY rowid ASC LIMIT 1000";
-		$result = $this->db->query($sql);
-
-
-		if ($result && $this->db->num_rows($result) > 0) {
-            
-            $batch = new VerifactuBatch($this->db);
-            $batch->fecha = dol_now();
-            $batch->estado = VERIFACTU_ESTADO_BATCH_PENDIENTE;
-            $batch->msg_error = '';
-            $batch->num_records = $this->db->num_rows($result);
-            $batch->csv = '';
-            $batch->create($user);
-
-
-			while ($obj = $this->db->fetch_object($result)) {
-				$registro = new VerifactuFacturaRegistro($this->db);
-				if ($registro->fetch($obj->rowid) > 0) {
-                    $registro->fk_batch = $batch->id;
-                    $registro->estado = VERIFACTU_ESTADO_REGISTRO_ENVIANDO;
-                    $registro->updateCommon($user);
-                    $count++;
-                } else {
-                    $this->db->rollback();
-                    $message .= "Error al cargar el registro ID " . $obj->rowid . "\n";
-                    return -1;
-                }
+			} else {
+				$message = "No hay registros pendientes de envío.";
 			}
-            $this->db->commit();
-            $message = "Se han marcado " . $count . " registros para envío en batch ID " . $batch->rowid . ".";
-            $xml = new VerifactuXML($this->db, $batch);
-            $result = $xml->sendBatch();
-
-            if ($result < 0) {
-                $this->db->rollback();
-                $message .= "Error al enviar el batch ID " . $batch->rowid . "\n";
-                return -1;
-            }
-
-            // Aquí podrías llamar a una función para procesar el batch si es necesario
-            // Por ejemplo: $this->procesarBatch($batch, $user, $count, $message);
-			// $this->db->free($result);
-
-			// $count = $registrosProcesados;
-			// $message = "Procesados: " . $registrosProcesados . ", Errores: " . $errores;
-
-			// if ($errores > 0) {
-			// 	return -1; // Indicar que hubo errores
-			// }
-		} else {
-			$message = "No hay registros pendientes de envío.";
-			return 0;  // Cambiado de 1 a 0
+			$this->db->commit();
+			$message .= "Proceso completado correctamente.";
+		} catch (Exception $e) {
+			$this->db->rollback();
+			$message = "Error al cargar el usuario admin.";
+			return 0;
 		}
 
-		$message .= "Proceso completado correctamente.";
+		try {
+			$xml = new VerifactuXML($this->db, $batch);
+			$result = $xml->sendBatch();
+		} catch (Exception $e) {
+			$message = "Error al enviar el batch ID " . $batch->rowid . ": " . $e->getMessage();
+			return 0;
+		}
 		return 0;
 	}
 }
