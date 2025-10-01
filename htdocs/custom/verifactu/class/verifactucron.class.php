@@ -118,6 +118,6 @@ class VerifactuCron extends CommonObject
 		}
 
 		$message .= "Proceso completado correctamente.";
-		return 1;
+		return 0;
 	}
 }
