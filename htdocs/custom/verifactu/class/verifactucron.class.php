@@ -56,6 +56,7 @@ class VerifactuCron extends CommonObject
 		$count = 0;
 		$message = '';
 
+		return 0;
         //permite hacer envio?
         //sino returnr 0
         
