@@ -386,7 +386,7 @@ class modVerifactu extends DolibarrModules
 				'parameters' => '',
 				'comment' => 'Procesa y envía batches de hasta 1000 registros pendientes al webservice de Verifactu',
 				'frequency' => 1,
-				'unitfrequency' => 60,  // Cada minuto
+				'unitfrequency' => 1,  // Cada minuto
 				'status' => 0,
 				'test' => 'isModEnabled("verifactu")',
 				'priority' => 50,
