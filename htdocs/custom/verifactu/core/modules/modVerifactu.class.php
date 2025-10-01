@@ -1128,6 +1128,14 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_estado_batch";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+		
+
 		return 1;
 	}
 
