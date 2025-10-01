@@ -1172,7 +1172,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"c_verifactu_facture_types:label:rowid:active:=:1" => null
+						"c_verifactu_facture_types:label:rowid::active:=:1" => null
 					]
 				]),
 				0,                                     // $alwayseditable
