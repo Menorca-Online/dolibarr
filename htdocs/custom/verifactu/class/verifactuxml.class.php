@@ -200,7 +200,7 @@ class VerifactuXML
     }
 
 
-    public function generateRegistroEvento($dom, $parent, $registro, $facture)
+    public function generateRegistroEvento($dom, $parent, $registro)
     {
 
         $nodoPrincipal = $dom->createElement('sum:NodoPrincipal');
@@ -434,11 +434,7 @@ class VerifactuXML
             $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
         }
         foreach ($this->batch->registros() as $registro) {
-            $facture = new Facture($this->db);
-            $facture->fetch($registro->factureid);
-            $facture->fetch_lines();
-            $facture->fetch_thirdparty();
-            $this->generateRegistroFactura($dom, $regFactu, $registro, $facture);
+            $this->generateRegistroEvento($dom, $regFactu, $registro);
         }
         $this->xml = $dom->saveXML();
     }
@@ -924,6 +920,62 @@ class VerifactuXML
             $this->addFileToInvoice($responseFile, 'Verifactu Batch Response ' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT), $relatedFactures);
 
             $this->processResponse($response);
+        }
+
+        curl_close($ch);
+        return $return;
+    }
+    public function sendBatchEvent()
+    {
+        global $conf;
+
+
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para enviar a Verifactu');
+        }
+
+        $this->generateEnvioFromBatchEvento();
+
+        $verifactu_dir = DOL_DATA_ROOT . '/verifactu';
+        $outbox_dir = $verifactu_dir . '/EVENT_OUTBOX';
+        $inbox_dir = $verifactu_dir . '/EVENT_INBOX';
+        //guardamos el xml a enviar en OUTBOX con el nombre de la factura
+        $file = $outbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '.xml';
+        file_put_contents($file, $this->xml);
+
+        $return = "";
+
+        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        #$url = "https://google.com";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: RegFactuSistemaFacturacion"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->xml);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
+        $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
+
+        curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
+        curl_setopt($ch, CURLOPT_SSLKEY, $keyPath);
+
+        // Debug si quieres ver errores SSL
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $return = 'Error en cURL: ' . curl_error($ch);
+            // Guardar error en INBOX
+            $errorFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_error.txt';
+            file_put_contents($errorFile, $return);
+        } else {
+            $return = $response;
+            // Guardar respuesta en INBOX
+            $responseFile = $inbox_dir . '/batch_' . str_pad($this->batch->id, 20, '0', STR_PAD_LEFT) . '_response.xml';
+            file_put_contents($responseFile, $response);
         }
 
         curl_close($ch);
