@@ -26,6 +26,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregistro.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactunotifyerror.class.php';
 /**
  * Class VerifactuCron
  */
@@ -90,9 +91,25 @@ class VerifactuCron extends CommonObject
 			}
 			$this->db->commit();
 			$message .= "Proceso completado correctamente.";
+			throw new Exception("Prueba de excepción para notificación de error.");
 		} catch (Exception $e) {
+
+			
 			$this->db->rollback();
-			$message = "Error al cargar el usuario admin.";
+			$message = "Error general en cron: " . $e->getMessage();
+		
+			// Enviar notificación de error
+			$notifier = new VerifactuNotifyError($this->db);
+			$notifier->sendErrorNotification(
+				$e->getMessage(),
+				'cron_general',
+				array(
+					'Tipo de error' => 'Excepción general',
+					'Registros procesados' => $count,
+					'SQL ejecutado' => $sql ?? 'N/A'
+				)
+			);
+
 			return 0;
 		}
 
@@ -101,6 +118,19 @@ class VerifactuCron extends CommonObject
 			$result = $xml->sendBatch();
 		} catch (Exception $e) {
 			$message = "Error al enviar el batch ID " . $batch->rowid . ": " . $e->getMessage();
+			
+			// Enviar notificación de error
+			$notifier = new VerifactuNotifyError($this->db);
+			$notifier->sendErrorNotification(
+				$e->getMessage(),
+				'cron_batch_send',
+				array(
+					'Batch ID' => $batch->rowid,
+					'Número de registros' => $count,
+					'Estado del batch' => isset($batch) ? $batch->estado : 'N/A'
+				)
+			);
+			
 			return 0;
 		}
 		return 0;
