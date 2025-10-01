@@ -1213,7 +1213,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"c_verifactu_registro_estados:label:rowid" => null
+						"c_verifactu_registro_estados:label:rowid:active=1" => null
 					]
 				]),
 				0,                                     // $alwayseditable (0 = no siempre editable)
@@ -1265,7 +1265,7 @@ class modVerifactu extends DolibarrModules
 				$default_regimen,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_regimenes:label:rowid" => null
+						"c_verifactu_clave_regimenes:label:rowid:active=1" => null
 					]
 				]),
 				1,                                    // $alwayseditable
@@ -1295,7 +1295,7 @@ class modVerifactu extends DolibarrModules
 				$default_operacion,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_operaciones:label:rowid" => null
+						"c_verifactu_clave_operaciones:label:rowid:active=1" => null
 					]
 				]),
 				1,                                    // $alwayseditable
@@ -1326,7 +1326,7 @@ class modVerifactu extends DolibarrModules
 				'',                                   // $default_value
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_exenciones:label:rowid" => null
+						"c_verifactu_clave_exenciones:label:rowid:active=1" => null
 					]
 				]),
 				1,                                    // $alwayseditable

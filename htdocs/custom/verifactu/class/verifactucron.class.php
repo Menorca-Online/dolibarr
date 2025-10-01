@@ -56,6 +56,10 @@ class VerifactuCron extends CommonObject
 		$count = 0;
 		$message = '';
 
+        //permite hacer envio?
+        //sino returnr 0
+        
+
         //abrimos una transcaccion
         $this->db->begin();
 
