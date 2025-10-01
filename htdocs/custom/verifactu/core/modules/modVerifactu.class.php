@@ -385,7 +385,7 @@ class modVerifactu extends DolibarrModules
 				'parameters' => '',
 				'comment' => 'Procesa y envía batches de hasta 1000 registros pendientes al webservice de Verifactu',
 				'frequency' => 1,
-				'unitfrequency' => 3600,  // Cada hora
+				'unitfrequency' => 60,  // Cada minuto
 				'status' => 0,
 				'test' => 'isModEnabled("verifactu")',
 				'priority' => 50,
@@ -1127,6 +1127,22 @@ class modVerifactu extends DolibarrModules
 			dol_print_error($this->db);
 			return -1;
 		}
+
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_estado_batch";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_batches";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+
 
 		return 1;
 	}

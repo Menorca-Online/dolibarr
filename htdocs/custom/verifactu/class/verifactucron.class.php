@@ -114,9 +114,10 @@ class VerifactuCron extends CommonObject
 			// }
 		} else {
 			$message = "No hay registros pendientes de envío.";
-			return -1;
+			return 0;  // Cambiado de 1 a 0
 		}
 
+		$message .= "Proceso completado correctamente.";
 		return 0;
 	}
 }
