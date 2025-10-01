@@ -38,7 +38,6 @@ class VerifactuEventRegistro extends CommonObject
             'msg_error'   => array('type' => 'text', 'label' => 'Error message',   'enabled' => 1, 'visible' => 1, 'notnull' => 0),
             'csv_line'   => array('type' => 'text', 'label' => 'CSV line',   'enabled' => 1, 'visible' => 1, 'notnull' => 0),
             'fk_batch'   => array('type' => 'integer', 'label' => 'Batch',   'enabled' => 1, 'visible' => 1, 'notnull' => 0, 'index' => true, 'foreignkey' => 'verifactu_event_batches.rowid')
-
         );
     }
 
@@ -71,7 +70,7 @@ class VerifactuEventRegistro extends CommonObject
         if ($resql) {
             if ($this->db->num_rows($resql) > 0) {
                 $obj = $this->db->fetch_object($resql);
-                $registro = new VerifactuFacturaRegistro($this->db);
+                $registro = new VerifactuEventRegistro($this->db);
                 $registro->fetch($obj->rowid);
                 return $registro;
             } else {
@@ -89,11 +88,11 @@ class VerifactuEventRegistro extends CommonObject
      * @param array $where_conditions Array asociativo de condiciones WHERE ['campo' => 'valor']
      * @param string $order_by Campo para ordenar (opcional)
      * @param string $order_direction Dirección del orden (ASC/DESC, por defecto DESC)
-     * @return VerifactuFacturaRegistro|null El registro encontrado o null si no existe
+     * @return VerifactuEventRegistro|null El registro encontrado o null si no existe
      */
     public static function findFirst($db, $where_conditions = array(), $order_by = 'rowid', $order_direction = 'DESC')
     {
-        $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+        $sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_event_registros";
 
         // Agregar condiciones WHERE
         if (!empty($where_conditions)) {
@@ -125,7 +124,7 @@ class VerifactuEventRegistro extends CommonObject
         $result = $db->query($sql);
         if ($result && $db->num_rows($result) > 0) {
             $obj = $db->fetch_object($result);
-            $registro = new VerifactuFacturaRegistro($db);
+            $registro = new VerifactuEventRegistro($db);
             $registro->fetch($obj->rowid); // Ahora fetch() está definido
             $db->free($result);
             return $registro;
