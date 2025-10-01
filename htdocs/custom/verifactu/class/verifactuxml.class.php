@@ -44,7 +44,7 @@ class VerifactuXML
      *
      * @param DoliDB $db Database handler
      */
-    public function __construct($db, VerifactuBatch $batch)
+    public function __construct($db, VerifactuBatch|VerifactuBatchEvento $batch)
     {
         $this->db = $db;
         $this->batch = $batch;
@@ -276,6 +276,63 @@ class VerifactuXML
     }
 
     private function generateEnvioFromBatch()
+    {
+        global $conf;
+        if (!$this->batch || !$this->batch->id) {
+            throw new Exception('Batch no válido para generar XML Verifactu');
+        }
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+
+        // Crear elemento raíz soapenv:Envelope con todos los namespaces
+        $envelope = $dom->createElement('soapenv:Envelope');
+        $envelope->setAttribute('xmlns:soapenv', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $envelope->setAttribute('xmlns:sum', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd');
+        $envelope->setAttribute('xmlns:sum1', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd');
+        $envelope->setAttribute('xmlns:con', 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd');
+        $dom->appendChild($envelope);
+
+        // soapenv:Header (vacío)
+        $header = $dom->createElement('soapenv:Header');
+        $envelope->appendChild($header);
+
+        // soapenv:Body
+        $body = $dom->createElement('soapenv:Body');
+        $envelope->appendChild($body);
+
+        // sum:RegFactuSistemaFacturacion
+        $regFactu = $dom->createElement('sum:RegFactuSistemaFacturacion');
+        $body->appendChild($regFactu);
+
+        // sum:Cabecera
+        $cabecera = $dom->createElement('sum:Cabecera');
+        $regFactu->appendChild($cabecera);
+
+        // sum1:ObligadoEmision
+        $obligadoEmision = $dom->createElement('sum1:ObligadoEmision');
+        $cabecera->appendChild($obligadoEmision);
+
+        $this->addElement($dom, $obligadoEmision, 'sum1:NombreRazon', $this->config['emisor_nombre']);
+        $this->addElement($dom, $obligadoEmision, 'sum1:NIF', $this->config['emisor_nif']);
+        if ($conf->global->VERIFACTU_PODER_AEAT == "1") {
+            // sum1:Representante
+            $representante = $dom->createElement('sum1:Representante');
+            $cabecera->appendChild($representante);
+            $this->addElement($dom, $representante, 'sum1:NombreRazon', 'MENORCA ONLINE SL');
+            $this->addElement($dom, $representante, 'sum1:NIF', 'B57479677');
+        }
+        foreach ($this->batch->registros() as $registro) {
+            $facture = new Facture($this->db);
+            $facture->fetch($registro->factureid);
+            $facture->fetch_lines();
+            $facture->fetch_thirdparty();
+            $this->generateRegistro($dom, $regFactu, $registro, $facture);
+        }
+        $this->xml = $dom->saveXML();
+    }
+
+    private function generateEnvioFromBatchEvento()
     {
         global $conf;
         if (!$this->batch || !$this->batch->id) {
