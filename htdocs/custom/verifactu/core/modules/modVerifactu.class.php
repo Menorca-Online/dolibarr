@@ -853,7 +853,7 @@ class modVerifactu extends DolibarrModules
 			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
 			SET fk_verifactu_registro_estado = NEW.estado
 			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		END$$";
+		END";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
@@ -868,7 +868,7 @@ class modVerifactu extends DolibarrModules
 			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
 			SET fk_verifactu_registro_estado = NEW.estado
 			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		END$$";
+		END";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
@@ -1172,7 +1172,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"c_verifactu_facture_types:label:rowid" => null
+						"c_verifactu_facture_types:label:rowid:active=1"
 					]
 				]),
 				0,                                     // $alwayseditable
@@ -1213,7 +1213,7 @@ class modVerifactu extends DolibarrModules
 				'',                                    // $default_value
 				serialize([                            // $param
 					"options" => [
-						"c_verifactu_registro_estados:label:rowid:active=1" => null
+						"c_verifactu_registro_estados:label:rowid:active=1"
 					]
 				]),
 				0,                                     // $alwayseditable (0 = no siempre editable)
@@ -1265,7 +1265,7 @@ class modVerifactu extends DolibarrModules
 				$default_regimen,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_regimenes:label:rowid:active=1" => null
+						"c_verifactu_clave_regimenes:label:rowid:active=1"
 					]
 				]),
 				1,                                    // $alwayseditable
@@ -1295,7 +1295,7 @@ class modVerifactu extends DolibarrModules
 				$default_operacion,  // ← Usar el ID encontrado dinámicamente
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_operaciones:label:rowid:active=1" => null
+						"c_verifactu_clave_operaciones:label:rowid:active=1"
 					]
 				]),
 				1,                                    // $alwayseditable
@@ -1326,7 +1326,7 @@ class modVerifactu extends DolibarrModules
 				'',                                   // $default_value
 				serialize([                           // $param
 					"options" => [
-						"c_verifactu_clave_exenciones:label:rowid:active=1" => null
+						"c_verifactu_clave_exenciones:label:rowid:active=1"
 					]
 				]),
 				1,                                    // $alwayseditable
