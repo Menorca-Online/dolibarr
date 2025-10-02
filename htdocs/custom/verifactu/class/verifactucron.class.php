@@ -91,7 +91,7 @@ class VerifactuCron extends CommonObject
 			}
 			$this->db->commit();
 			$message .= "Proceso completado correctamente.";
-			throw new Exception("Prueba de excepción para notificación de error.");
+
 		} catch (Exception $e) {
 
 			
