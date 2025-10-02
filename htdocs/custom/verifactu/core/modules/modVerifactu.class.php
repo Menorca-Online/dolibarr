@@ -38,7 +38,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestad
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistrooperacion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
 include_once DOL_DOCUMENT_ROOT. '/custom/verifactu/class/verifactueventoregistrotipo.class.php';
-
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistrotipo.class.php';
 
 /**
  *  Description and activation class for module Verifactu
@@ -882,15 +882,6 @@ class modVerifactu extends DolibarrModules
 
 		//añadimos este trigger a la tabla
 
-	// 		CREATE DEFINER = CURRENT_USER TRIGGER `dolibarr_local`.`llx_verifactu_factura_registros_AFTER_INSERT`
-	// AFTER INSERT ON `llx_verifactu_factura_registros`
-	// FOR EACH ROW
-	// BEGIN
-	// 	UPDATE llx_facture_extrafields
-	// 	SET fk_verifactu_registro_estado = NEW.estado
-	// 	WHERE llx_facture_extrafields.rowid = NEW.factureid;
-	// END$$
-	// DELIMITER ;
 
 		$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
 		AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
