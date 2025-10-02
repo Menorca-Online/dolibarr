@@ -37,7 +37,6 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistrooperacion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
-include_once DOL_DOCUMENT_ROOT. '/custom/verifactu/class/verifactueventoregistrotipo.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistrotipo.class.php';
 
 /**
@@ -272,7 +271,8 @@ class modVerifactu extends DolibarrModules
 				MAIN_DB_PREFIX . "c_verifactu_clave_exenciones",
 				MAIN_DB_PREFIX . "c_verifactu_registro_estados",
 				MAIN_DB_PREFIX . "c_verifactu_registro_operaciones",
-				MAIN_DB_PREFIX . "c_verifactu_estado_batch"
+				MAIN_DB_PREFIX . "c_verifactu_estado_batch",
+				MAIN_DB_PREFIX . "c_verifactu_evento_registro_tipos"
 			),
 			'tablib' => array(
 				"Tipos de Factura Verifactu",
@@ -281,7 +281,8 @@ class modVerifactu extends DolibarrModules
 				"Claves de Exención Verifactu",
 				"Estados de Registros Verifactu",
 				"Registros de Operaciones Verifactu",
-				"Estados de Batch Verifactu"
+				"Estados de Batch Verifactu",
+				"Tipos de Evento de Registro Verifactu"
 			),
 			'tabsql' => array(
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
@@ -290,9 +291,11 @@ class modVerifactu extends DolibarrModules
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_exenciones as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones as f',
-				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_estado_batch as f'
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_estado_batch as f',
+				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_evento_registro_tipos as f'
 			),
 			'tabsqlsort' => array(
+				"code ASC",
 				"code ASC",
 				"code ASC",
 				"code ASC",
@@ -308,6 +311,7 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
+				"code,label",
 				"code,label"
 			),
 			'tabfieldvalue' => array(
@@ -317,9 +321,11 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
+				"code,label",
 				"code,label"
 			),
 			'tabfieldinsert' => array(
+				"code,label",
 				"code,label",
 				"code,label",
 				"code,label",
@@ -344,6 +350,7 @@ class modVerifactu extends DolibarrModules
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
+				isModEnabled('verifactu'),
 				isModEnabled('verifactu')
 			),
 			'tabhelp' => array(
@@ -353,7 +360,8 @@ class modVerifactu extends DolibarrModules
 				array('code' => $langs->trans('Código exención'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código registro operacion'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-				array('code' => $langs->trans('Código estado batch'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado'))
+				array('code' => $langs->trans('Código estado batch'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
+				array('code' => $langs->trans('Código evento registro'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 			)
 		);
 
@@ -528,7 +536,7 @@ class modVerifactu extends DolibarrModules
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("verifactu")',
-			'perms' => '1', 
+			'perms' => '1',
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
@@ -798,7 +806,7 @@ class modVerifactu extends DolibarrModules
 
 		//CREAMOS UNA TABLA DE BATCH DE REGISTROS PARA ENVIAR A VERIFACTU
 		//UN BATCH TENDRA MUCHOS REGISTROS DE FACTURAS Y SE ENVIARAN DE 1000 EN 1000
-		
+
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_batches (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -814,7 +822,7 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		
+
 
 
 
@@ -883,33 +891,46 @@ class modVerifactu extends DolibarrModules
 		//añadimos este trigger a la tabla
 
 
-		$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
-		AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
-		FOR EACH ROW
-		BEGIN
-			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
-			SET fk_verifactu_registro_estado = NEW.estado
-			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		END";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
+		// Verificar si el trigger ya existe antes de crearlo
+		$sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
+					  WHERE TRIGGER_SCHEMA = DATABASE() 
+					  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT'";
+		$resql_check = $this->db->query($sql_check);
+		if ($resql_check && $this->db->num_rows($resql_check) == 0) {
+			$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
+			AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+			FOR EACH ROW
+			BEGIN
+				UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+				SET fk_verifactu_registro_estado = NEW.estado
+				WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+			END";
+			$resql = $this->db->query($sql);
+			if (! $resql) {
+				dol_print_error($this->db);
+				return -1;
+			}
 		}
 
-		//el mismo trigger para el update
-		$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE
-		AFTER UPDATE ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
-		FOR EACH ROW
-		BEGIN
-			UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
-			SET fk_verifactu_registro_estado = NEW.estado
-			WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		END";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
+		// Verificar si el trigger de UPDATE ya existe antes de crearlo
+		$sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
+					  WHERE TRIGGER_SCHEMA = DATABASE() 
+					  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE'";
+		$resql_check = $this->db->query($sql_check);
+		if ($resql_check && $this->db->num_rows($resql_check) == 0) {
+			$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE
+			AFTER UPDATE ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+			FOR EACH ROW
+			BEGIN
+				UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+				SET fk_verifactu_registro_estado = NEW.estado
+				WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+			END";
+			$resql = $this->db->query($sql);
+			if (! $resql) {
+				dol_print_error($this->db);
+				return -1;
+			}
 		}
 
 		//L10

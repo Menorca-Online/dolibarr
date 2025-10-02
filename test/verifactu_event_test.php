@@ -11,7 +11,8 @@ require_once DOL_DOCUMENT_ROOT . '/user/class/user.class.php';
 $user = new User($db);
 $user->fetch(1);
 require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistro.class.php';
-require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventbatch.class.php';
+require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
 
 $result = verifactu_generar_registro_event(3, array(
     'LanzamientoProcesoDeteccionAnomaliasRegFacturacion' => array(

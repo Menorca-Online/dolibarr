@@ -205,6 +205,8 @@ function verifactu_generar_registro_event($tipoEvento, $datosPropiosEvento)
 {
 	global $db, $user, $conf;
 
+	include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistrotipo.class.php';
+
 	try {
 		$db->begin();
 
