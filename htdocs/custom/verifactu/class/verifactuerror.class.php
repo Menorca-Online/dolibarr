@@ -78,8 +78,9 @@ class VerifactuError extends CommonObject
      */
     public function marcarNotificado()
     {
+        global $user;
         $this->notificado = 1;
-        return $this->update($user); // Asumiendo que hay un usuario global
+        return $this->updateCommon($user); // Usar updateCommon en lugar de update
     }
 
     /**
