@@ -27,6 +27,7 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregist
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuxml.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactunotifyerror.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuerror.class.php';
 /**
  * Class VerifactuCron
  */
@@ -135,6 +136,117 @@ class VerifactuCron extends CommonObject
 			
 			return 0;
 		}
+		return 0;
+	}
+
+	/**
+	 * Execute scheduled job for sending error notifications by email
+	 *
+	 * @param string $parameters Parameters (not used)
+	 * @param int &$count Counter for processed items
+	 * @param string &$message Message to return
+	 * @return int 0 on success, <0 on error
+	 */
+	public function doScheduledJobErrors($parameters = '', &$count = 0, &$message = '')
+	{
+		global $langs, $user, $conf;
+
+		$count = 0;
+		$message = '';
+		$this->db->begin();
+
+		try {
+			// Obtener errores no notificados
+			$errorHandler = new VerifactuError($this->db);
+			$errores = $errorHandler->getErrorsNoNotificados();
+
+			if (empty($errores)) {
+				$message = "No hay errores pendientes de notificación.";
+				$this->db->commit();
+				return 0;
+			}
+
+			$count = count($errores);
+
+			// Preparar contenido del email
+			$subject = '[' . getDolGlobalString('MAIN_INFO_SOCIETE_NOM') . '] Errores del módulo Verifactu - ' . dol_print_date(dol_now(), 'dayhour');
+
+			$body = "Se han detectado los siguientes errores en el módulo Verifactu:\n\n";
+
+			foreach ($errores as $error) {
+				$body .= "Fecha: " . dol_print_date($error->fecha, 'dayhour') . "\n";
+				$body .= "Tipo: " . $error->tipo_error . "\n";
+				$body .= "Mensaje: " . $error->mensaje . "\n";
+
+				if ($error->fk_batch) {
+					$body .= "Batch ID: " . $error->fk_batch . "\n";
+				}
+				if ($error->fk_registro) {
+					$body .= "Registro ID: " . $error->fk_registro . "\n";
+				}
+				if ($error->datos_adicionales) {
+					$body .= "Datos adicionales: " . $error->datos_adicionales . "\n";
+				}
+
+				$body .= "---\n\n";
+			}
+
+			$body .= "Para más detalles, acceda al panel de administración del módulo Verifactu.\n\n";
+			$body .= "Este es un mensaje automático generado por el sistema.\n";
+
+			// Enviar email
+			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+
+			$from = getDolGlobalString('MAIN_MAIL_EMAIL_FROM');
+			$to = getDolGlobalString('VERIFACTU_ERROR_EMAIL_TO', getDolGlobalString('MAIN_MAIL_EMAIL_FROM'));
+
+			if (empty($to)) {
+				$message = "No se ha configurado email de destino para notificaciones de error.";
+				$this->db->rollback();
+				return -1;
+			}
+
+			$mailfile = new CMailFile(
+				$subject,
+				$to,
+				$from,
+				$body,
+				array(),
+				array(),
+				array(),
+				'',
+				'',
+				0,
+				1
+			);
+
+			$result = $mailfile->sendfile();
+
+			if ($result) {
+				// Marcar errores como notificados
+				foreach ($errores as $error) {
+					$error->notificado = 1;
+					$error->update($user);
+				}
+
+				$message = "Se han enviado " . $count . " notificaciones de error por email y marcados como notificados.";
+				$this->db->commit();
+			} else {
+				$message = "Error al enviar el email de notificación: " . $mailfile->error;
+				$this->db->rollback();
+				return -1;
+			}
+
+		} catch (Exception $e) {
+			$this->db->rollback();
+			$message = "Error en cron de errores: " . $e->getMessage();
+
+			// Registrar el error del cron
+			VerifactuError::registrarError($this->db, 'cron_error_notification', $e->getMessage());
+
+			return -1;
+		}
+
 		return 0;
 	}
 }

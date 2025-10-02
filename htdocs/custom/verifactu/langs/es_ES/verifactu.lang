@@ -70,3 +70,18 @@ MyPageName = Mi nombre de página
 MyWidget = Mi widget
 MyWidgetDescription = Descripción de mi widget
 
+#
+# Errores del módulo
+#
+VerifactuErrors = Errores Verifactu
+VerifactuErrorDate = Fecha
+VerifactuErrorType = Tipo Error
+VerifactuErrorNotified = Notificado
+VerifactuErrorMessage = Mensaje
+VerifactuErrorBatch = Batch
+VerifactuErrorRecord = Registro
+VerifactuErrorDetails = Detalles del Error
+VerifactuErrorNoErrors = No hay errores que coincidan con los filtros
+VerifactuErrorNotificationSent = Notificación de errores enviada por email
+VerifactuErrorNotificationFailed = Error al enviar notificación de errores
+

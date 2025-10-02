@@ -388,6 +388,20 @@ class modVerifactu extends DolibarrModules
 				'test' => 'isModEnabled("verifactu")',
 				'priority' => 50,
 			),
+			1 => array(
+				'label' => 'Enviar notificaciones de errores por email',
+				'jobtype' => 'method',
+				'class' => '/verifactu/class/verifactucron.class.php',
+				'objectname' => 'VerifactuCron',
+				'method' => 'doScheduledJobErrors',
+				'parameters' => '',
+				'comment' => 'Envía notificaciones por email de errores del módulo Verifactu cada 4 horas y marca como notificados',
+				'frequency' => 4,
+				'unitfrequency' => 3600,  // Cada 4 horas
+				'status' => 0,
+				'test' => 'isModEnabled("verifactu")',
+				'priority' => 40,
+			),
 		);
 		/* END MODULEBUILDER CRON */
 		// Example: $this->cronjobs=array(
@@ -522,6 +536,23 @@ class modVerifactu extends DolibarrModules
 			'mainmenu' => 'verifactu',
 			'leftmenu' => 'verifactu_batches',
 			'url' => '/verifactu/verifactu_batches.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '1',
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
+
+		// Página de errores del módulo
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Errores Verifactu',
+			'prefix' => img_picto('', 'fa-exclamation-triangle', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_errors',
+			'url' => '/verifactu/verifactu_errors.php',
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("verifactu")',
@@ -1463,6 +1494,24 @@ class modVerifactu extends DolibarrModules
 
 		$result9 = $extrafields->delete('fk_verifactu_registro_estado', 'facture');
 		if ($result9 < 0) {
+			return -1;
+		}
+
+		// Crear tabla de errores
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_errores (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			tipo_error varchar(50) NOT NULL,
+			mensaje text NOT NULL,
+			notificado tinyint(1) DEFAULT 0,
+			fk_batch integer DEFAULT NULL,
+			fk_registro integer DEFAULT NULL,
+			datos_adicionales text DEFAULT NULL
+		) ENGINE=innodb;";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
 			return -1;
 		}
 
