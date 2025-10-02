@@ -201,63 +201,6 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 	return 0;
 }
 
-function verifactu_generar_registro_event($tipoEvento, $datosPropiosEvento)
-{
-	global $db, $user, $conf;
-
-	include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistrotipo.class.php';
-
-	try {
-		$db->begin();
-
-		$fecha = new DateTime('now', new DateTimeZone('Europe/Madrid'));
-		$tipoEvento = new VerifactuEventRegistroTipo($db);
-		if ($tipoEvento->fetchCommon($tipoEvento) <= 0) {
-			throw new Exception("Tipo de evento no válido");
-		}
-		$nif = '';
-		if (isset($conf->global->MAIN_INFO_TVAINTRA) && !empty($conf->global->MAIN_INFO_TVAINTRA)) {
-			$nif = $conf->global->MAIN_INFO_TVAINTRA;
-		} elseif (isset($conf->global->MAIN_INFO_SIREN) && !empty($conf->global->MAIN_INFO_SIREN)) {
-			$nif = $conf->global->MAIN_INFO_SIREN;
-		} elseif (isset($conf->global->MAIN_INFO_NIF) && !empty($conf->global->MAIN_INFO_NIF)) {
-			$nif = $conf->global->MAIN_INFO_NIF;
-		}
-		$registro = new VerifactuEventRegistro($db);
-		$registro->tipo_evento = $tipoEvento;
-		$registro->datos_evento = json_encode($datosPropiosEvento, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-		$registro->fecha = $fecha->format('Y-m-d H:i:s');
-		$registro->estado = 1; // Pendiente de envío
-		$registro->hash = generateHash(array(
-			'NIF' => 'B57479677',
-			'IdSistemaInformatico' => $conf->global->VERIFACTU_SISTEMA_ID ?? '',
-			'VersionSistemaInformatico' => $conf->global->VERIFACTU_SOFTWARE_VERSION ?? '',
-			'NumInstalacionSistemaInformatico' => $conf->global->VERIFACTU_NUM_INSTALACION ?? '',
-			'NIFObligadoEmisor' => $nif,
-			'TipoEvento' => $tipoEvento,
-			'HuellaEventoAnterior' => $registro->getPreviousRegister()->hash ?? '',
-			'FechaHoraHusoGenRegistro' => $fecha->format('Y-m-d\TH:i:sP')
-		));
-
-		$result = $registro->create($user);
-
-		if ($result) {
-			$db->commit();
-			setEventMessages("Registro de Evento Verifactu creado correctamente", null, 'mesgs');
-		} else {
-			$db->rollback();
-			setEventMessages("Error al crear el registro de evento", null, 'errors');
-			return -1; // Indicar error
-		}
-	} catch (Exception $e) {
-		// En caso de excepción, hacer rollback
-		$db->rollback();
-		dol_syslog("Verifactu: Excepción al generar registro de evento - " . $e->getMessage(), LOG_ERR);
-		setEventMessages("Error en el proceso de creación del registro de evento: " . $e->getMessage(), null, 'errors');
-		return -1; // Indicar error
-	}
-	return 0;
-}
 
 
 
@@ -338,18 +281,7 @@ function generateHash(array $data)
 {
 	global $conf;
 
-	if (isset($data['TipoEvento'])) { // es un evento
-		$stringToHash =
-			"NIFSistemaInformatico=" . $data['NIF'] .
-			"&IdSistemaInformatico=" . $data['IdSistemaInformatico'] .
-			"&VersionSistemaInformatico=" . $data['VersionSistemaInformatico'] .
-			"&NumInstalacionSistemaInformatico=" . $data['NumInstalacionSistemaInformatico'] .
-			"&NIFObligadoEmisor=" . $data['NIFObligadoEmisor'] .
-			"&TipoEvento=" . $data['TipoEvento'] .
-			"&HuellaEventoAnterior=" . $data['HuellaEventoAnterior'] .
-			"&FechaHoraHusoGenRegistro=" . $data['FechaHoraHusoGenRegistro'];
-		return strtoupper(hash('sha256', $stringToHash));
-	} else if (!isset($data['IDEmisorFactura'])) { // es una factura anulada
+	if (!isset($data['IDEmisorFactura'])) { // es una factura anulada
 		$stringToHash =
 			"IDEmisorFacturaAnulada=" . $data['IDEmisorFacturaAnulada'] .
 			"&NumSerieFacturaAnulada=" . $data['NumSerieFacturaAnulada'] .

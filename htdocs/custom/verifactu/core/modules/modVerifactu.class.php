@@ -37,7 +37,6 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistrooperacion.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.class.php';
-include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactueventregistrotipo.class.php';
 
 /**
  *  Description and activation class for module Verifactu
@@ -272,7 +271,6 @@ class modVerifactu extends DolibarrModules
 				MAIN_DB_PREFIX . "c_verifactu_registro_estados",
 				MAIN_DB_PREFIX . "c_verifactu_registro_operaciones",
 				MAIN_DB_PREFIX . "c_verifactu_estado_batch",
-				MAIN_DB_PREFIX . "c_verifactu_evento_registro_tipos"
 			),
 			'tablib' => array(
 				"Tipos de Factura Verifactu",
@@ -282,7 +280,6 @@ class modVerifactu extends DolibarrModules
 				"Estados de Registros Verifactu",
 				"Registros de Operaciones Verifactu",
 				"Estados de Batch Verifactu",
-				"Tipos de Evento de Registro Verifactu"
 			),
 			'tabsql' => array(
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_facture_types as f',
@@ -292,10 +289,8 @@ class modVerifactu extends DolibarrModules
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_estados as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones as f',
 				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_estado_batch as f',
-				'SELECT f.rowid as rowid, f.code, f.label, f.active FROM ' . MAIN_DB_PREFIX . 'c_verifactu_evento_registro_tipos as f'
 			),
 			'tabsqlsort' => array(
-				"code ASC",
 				"code ASC",
 				"code ASC",
 				"code ASC",
@@ -312,7 +307,6 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
-				"code,label"
 			),
 			'tabfieldvalue' => array(
 				"code,label",
@@ -322,7 +316,6 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
-				"code,label"
 			),
 			'tabfieldinsert' => array(
 				"code,label",
@@ -332,7 +325,6 @@ class modVerifactu extends DolibarrModules
 				"code,label",
 				"code,label",
 				"code,label",
-				"code,label"
 			),
 			'tabrowid' => array(
 				"rowid",
@@ -341,7 +333,6 @@ class modVerifactu extends DolibarrModules
 				"rowid",
 				"rowid",
 				"rowid",
-				"rowid"
 			),
 			'tabcond' => array(
 				isModEnabled('verifactu'),
@@ -351,7 +342,6 @@ class modVerifactu extends DolibarrModules
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
 				isModEnabled('verifactu'),
-				isModEnabled('verifactu')
 			),
 			'tabhelp' => array(
 				array('code' => $langs->trans('Código de factura'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
@@ -361,7 +351,6 @@ class modVerifactu extends DolibarrModules
 				array('code' => $langs->trans('Código estado'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código registro operacion'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 				array('code' => $langs->trans('Código estado batch'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
-				array('code' => $langs->trans('Código evento registro'), 'label' => $langs->trans('Descripción'), 'active' => $langs->trans('Estado')),
 			)
 		);
 
@@ -845,55 +834,6 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-		//creamos tablas registro de eventos
-
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_event_batches (
-			rowid integer AUTO_INCREMENT PRIMARY KEY,
-			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			estado integer DEFAULT 1,
-			msg_error text DEFAULT NULL,
-			num_records integer DEFAULT 0,
-			csv nvarchar(255) DEFAULT NULL
-		) ENGINE=innodb;";
-
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_event_registros (
-			rowid integer AUTO_INCREMENT PRIMARY KEY,
-			datos_propio_evento text NOT NULL,
-			tipo_evento_id integer DEFAULT NULL,
-			hash varchar(64) DEFAULT NULL,
-			hash_data text DEFAULT NULL,
-			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			estado integer DEFAULT 1,
-			msg_error text DEFAULT NULL,
-			csv_line text DEFAULT NULL,
-			operation integer DEFAULT 1,
-			fk_batch integer DEFAULT NULL
-		) ENGINE=innodb;";
-
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_event_registro_tipos (
-			rowid integer AUTO_INCREMENT PRIMARY KEY,
-			code varchar(50) NOT NULL,
-			label varchar(255) NOT NULL,
-			active tinyint(1) DEFAULT 1
-		) ENGINE=innodb;";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
 		//añadimos este trigger a la tabla
 
 
@@ -1011,38 +951,6 @@ class modVerifactu extends DolibarrModules
 			array('code' => '3', 'label' => '3 - Incorrecto'),
 			array('code' => '4', 'label' => '4 - Parcialmente correcto'),
 		);
-
-		$eventoRegistroTipos = array(
-			array('code' => '01', 'label' => '01 - Inicio del funcionamiento del sistema informático como «NO VERI*FACTU»'),
-			array('code' => '02', 'label' => '02 - Fin del funcionamiento del sistema informático como «NO VERI*FACTU»'),
-			array('code' => '03', 'label' => '03 - Lanzamiento del proceso de detección de anomalías en los registros de facturación'),
-			array('code' => '04', 'label' => '04 - Detección de anomalías en la integridad, inalterabilidad y trazabilidad de registros de facturación'),
-			array('code' => '05', 'label' => '05 - Lanzamiento del proceso de detección de anomalías en los registros de evento'),
-			array('code' => '06', 'label' => '06 - Detección de anomalías en la integridad, inalterabilidad y trazabilidad de registros de evento'),
-			array('code' => '07', 'label' => '07 - Restauración de copia de seguridad, cuando ésta se gestione desde el propio sistema informático de facturación'),
-			array('code' => '08', 'label' => '08 - Exportación de registros de facturación generados en un periodo'),
-			array('code' => '09', 'label' => '09 - Exportación de registros de evento generados en un periodo'),
-			array('code' => '10', 'label' => '10 - Registro resumen de eventos'),
-			array('code' => '90', 'label' => '90 - Otros tipos de eventos a registrar voluntariamente por la persona o entidad productora del sistema informático')
-		);
-
-		foreach ($eventoRegistroTipos as $tipo) {
-			// Verificar si ya existe
-			$sql_check = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "c_verifactu_event_registro_tipos WHERE code = '" . $this->db->escape($tipo['code']) . "'";
-			$resql_check = $this->db->query($sql_check);
-			if ($resql_check) {
-				$obj = $this->db->fetch_array($resql_check);
-				$count = ($obj && isset($obj['count'])) ? $obj['count'] : 0;
-
-				if ($count == 0) { // Solo crear si no existe
-					$tipoObj = new VerifactuEventRegistroTipo($this->db);
-					$tipoObj->code = $tipo['code'];
-					$tipoObj->label = $tipo['label'];
-					$tipoObj->active = 1;
-					$tipoObj->create($user);
-				}
-			}
-		}
 
 
 		foreach ($estadosBatch as $estado) {
@@ -1235,27 +1143,6 @@ class modVerifactu extends DolibarrModules
 		}
 
 		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_batches";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_event_registros";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_event_batches";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_event_registro_tipos";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
