@@ -876,6 +876,12 @@ class modVerifactu extends DolibarrModules
 			fk_batch integer DEFAULT NULL
 		) ENGINE=innodb;";
 
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "c_verifactu_event_registro_tipos (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			code varchar(50) NOT NULL,
