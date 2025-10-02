@@ -114,9 +114,11 @@ class VerifactuCron extends CommonObject
 		}
 
 		try {
-			$xml = new VerifactuXML($this->db, $batch);
-			$result = $xml->sendBatch();
-		} catch (Exception $e) {
+			if (isset($batch) && $batch){
+				$xml = new VerifactuXML($this->db, $batch);
+				$result = $xml->sendBatch();
+			}
+		} catch (\Throwable $e) {
 			$message = "Error al enviar el batch ID " . $batch->rowid . ": " . $e->getMessage();
 			
 			// Enviar notificación de error
