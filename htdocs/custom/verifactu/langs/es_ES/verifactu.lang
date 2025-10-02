@@ -1,0 +1,72 @@
+# Translation file
+
+#
+# Generic
+#
+
+# Module label 'ModuleVerifactuName'
+ModuleVerifactuName = Verifactu
+# Module description 'ModuleVerifactuDesc'
+ModuleVerifactuDesc = Módulo para cumplimiento de la normativa Verifactu de facturas
+
+#
+# Admin page
+#
+VerifactuSetup = Configuración Verifactu
+Settings = Configuración
+VerifactuSetupPage = Página de configuración Verifactu
+VerifactuFolders = Carpetas Verifactu
+CreateFolders = Crear Carpetas
+Exists = Existe
+NotExists = No Existe
+Folder = Carpeta
+NewSection=Nueva sección
+VERIFACTU_MYPARAM1 = Mi parámetro 1
+VERIFACTU_MYPARAM1Tooltip = Tooltip de mi parámetro 1
+VERIFACTU_MYPARAM2=Mi parámetro 2
+VERIFACTU_MYPARAM2Tooltip=Tooltip de mi parámetro 2
+VERIFACTU_URL_ENDPOINT=URL DEL ENDPOINT DE VERIFACTU
+VERIFACTU_CERTIFICADO_AEAT=Ruta del certificado AEAT
+INVOICE_CLIENTE_GENERICO=ID Cliente Genérico
+INVOICE_MAX_AMOUNT_SIMPLIFICADAS=Importe máximo para facturas simplificadas
+VERIFACTU_SISTEMA_NOMBRE=Nombre del sistema
+VERIFACTU_SOFTWARE_NOMBRE=Nombre del software
+VERIFACTU_SISTEMA_ID=ID del sistema
+VERIFACTU_SOFTWARE_VERSION=Versión del software
+VERIFACTU_NUM_INSTALACION=Número de instalación
+VERIFACTU_SOLO_VERIFACTU=Solo Verifactu
+VERIFACTU_MULTI_OT=Multi OT
+VERIFACTU_INDICADOR_MULTI=Indicador Multi
+VerifactuErrorClienteGenericoNoDefinido=Error: Cliente genérico no definido en configuración
+#
+# Errores y mensajes Verifactu
+#
+VerifactuErrorFechaNoModificable = La fecha de factura no puede modificarse según la normativa Verifactu
+VerifactuErrorFechaDebeSerHoy = La fecha de factura debe ser la fecha actual según la normativa Verifactu
+VerifactuFechaAjustadaAutomaticamente = La fecha de factura ha sido ajustada automáticamente a la fecha actual para cumplir con la normativa Verifactu
+VerifactuFacturaNoModificable = Esta factura no puede ser modificada ni eliminada porque ya no está en estado borrador
+
+#
+# PDF Template
+#
+PDFVerifactuDescription = Plantilla de factura adaptada para normativa Verifactu
+
+#
+# About page
+#
+About = Acerca de
+VerifactuAbout = Acerca de Verifactu
+VerifactuAboutPage = Página acerca de Verifactu
+
+#
+# Sample page
+#
+VerifactuArea = Área Verifactu
+MyPageName = Mi nombre de página
+
+#
+# Sample widget
+#
+MyWidget = Mi widget
+MyWidgetDescription = Descripción de mi widget
+
