@@ -15,6 +15,7 @@ require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveexencion
 require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.class.php';
 require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifacturegistroestado.class.php';
+include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
 /**
  * Class VerifactuXML
  * Generador de XML para la normativa Verifactu
@@ -824,6 +825,16 @@ class VerifactuXML
                     // $invoice->update($user);
                     $this->batch->msg_error = $errorMsg;
                     $this->batch->updateCommon($user);
+                    $error = new VerifactuError($this->db);
+                    $error->fecha = time();
+                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->mensaje = $errorMsg;
+                    $error->notificado = 0;
+                    $error->fk_batch = $this->batch->id;
+                    $error->fk_registro = 0;
+                    $error->datos_adicionales = $response;
+                    $error->create($user);
+
                 }
                 $this->db->commit();
                 return 0;
@@ -837,12 +848,25 @@ class VerifactuXML
             $respuesta = $xpath->query('//tikR:RespuestaRegFactuSistemaFacturacion')->item(0);
             if (!$respuesta) {
                 $errorMsg = "Respuesta inválida o no contiene RespuestaRegFactuSistemaFacturacion";
-                // Actualizar registro con error de esquema
+
+                $error = new VerifactuError($this->db);
+                $error->fecha = time();
+                $error->tipo_error = 'Error de esquema SOAP';
+                $error->mensaje = $errorMsg;
+                $error->notificado = 0;
+                $error->fk_batch = $this->batch->id;
+                $error->fk_registro = 0;
+                $error->datos_adicionales = $response;
+                $error->create($user);
+
+
                 $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
-                // $invoice->array_options['fk_verifactu_registro_estado'] = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
-                // $invoice->update($user);
+
                 $this->batch->msg_error = $errorMsg;
                 $this->batch->updateCommon($user);
+
+
+
                 $this->db->commit();
                 return 0;
             }
@@ -861,9 +885,35 @@ class VerifactuXML
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_CORRECTO;
                 } elseif ($estadoEnvio == 'ParcialmenteCorrecto') {
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO;
+                    $error = new VerifactuError($this->db);
+                    $error->fecha = time();
+                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->mensaje = "El batch ha sido procesado parcialmente correcto. Revise los registros individuales para más detalles.";
+                    $error->notificado = 0;
+                    $error->fk_batch = $this->batch->id;
+                    $error->fk_registro = 0;
+                    $error->create($user);
                 } elseif ($estadoEnvio == 'Incorrecto') {
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
+                    $error = new VerifactuError($this->db);
+                    $error->fecha = time();
+                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->mensaje = "El batch ha sido procesado incorrectamente. Revise los registros individuales para más detalles.";
+                    $error->notificado = 0;
+                    $error->fk_batch = $this->batch->id;
+                    $error->fk_registro = 0;
+                    $error->create($user);
                 } else {
+
+                    $error = new VerifactuError($this->db);
+                    $error->fecha = time();
+                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->mensaje = "EstadoEnvio desconocido: $estadoEnvio";
+                    $error->notificado = 0;
+                    $error->fk_batch = $this->batch->id;
+                    $error->fk_registro = 0;
+                    $error->create($user);
+
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO; // Estado desconocido
                     $this->batch->msg_error = "EstadoEnvio desconocido: $estadoEnvio";
                 }
@@ -923,6 +973,15 @@ class VerifactuXML
             $this->batch->updateCommon($user);
             $this->db->commit();
         } catch (Exception $e) {
+            $error = new VerifactuError($this->db);
+            $error->fecha = time();
+            $error->tipo_error = 'Error de procesamiento';
+            $error->mensaje = "Error en el procesamiento del batch: " . $e->getMessage();
+            $error->notificado = 0;
+            $error->fk_batch = $this->batch->id;
+            $error->fk_registro = 0;
+            $error->create($user);
+
             $this->db->rollback();
             return -1;
         }
