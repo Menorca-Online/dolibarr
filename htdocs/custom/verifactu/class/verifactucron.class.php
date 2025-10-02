@@ -198,7 +198,7 @@ class VerifactuCron extends CommonObject
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 
 			$from = getDolGlobalString('MAIN_MAIL_EMAIL_FROM');
-			$to = getDolGlobalString('VERIFACTU_ERROR_EMAIL_TO', getDolGlobalString('MAIN_MAIL_EMAIL_FROM'));
+			$to = 'verifactu@menorcaon.com';
 
 			if (empty($to)) {
 				$message = "No se ha configurado email de destino para notificaciones de error.";
@@ -226,7 +226,7 @@ class VerifactuCron extends CommonObject
 				// Marcar errores como notificados
 				foreach ($errores as $error) {
 					$error->notificado = 1;
-					$error->update($user);
+					$error->updateCommon($user);
 				}
 
 				$message = "Se han enviado " . $count . " notificaciones de error por email y marcados como notificados.";
