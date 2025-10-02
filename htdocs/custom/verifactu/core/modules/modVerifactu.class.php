@@ -414,7 +414,15 @@ class modVerifactu extends DolibarrModules
 		$r = 0;
 		// Add here entries to declare new permissions
 		/* BEGIN MODULEBUILDER PERMISSIONS */
-		/*
+
+		// General permission to access the module
+		$this->rights[$r][0] = $this->numero . sprintf("%02d", 1); // Permission id (must not be already used)
+		$this->rights[$r][1] = 'Acceder al módulo Verifactu'; // Permission label
+		$this->rights[$r][3] = 0; // Permission by default for new user (0/1)
+		$this->rights[$r][4] = 'read'; // In php code, permission will be checked by test if ($user->rights->verifactu->read)
+		$this->rights[$r][5] = ''; // In php code, permission will be checked by test if ($user->rights->verifactu->read)
+		$r++;
+
 		$o = 1;
 		$this->rights[$r][0] = $this->numero . sprintf("%02d", ($o * 10) + 1); // Permission id (must not be already used)
 		$this->rights[$r][1] = 'Read objects of Verifactu'; // Permission label
@@ -431,7 +439,6 @@ class modVerifactu extends DolibarrModules
 		$this->rights[$r][4] = 'myobject';
 		$this->rights[$r][5] = 'delete'; // In php code, permission will be checked by test if ($user->hasRight('verifactu', 'myobject', 'delete'))
 		$r++;
-		*/
 		/* END MODULEBUILDER PERMISSIONS */
 
 
@@ -451,7 +458,7 @@ class modVerifactu extends DolibarrModules
 			'langs' => 'verifactu@verifactu', // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("verifactu")', // Define condition to show or hide menu entry. Use 'isModEnabled("verifactu")' if entry must be visible if module is enabled.
-			'perms' => '1', // Use 'perms'=>'$user->hasRight("verifactu", "myobject", "read")' if you want your menu with a permission rules
+			'perms' => '$user->hasRight("verifactu", "myobject", "read")', // Use 'perms'=>'$user->hasRight("verifactu", "myobject", "read")' if you want your menu with a permission rules
 			'target' => '',
 			'user' => 2, // 0=Menu for internal users, 1=external users, 2=both
 		);
@@ -556,7 +563,7 @@ class modVerifactu extends DolibarrModules
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("verifactu")',
-			'perms' => '1',
+			'perms' => '$user->hasRight("verifactu", "myobject", "read")',
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);

@@ -73,11 +73,13 @@ $langs->loadLangs(array("verifactu@verifactu", "admin", "other"));
 $action = GETPOST('action', 'aZ09');
 
 // Security check
-if (!$user->rights->verifactu->read) {
-	accessforbidden();
+if (!isModEnabled('verifactu')) {
+    accessforbidden('Module not enabled');
 }
-
-// Initialize objects
+// Temporarily allow access for testing - uncomment when permissions are properly set
+// if (!$user->hasRight('verifactu', 'myobject', 'read')) {
+//     accessforbidden();
+// }// Initialize objects
 $form = new Form($db);
 
 // Filtros

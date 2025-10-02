@@ -109,12 +109,13 @@ if (!empty($user->socid) && $user->socid > 0) {
 // Security check (enable the most restrictive one)
 //if ($user->socid > 0) accessforbidden();
 //if ($user->socid > 0) $socid = $user->socid;
-//if (!isModEnabled('verifactu')) {
-//	accessforbidden('Module not enabled');
-//}
-//if (! $user->hasRight('verifactu', 'myobject', 'read')) {
+if (!isModEnabled('verifactu')) {
+	accessforbidden('Module not enabled');
+}
+// Temporarily allow access for testing - uncomment when permissions are properly set
+// if (! $user->hasRight('verifactu', 'myobject', 'read')) {
 //	accessforbidden();
-//}
+// }
 //restrictedArea($user, 'verifactu', 0, 'verifactu_myobject', 'myobject', '', 'rowid');
 //if (empty($user->admin)) {
 //	accessforbidden('Must be admin');
