@@ -1183,40 +1183,40 @@ private function validarCIFNIFNIEDNI($doc)
                     return -1; // Retornar error para bloquear el guardado
                 }
 
-                // // Bloquear cambios en CIF/NIF o país si existen facturas emitidas
-                // if ($action == 'update' && !empty($object->id) && $this->thirdpartyHasIssuedInvoices($object->id)) {
-                //     $originalThirdparty = new Societe($this->db);
-                //     $originalThirdparty->fetch($object->id);
+                // Bloquear cambios en CIF/NIF o país si existen facturas emitidas
+                if ($action == 'update' && !empty($object->id) && $this->thirdpartyHasIssuedInvoices($object->id)) {
+                    $originalThirdparty = new Societe($this->db);
+                    $originalThirdparty->fetch($object->id);
 
-                //     $immutableErrors = array();
-                //     $originalVat = dol_strtoupper(trim($originalThirdparty->idprof1));
-                //     $newVat = dol_strtoupper(trim($_POST['idprof1'] ?? ''));
-                //     if ($newVat !== $originalVat) {
-                //         $immutableErrors[] = $langs->trans('VerifactuErrorImmutableVat');
-                //         $_POST['idprof1'] = $originalThirdparty->idprof1;
-                //     }
+                    $immutableErrors = array();
+                    $originalVat = dol_strtoupper(trim($originalThirdparty->idprof1));
+                    $newVat = dol_strtoupper(trim($_POST['idprof1'] ?? ''));
+                    if ($newVat !== $originalVat) {
+                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableVat');
+                        $_POST['idprof1'] = $originalThirdparty->idprof1;
+                    }
 
-                //     $originalCountryId = (int) $originalThirdparty->country_id;
-                //     $newCountryRaw = $_POST['country_id'] ?? $_POST['country'] ?? '';
-                //     if ($newCountryRaw === '') {
-                //         $newCountryRaw = $originalCountryId;
-                //     }
-                //     $newCountryId = is_numeric($newCountryRaw) ? (int) $newCountryRaw : $originalCountryId;
+                    $originalCountryId = (int) $originalThirdparty->country_id;
+                    $newCountryRaw = $_POST['country_id'] ?? $_POST['country'] ?? '';
+                    if ($newCountryRaw === '') {
+                        $newCountryRaw = $originalCountryId;
+                    }
+                    $newCountryId = is_numeric($newCountryRaw) ? (int) $newCountryRaw : $originalCountryId;
 
-                //     if ($originalCountryId && $newCountryId !== $originalCountryId) {
-                //         $immutableErrors[] = $langs->trans('VerifactuErrorImmutableCountry');
-                //         $_POST['country_id'] = $originalCountryId;
-                //         $_POST['country'] = $originalCountryId;
-                //     }
+                    if ($originalCountryId && $newCountryId !== $originalCountryId) {
+                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableCountry');
+                        $_POST['country_id'] = $originalCountryId;
+                        $_POST['country'] = $originalCountryId;
+                    }
 
-                //     if (!empty($immutableErrors)) {
-                //         foreach ($immutableErrors as $msg) {
-                //             setEventMessages($msg, null, 'errors');
-                //         }
-                //         $action = 'edit';
-                //         return -1;
-                //     }
-                // }
+                    if (!empty($immutableErrors)) {
+                        foreach ($immutableErrors as $msg) {
+                            setEventMessages($msg, null, 'errors');
+                        }
+                        $action = 'edit';
+                        return -1;
+                    }
+                }
 
                 dol_syslog("Verifactu: Validación de cliente exitosa en doActions");
             }
