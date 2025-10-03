@@ -198,6 +198,9 @@ class VerifactuXML
         // 15. Huella
         $huella = $registro->hash;
         $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
+
+        $this->addSignature($dom, $registroAlta);
+
     }
 
 
@@ -725,6 +728,80 @@ class VerifactuXML
         return $return;
     }
 
+    private function addSignature($dom, $registroAlta)
+    {
+        // Canonicalizar el XML de RegistroAlta (sin la firma aún)
+        $c14nData = $registroAlta->C14N(true, false);
+
+        $certPath = DOL_DATA_ROOT . '/verifactu/certs/cert.pem';
+        $keyPath = DOL_DATA_ROOT . '/verifactu/certs/key.pem';
+
+        // Cargar clave privada y certificado
+
+        $privateKey = openssl_pkey_get_private("file://$keyPath");
+        $certData = file_get_contents($certPath);
+
+
+
+        // Firmar el bloque canonicalizado
+        openssl_sign($c14nData, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+
+        // Base64
+        $signatureValue = base64_encode($signature);
+        $certBase64 = base64_encode(
+            str_replace(["-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----", "\n", "\r"], "", $certData)
+        );
+
+        // Crear nodo ds:Signature
+        $sigNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Signature');
+
+        $signedInfo = $dom->createElement('ds:SignedInfo');
+        $canonMethod = $dom->createElement('ds:CanonicalizationMethod');
+        $canonMethod->setAttribute('Algorithm', 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315');
+
+        $sigMethod = $dom->createElement('ds:SignatureMethod');
+        $sigMethod->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256');
+
+        $reference = $dom->createElement('ds:Reference');
+        $reference->setAttribute('URI', ''); // Enveloped signature sobre el nodo actual
+
+        $transforms = $dom->createElement('ds:Transforms');
+        $transform = $dom->createElement('ds:Transform');
+        $transform->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#enveloped-signature');
+        $transforms->appendChild($transform);
+
+        $digestMethod = $dom->createElement('ds:DigestMethod');
+        $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
+
+        $digestValue = $dom->createElement('ds:DigestValue', base64_encode(hash('sha256', $c14nData, true)));
+
+        $reference->appendChild($transforms);
+        $reference->appendChild($digestMethod);
+        $reference->appendChild($digestValue);
+
+        $signedInfo->appendChild($canonMethod);
+        $signedInfo->appendChild($sigMethod);
+        $signedInfo->appendChild($reference);
+
+        // Firma final
+        $sigNode->appendChild($signedInfo);
+        $sigNode->appendChild($dom->createElement('ds:SignatureValue', $signatureValue));
+
+        // KeyInfo con certificado
+        $keyInfo = $dom->createElement('ds:KeyInfo');
+        $x509Data = $dom->createElement('ds:X509Data');
+        $x509Cert = $dom->createElement('ds:X509Certificate', $certBase64);
+        $x509Data->appendChild($x509Cert);
+        $keyInfo->appendChild($x509Data);
+
+        $sigNode->appendChild($keyInfo);
+
+        // Insertar al final de RegistroAlta
+        $registroAlta->appendChild($sigNode);
+    }
+
+
+
 
     public function sendBatch()
     {
@@ -834,7 +911,6 @@ class VerifactuXML
                     $error->fk_registro = 0;
                     $error->datos_adicionales = $response;
                     $error->create($user);
-
                 }
                 $this->db->commit();
                 return 0;
@@ -851,7 +927,7 @@ class VerifactuXML
 
                 $error = new VerifactuError($this->db);
                 $error->fecha = time();
-                $error->tipo_error = 'Error de esquema SOAP';
+                $error->tipo_error = 'Error no contiene RespuestaRegFactuSistemaFacturacion';
                 $error->mensaje = $errorMsg;
                 $error->notificado = 0;
                 $error->fk_batch = $this->batch->id;
@@ -887,7 +963,7 @@ class VerifactuXML
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO;
                     $error = new VerifactuError($this->db);
                     $error->fecha = time();
-                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->tipo_error = 'Error, el batch ha sido Aceptado con errores';
                     $error->mensaje = "El batch ha sido procesado parcialmente correcto. Revise los registros individuales para más detalles.";
                     $error->notificado = 0;
                     $error->fk_batch = $this->batch->id;
@@ -897,7 +973,7 @@ class VerifactuXML
                     $this->batch->estado = VERIFACTU_ESTADO_BATCH_INCORRECTO;
                     $error = new VerifactuError($this->db);
                     $error->fecha = time();
-                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->tipo_error = 'Error, el batch ha sido incorrecto';
                     $error->mensaje = "El batch ha sido procesado incorrectamente. Revise los registros individuales para más detalles.";
                     $error->notificado = 0;
                     $error->fk_batch = $this->batch->id;
@@ -907,7 +983,7 @@ class VerifactuXML
 
                     $error = new VerifactuError($this->db);
                     $error->fecha = time();
-                    $error->tipo_error = 'Error de esquema SOAP';
+                    $error->tipo_error = 'Error desconocido en envio de batch';
                     $error->mensaje = "EstadoEnvio desconocido: $estadoEnvio";
                     $error->notificado = 0;
                     $error->fk_batch = $this->batch->id;
