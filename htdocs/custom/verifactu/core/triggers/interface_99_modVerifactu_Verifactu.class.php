@@ -78,7 +78,7 @@ class InterfaceVerifactu extends DolibarrTriggers
         $invoice->array_options['options_verifactu_client_country'] = $customerCountry;
         $invoice->array_options['options_verifactu_client_country_code'] = $customerCountryCode;
 
-        $res = $invoice->updateExtraFields();
+        $res = $invoice->insertExtraFields();
         if ($res < 0) {
             dol_syslog("Verifactu: Error guardando snapshot de cliente en factura id=" . $invoice->id . ". Error: " . $invoice->error, LOG_ERR);
             return -1;
