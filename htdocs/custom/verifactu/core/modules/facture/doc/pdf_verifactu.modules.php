@@ -421,7 +421,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 			
 			// Posición: lado derecho, después del logo/empresa (aprox. línea 60-80)
 			$x = $this->page_largeur - $this->marge_droite - $qrSize - 5; // Lado derecho
-			$y = 50; // Posición vertical entre empresa y datos de factura
+			$y = 45; // Posición vertical entre empresa y datos de factura
 			
 			// Generar y agregar el QR
 			$pdf->write2DBarcode($this->qrData, 'QRCODE,L', $x, $y, $qrSize, $qrSize, array(), false);

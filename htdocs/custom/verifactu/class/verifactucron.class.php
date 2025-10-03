@@ -168,6 +168,7 @@ class VerifactuCron extends CommonObject
 
 			$count = count($errores);
 
+
 			// Preparar contenido del email
 			$subject = '[' . getDolGlobalString('MAIN_INFO_SOCIETE_NOM') . '] Errores del módulo Verifactu - ' . dol_print_date(dol_now(), 'dayhour');
 
