@@ -1164,54 +1164,59 @@ private function validarCIFNIFNIEDNI($doc)
 
                 // Si hay errores, mostrarlos y bloquear la creación
                 if (!empty($errors)) {
-                    foreach ($errors as $error) {
-                        setEventMessages($error, null, 'errors');
-                    }
+                    // foreach ($errors as $error) {
+                    //     setEventMessages($error, null, 'errors');
+                    // }
                     dol_syslog("Verifactu: Validación de cliente fallida en doActions: " . implode(", ", $errors));
 
                     // Cambiar la acción para volver al formulario sin redirección
-                    if ($action == 'create') {
-                        $action = 'add';
-                    } elseif ($action == 'update') {
+                    if ($action == 'create' || $action == 'add') {
+                        $action = 'create';
+                        $_POST['action'] = 'create';
+                        $_GET['action'] = 'create';
+                    } elseif ($action == 'update' || $action == 'edit') {
                         $action = 'edit';
+                        $_POST['action'] = 'edit';
+                        $_GET['action'] = 'edit';
                     }
+                    $this->errors = array_merge($this->errors, $errors);
                     return -1; // Retornar error para bloquear el guardado
                 }
 
-                // Bloquear cambios en CIF/NIF o país si existen facturas emitidas
-                if ($action == 'update' && !empty($object->id) && $this->thirdpartyHasIssuedInvoices($object->id)) {
-                    $originalThirdparty = new Societe($this->db);
-                    $originalThirdparty->fetch($object->id);
+                // // Bloquear cambios en CIF/NIF o país si existen facturas emitidas
+                // if ($action == 'update' && !empty($object->id) && $this->thirdpartyHasIssuedInvoices($object->id)) {
+                //     $originalThirdparty = new Societe($this->db);
+                //     $originalThirdparty->fetch($object->id);
 
-                    $immutableErrors = array();
-                    $originalVat = dol_strtoupper(trim($originalThirdparty->idprof1));
-                    $newVat = dol_strtoupper(trim($_POST['idprof1'] ?? ''));
-                    if ($newVat !== $originalVat) {
-                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableVat');
-                        $_POST['idprof1'] = $originalThirdparty->idprof1;
-                    }
+                //     $immutableErrors = array();
+                //     $originalVat = dol_strtoupper(trim($originalThirdparty->idprof1));
+                //     $newVat = dol_strtoupper(trim($_POST['idprof1'] ?? ''));
+                //     if ($newVat !== $originalVat) {
+                //         $immutableErrors[] = $langs->trans('VerifactuErrorImmutableVat');
+                //         $_POST['idprof1'] = $originalThirdparty->idprof1;
+                //     }
 
-                    $originalCountryId = (int) $originalThirdparty->country_id;
-                    $newCountryRaw = $_POST['country_id'] ?? $_POST['country'] ?? '';
-                    if ($newCountryRaw === '') {
-                        $newCountryRaw = $originalCountryId;
-                    }
-                    $newCountryId = is_numeric($newCountryRaw) ? (int) $newCountryRaw : $originalCountryId;
+                //     $originalCountryId = (int) $originalThirdparty->country_id;
+                //     $newCountryRaw = $_POST['country_id'] ?? $_POST['country'] ?? '';
+                //     if ($newCountryRaw === '') {
+                //         $newCountryRaw = $originalCountryId;
+                //     }
+                //     $newCountryId = is_numeric($newCountryRaw) ? (int) $newCountryRaw : $originalCountryId;
 
-                    if ($originalCountryId && $newCountryId !== $originalCountryId) {
-                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableCountry');
-                        $_POST['country_id'] = $originalCountryId;
-                        $_POST['country'] = $originalCountryId;
-                    }
+                //     if ($originalCountryId && $newCountryId !== $originalCountryId) {
+                //         $immutableErrors[] = $langs->trans('VerifactuErrorImmutableCountry');
+                //         $_POST['country_id'] = $originalCountryId;
+                //         $_POST['country'] = $originalCountryId;
+                //     }
 
-                    if (!empty($immutableErrors)) {
-                        foreach ($immutableErrors as $msg) {
-                            setEventMessages($msg, null, 'errors');
-                        }
-                        $action = 'edit';
-                        return -1;
-                    }
-                }
+                //     if (!empty($immutableErrors)) {
+                //         foreach ($immutableErrors as $msg) {
+                //             setEventMessages($msg, null, 'errors');
+                //         }
+                //         $action = 'edit';
+                //         return -1;
+                //     }
+                // }
 
                 dol_syslog("Verifactu: Validación de cliente exitosa en doActions");
             }
@@ -1330,8 +1335,138 @@ private function validarCIFNIFNIEDNI($doc)
                         });
                     }
 
+                    var formStorage = (function() {
+                        try {
+                            var storage = window.sessionStorage;
+                            var testKey = "verifactu_form_test";
+                            storage.setItem(testKey, "1");
+                            storage.removeItem(testKey);
+                            return storage;
+                        } catch (err) {
+                            console.warn("Verifactu: sessionStorage no disponible", err);
+                            return null;
+                        }
+                    })();
+                    var storageKey = "verifactu_thirdparty_form_snapshot";
+
+                    function clearFormSnapshot() {
+                        if (formStorage) {
+                            formStorage.removeItem(storageKey);
+                        }
+                    }
+
+                    function saveFormSnapshot($form) {
+                        if (!formStorage || !$form || !$form.length) {
+                            return;
+                        }
+
+                        var snapshot = {};
+                        $form.find("input, select, textarea").each(function() {
+                            var $field = $(this);
+                            var name = $field.attr("name");
+
+                            if (!name) {
+                                return;
+                            }
+
+                            if ($field.attr("type") === "password" || name === "token" || name === "action" || name === "id" || name === "mode") {
+                                return;
+                            }
+
+                            if ($field.is(":disabled") && !$field.hasClass("verifactu-hidden-locked")) {
+                                return;
+                            }
+
+                            if ($field.attr("type") === "checkbox") {
+                                snapshot[name] = $field.is(":checked");
+                            } else if ($field.attr("type") === "radio") {
+                                if ($field.is(":checked")) {
+                                    snapshot[name] = $field.val();
+                                } else if (!(name in snapshot)) {
+                                    snapshot[name] = null;
+                                }
+                            } else {
+                                snapshot[name] = $field.val();
+                            }
+                        });
+
+                        try {
+                            formStorage.setItem(storageKey, JSON.stringify(snapshot));
+                            console.log("Verifactu: Snapshot de formulario guardado");
+                        } catch (err) {
+                            console.warn("Verifactu: No se pudo guardar snapshot", err);
+                        }
+                    }
+
+                    function restoreFormSnapshot($form) {
+                        if (!formStorage || !$form || !$form.length) {
+                            return;
+                        }
+
+                        var rawData = formStorage.getItem(storageKey);
+                        if (!rawData) {
+                            return;
+                        }
+
+                        var snapshot;
+                        try {
+                            snapshot = JSON.parse(rawData);
+                        } catch (err) {
+                            console.warn("Verifactu: No se pudo parsear snapshot", err);
+                            clearFormSnapshot();
+                            return;
+                        }
+
+                        $.each(snapshot, function(name, value) {
+                            if (typeof name === "undefined" || name === null) {
+                                return;
+                            }
+
+                            var $fields = $form.find("[name]").filter(function() {
+                                return this.name === name;
+                            });
+
+                            if (!$fields.length) {
+                                return;
+                            }
+
+                            $fields.each(function() {
+                                var $field = $(this);
+                                var type = ($field.attr("type") || "").toLowerCase();
+
+                                if (type === "checkbox") {
+                                    $field.prop("checked", !!value);
+                                } else if (type === "radio") {
+                                    if (value === null) {
+                                        $field.prop("checked", false);
+                                    } else {
+                                        $field.prop("checked", $field.val() == value);
+                                    }
+                                } else {
+                                    $field.val(value);
+                                }
+                            });
+
+                            $fields.filter("select").each(function() {
+                                $(this).trigger("change");
+                            });
+                        });
+
+                        console.log("Verifactu: Snapshot de formulario restaurado", snapshot);
+                    }
+
+                    var $forms = $("form[name=\"add\"], form[name=\"update\"]");
+                    if (formStorage && $forms.length) {
+                        var hasServerErrors = $(".error, .errorBox, .errorMsg, .ui-state-error").filter(":visible").length > 0;
+                        if (hasServerErrors) {
+                            restoreFormSnapshot($forms.first());
+                        } else {
+                            clearFormSnapshot();
+                        }
+                    }
+
                     // Interceptar envío del formulario de cliente/tercero
-                    $("form[name=\"add\"], form[name=\"update\"]").on("submit", function(e) {
+                    $forms.on("submit", function(e) {
                         console.log("Verifactu: Interceptando envío de formulario de cliente");
 
                         var errors = [];
@@ -1379,6 +1514,8 @@ private function validarCIFNIFNIEDNI($doc)
                             e.preventDefault();
                             return false;
                         }
+
+                        saveFormSnapshot($(this));
 
                         console.log("Verifactu: Validación de cliente exitosa, permitiendo envío");
                         return true;
