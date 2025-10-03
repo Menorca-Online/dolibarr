@@ -1196,6 +1196,7 @@ class modVerifactu extends DolibarrModules
 	{
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
 		$extrafields = new ExtraFields($this->db);
+		$db = $this->db;
 
 		// Buscar ID del régimen con código '01'
 		$sql_regimen = "SELECT rowid FROM " . MAIN_DB_PREFIX . "c_verifactu_clave_regimenes WHERE code = '01' AND active = 1 LIMIT 1";
@@ -1299,6 +1300,98 @@ class modVerifactu extends DolibarrModules
 					AND elementtype = 'facture'";
 			$this->db->query($sql);
 			dol_syslog("Verifactu: Actualizada posición del extrafield fk_verifactu_registro_estado a -11 y configurado como solo lectura en facturas validadas");
+		}
+
+		// Crear campos extra para almacenar los datos inmutables del cliente en cabecera de factura
+		$existing = $extrafields->fetch_name_optionals_label('facture');
+		$customerSnapshotFields = array(
+			'verifactu_client_name' => array(
+				'label' => 'Nombre cliente Verifactu',
+				'pos' => -30,
+				'size' => 255,
+				'help' => 'Nombre legal del cliente en el momento de la validación.',
+			),
+			'verifactu_client_vat' => array(
+				'label' => 'CIF/NIF cliente Verifactu',
+				'pos' => -29,
+				'size' => 50,
+				'help' => 'Documento fiscal del cliente capturado durante la validación.',
+			),
+			'verifactu_client_address' => array(
+				'label' => 'Dirección cliente Verifactu',
+				'pos' => -28,
+				'size' => 255,
+				'help' => 'Dirección fiscal del cliente en la fecha de emisión.',
+			),
+			'verifactu_client_zip' => array(
+				'label' => 'CP cliente Verifactu',
+				'pos' => -27,
+				'size' => 20,
+				'help' => 'Código postal del cliente en la fecha de emisión.',
+			),
+			'verifactu_client_town' => array(
+				'label' => 'Población cliente Verifactu',
+				'pos' => -26,
+				'size' => 150,
+				'help' => 'Municipio del cliente en la fecha de emisión.',
+			),
+			'verifactu_client_state' => array(
+				'label' => 'Provincia cliente Verifactu',
+				'pos' => -25,
+				'size' => 150,
+				'help' => 'Provincia o estado del cliente en la fecha de emisión.',
+			),
+			'verifactu_client_country' => array(
+				'label' => 'País cliente Verifactu',
+				'pos' => -24,
+				'size' => 150,
+				'help' => 'País del cliente en la fecha de emisión.',
+			),
+			'verifactu_client_country_code' => array(
+				'label' => 'Código país cliente Verifactu',
+				'pos' => -23,
+				'size' => 10,
+				'help' => 'Código ISO del país del cliente capturado durante la validación.',
+			),
+		);
+
+		foreach ($customerSnapshotFields as $fieldName => $meta) {
+			if (!isset($existing[$fieldName])) {
+				$resCreate = $extrafields->addExtraField(
+					$fieldName,
+					$meta['label'],
+					'varchar',
+					$meta['pos'],
+					$meta['size'],
+					'facture',
+					0,
+					0,
+					'',
+					'',
+					0,
+					'',
+					0,
+					$meta['help'],
+					'',
+					'',
+					'',
+					'-1',
+					0,
+					1
+				);
+				if ($resCreate < 0) {
+					return -1;
+				}
+			} else {
+				$labelSql = $db->escape($meta['label']);
+				$helpSql = $db->escape($meta['help']);
+				$fieldSql = $db->escape($fieldName);
+				$sql = "UPDATE " . $db->prefix() . "extrafields SET label = '" . $labelSql . "', type = 'varchar', size = " . ((int) $meta['size']) . ", pos = " . ((int) $meta['pos']) . ", help = '" . $helpSql . "', enabled = '-1', printable = 1 WHERE name = '" . $fieldSql . "' AND elementtype = 'facture'";
+				$resUpdate = $db->query($sql);
+				if (!$resUpdate) {
+					return -1;
+				}
+			}
 		}
 
 
@@ -1502,6 +1595,24 @@ class modVerifactu extends DolibarrModules
 		$result9 = $extrafields->delete('fk_verifactu_registro_estado', 'facture');
 		if ($result9 < 0) {
 			return -1;
+		}
+
+		$customerSnapshotFields = array(
+			'verifactu_client_name',
+			'verifactu_client_vat',
+			'verifactu_client_address',
+			'verifactu_client_zip',
+			'verifactu_client_town',
+			'verifactu_client_state',
+			'verifactu_client_country',
+			'verifactu_client_country_code',
+		);
+
+		foreach ($customerSnapshotFields as $fieldName) {
+			$resultDelete = $extrafields->delete($fieldName, 'facture');
+			if ($resultDelete < 0 && $extrafields->error != 'ErrorFieldNotFound') {
+				return -1;
+			}
 		}
 
 		// Crear tabla de errores

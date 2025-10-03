@@ -296,23 +296,16 @@ class pdf_crabe_verifactu extends pdf_crabe
 		// Verificar si es cliente genérico para factura simplificada
 		$isFacturaSimplificada = $this->isFacturaSimplificada($object);
 		
-		if ($isFacturaSimplificada) {
-			// Para facturas simplificadas, mantenemos showaddress = 1 pero modificaremos el contenido
-			// $titlekey = "PdfInvoiceSimplificadaTitle"; // Podemos cambiar el título si queremos
-		}
-		
 		// Llamar a la cabecera original
 		$result = parent::_pagehead($pdf, $object, $showaddress, $outputlangs, $outputlangsbis, $titlekey);
-		
+
 		// Mejorar el área del emisor para mostrar el CIF
 		if ($showaddress) {
 			$this->enhanceSenderArea($pdf, $object, $outputlangs);
 		}
-		
-		// Para factura simplificada, sobrescribir el área del destinatario
-		if ($isFacturaSimplificada) {
-			$this->overrideRecipientArea($pdf, $outputlangs);
-		}
+
+		// Redibujar el área del destinatario usando los datos inmutables capturados
+		$this->renderRecipientSnapshotArea($pdf, $object, $outputlangs, $isFacturaSimplificada);
 		
 		// Agregar código QR si tenemos datos (después de la cabecera)
 		if (!empty($this->qrData)) {
@@ -451,33 +444,77 @@ class pdf_crabe_verifactu extends pdf_crabe
 	}
 
 	/**
-	 * Sobrescribir el área del destinatario para mostrar "FACTURA SIMPLIFICADA"
+	 * Obtiene los datos del cliente a partir de los extra fields inmuebles o, en su defecto, del tercero actual
 	 */
-	private function overrideRecipientArea(&$pdf, $outputlangs)
+	private function getCustomerSnapshotData($object)
 	{
-		global $conf;
-		
+		if (empty($object->thirdparty) || empty($object->thirdparty->id)) {
+			$object->fetch_thirdparty();
+		}
+		$object->fetch_optionals();
+
+		$data = array(
+			'name' => trim($object->array_options['options_verifactu_client_name'] ?? ''),
+			'vat' => trim($object->array_options['options_verifactu_client_vat'] ?? ''),
+			'address' => trim($object->array_options['options_verifactu_client_address'] ?? ''),
+			'zip' => trim($object->array_options['options_verifactu_client_zip'] ?? ''),
+			'town' => trim($object->array_options['options_verifactu_client_town'] ?? ''),
+			'state' => trim($object->array_options['options_verifactu_client_state'] ?? ''),
+			'country' => trim($object->array_options['options_verifactu_client_country'] ?? ''),
+			'country_code' => trim($object->array_options['options_verifactu_client_country_code'] ?? ''),
+		);
+
+		$thirdparty = $object->thirdparty;
+		if (!empty($thirdparty)) {
+			if ($data['name'] === '') {
+				$data['name'] = $thirdparty->name;
+			}
+			if ($data['vat'] === '') {
+				$data['vat'] = !empty($thirdparty->idprof1) ? $thirdparty->idprof1 : $thirdparty->tva_intra;
+			}
+			if ($data['address'] === '') {
+				$data['address'] = str_replace(array("\r\n", "\r", "\n"), ' ', (string) $thirdparty->address);
+			}
+			if ($data['zip'] === '') {
+				$data['zip'] = $thirdparty->zip;
+			}
+			if ($data['town'] === '') {
+				$data['town'] = $thirdparty->town;
+			}
+			if ($data['state'] === '') {
+				$data['state'] = $thirdparty->state ?: $thirdparty->state_code;
+			}
+			if ($data['country'] === '') {
+				$data['country'] = $thirdparty->country;
+			}
+			if ($data['country_code'] === '') {
+				$data['country_code'] = $thirdparty->country_code;
+			}
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Redibuja el bloque del destinatario utilizando los datos inmutables capturados
+	 */
+	private function renderRecipientSnapshotArea(&$pdf, $object, $outputlangs, $isFacturaSimplificada)
+	{
 		$default_font_size = pdf_getPDFFontSize($outputlangs);
-		
-		// Calcular posición del área del destinatario (igual que en pdf_crabe)
 		$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 100;
 		if ($this->page_largeur < 210) {
-			$widthrecbox = 84; // Para formato US executive
+			$widthrecbox = 84;
 		}
 		$posy = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 40 : 42;
 		$posx = $this->page_largeur - $this->marge_droite - $widthrecbox;
 		if (getDolGlobalString('MAIN_INVERT_SENDER_RECIPIENT')) {
 			$posx = $this->marge_gauche;
 		}
-		
-		// Altura del marco (similar a pdf_crabe)
 		$hautcadre = 40;
-		
-		// Sobrescribir con un rectángulo blanco para limpiar el contenido anterior
+
+		// Limpiar área y redibujar el marco
 		$pdf->SetFillColor(255, 255, 255);
 		$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'F');
-		
-		// Redibujar el marco del destinatario
 		if (!getDolGlobalString('MAIN_PDF_NO_RECIPENT_FRAME')) {
 			$pdf->SetTextColor(0, 0, 0);
 			$pdf->SetFont('', '', $default_font_size - 2);
@@ -485,14 +522,62 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->MultiCell($widthrecbox - 2, 5, $outputlangs->transnoentities("BillTo"), 0, 'L');
 			$pdf->RoundedRect($posx, $posy, $widthrecbox, $hautcadre, $this->corner_radius, '1234', 'D');
 		}
+
+		$data = $this->getCustomerSnapshotData($object);
+		$cursorY = $posy + 3;
+		$lineHeight = 5;
+		$maxWidth = $widthrecbox - 4;
 		
-		// Agregar texto "FACTURA SIMPLIFICADA" centrado en el área del destinatario
-		$pdf->SetXY($posx -10, $posy + 8);
-		$pdf->SetFont('', 'B', $default_font_size + 1);
-		$pdf->SetTextColor(200, 0, 0); // Color rojo
-		$pdf->MultiCell($widthrecbox - 4, 6, "FACTURA\nSIMPLIFICADA", 0, 'C');
-		
-		
+		$pdf->SetTextColor(0, 0, 60);
+		$pdf->SetFont('', 'B', $default_font_size);
+		$pdf->SetXY($posx + 2, $cursorY);
+		$pdf->MultiCell($maxWidth, $lineHeight, $outputlangs->convToOutputCharset($data['name']), 0, 'L');
+		$cursorY = $pdf->GetY();
+
+		$pdf->SetFont('', '', $default_font_size - 1);
+		if (!empty($data['vat'])) {
+			$pdf->SetXY($posx + 2, $cursorY);
+			$pdf->MultiCell($maxWidth, $lineHeight, $outputlangs->transnoentities("VATIntraShort") . ': ' . $outputlangs->convToOutputCharset($data['vat']), 0, 'L');
+			$cursorY = $pdf->GetY();
+		}
+
+		$addressLines = array();
+		if (!empty($data['address'])) {
+			$addressLines[] = $data['address'];
+		}
+		$cityLineParts = array();
+		if (!empty($data['zip'])) {
+			$cityLineParts[] = $data['zip'];
+		}
+		if (!empty($data['town'])) {
+			$cityLineParts[] = $data['town'];
+		}
+		if ($cityLineParts) {
+			$addressLines[] = implode(' ', $cityLineParts);
+		}
+		if (!empty($data['state'])) {
+			$addressLines[] = $data['state'];
+		}
+		if (!empty($data['country']) || !empty($data['country_code'])) {
+			$countryLine = $data['country'];
+			if (!empty($data['country_code'])) {
+				$countryLine .= (!empty($countryLine) ? ' ' : '') . '(' . $data['country_code'] . ')';
+			}
+			$addressLines[] = trim($countryLine);
+		}
+
+		foreach ($addressLines as $line) {
+			$pdf->SetXY($posx + 2, $cursorY);
+			$pdf->MultiCell($maxWidth, $lineHeight, $outputlangs->convToOutputCharset($line), 0, 'L');
+			$cursorY = $pdf->GetY();
+		}
+
+		if ($isFacturaSimplificada) {
+			$pdf->SetTextColor(200, 0, 0);
+			$pdf->SetFont('', 'B', $default_font_size - 1);
+			$pdf->SetXY($posx + 2, $posy + $hautcadre - 10);
+			$pdf->MultiCell($maxWidth, 4, $outputlangs->transnoentities('VerifactuSimplifiedInvoiceLabel'), 0, 'R');
+		}
 	}
 
 	/**

@@ -19,6 +19,7 @@
 
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturetype.class.php';
+require_once DOL_DOCUMENT_ROOT . '/societe/class/societe.class.php';
 class ActionsVerifactu
 {
     /**
@@ -1167,7 +1168,7 @@ private function validarCIFNIFNIEDNI($doc)
                         setEventMessages($error, null, 'errors');
                     }
                     dol_syslog("Verifactu: Validación de cliente fallida en doActions: " . implode(", ", $errors));
-                    
+
                     // Cambiar la acción para volver al formulario sin redirección
                     if ($action == 'create') {
                         $action = 'add';
@@ -1175,6 +1176,41 @@ private function validarCIFNIFNIEDNI($doc)
                         $action = 'edit';
                     }
                     return -1; // Retornar error para bloquear el guardado
+                }
+
+                // Bloquear cambios en CIF/NIF o país si existen facturas emitidas
+                if ($action == 'update' && !empty($object->id) && $this->thirdpartyHasIssuedInvoices($object->id)) {
+                    $originalThirdparty = new Societe($this->db);
+                    $originalThirdparty->fetch($object->id);
+
+                    $immutableErrors = array();
+                    $originalVat = dol_strtoupper(trim($originalThirdparty->idprof1));
+                    $newVat = dol_strtoupper(trim($_POST['idprof1'] ?? ''));
+                    if ($newVat !== $originalVat) {
+                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableVat');
+                        $_POST['idprof1'] = $originalThirdparty->idprof1;
+                    }
+
+                    $originalCountryId = (int) $originalThirdparty->country_id;
+                    $newCountryRaw = $_POST['country_id'] ?? $_POST['country'] ?? '';
+                    if ($newCountryRaw === '') {
+                        $newCountryRaw = $originalCountryId;
+                    }
+                    $newCountryId = is_numeric($newCountryRaw) ? (int) $newCountryRaw : $originalCountryId;
+
+                    if ($originalCountryId && $newCountryId !== $originalCountryId) {
+                        $immutableErrors[] = $langs->trans('VerifactuErrorImmutableCountry');
+                        $_POST['country_id'] = $originalCountryId;
+                        $_POST['country'] = $originalCountryId;
+                    }
+
+                    if (!empty($immutableErrors)) {
+                        foreach ($immutableErrors as $msg) {
+                            setEventMessages($msg, null, 'errors');
+                        }
+                        $action = 'edit';
+                        return -1;
+                    }
                 }
 
                 dol_syslog("Verifactu: Validación de cliente exitosa en doActions");
@@ -1252,6 +1288,10 @@ private function validarCIFNIFNIEDNI($doc)
 
                 dol_syslog("Verifactu: formObjectOptions EJECUTADO para tercero - Contexto: " . ($parameters['currentcontext'] ?? 'N/A') . ", Elemento: " . ($object->element ?? 'N/A'));
 
+                $hasIssuedInvoices = (!empty($object->id)) ? $this->thirdpartyHasIssuedInvoices($object->id) : false;
+                $vatLockMessage = dol_escape_js($langs->trans('VerifactuErrorImmutableVat'));
+                $countryLockMessage = dol_escape_js($langs->trans('VerifactuErrorImmutableCountry'));
+
                 $this->resprints .= '
                 <script type="text/javascript">
                 $(document).ready(function() {
@@ -1259,21 +1299,52 @@ private function validarCIFNIFNIEDNI($doc)
                     console.log("Verifactu: Contexto actual:", "' . ($parameters['currentcontext'] ?? 'N/A') . '");
                     console.log("Verifactu: Elemento del objeto:", "' . ($object->element ?? 'N/A') . '");
 
+                    var hasIssuedInvoices = ' . ($hasIssuedInvoices ? 'true' : 'false') . ';
+                    var vatLockMessage = "' . $vatLockMessage . '";
+                    var countryLockMessage = "' . $countryLockMessage . '";
+
+                    if (hasIssuedInvoices) {
+                        var vatField = $("input[name=\"idprof1\"]");
+                        if (vatField.length && !vatField.data("verifactuLocked")) {
+                            vatField.prop("readonly", true).addClass("verifactu-field-locked");
+                            vatField.data("verifactuLocked", true);
+                            if (vatField.next(".verifactu-lock-msg").length === 0) {
+                                vatField.after("<div class=\"verifactu-lock-msg verifactu-note\">" + vatLockMessage + "</div>");
+                            }
+                        }
+
+                        var countryFields = $("select[name=\"country_id\"], select[name=\"country\"]");
+                        countryFields.each(function() {
+                            var $select = $(this);
+                            if ($select.data("verifactuLocked")) {
+                                return;
+                            }
+                            var currentValue = $select.val();
+                            if (currentValue !== undefined) {
+                                $("<input type=\"hidden\" class=\"verifactu-hidden-locked\">").attr("name", this.name).val(currentValue).insertAfter($select);
+                            }
+                            $select.prop("disabled", true).addClass("verifactu-field-locked").data("verifactuLocked", true);
+                            if ($select.nextAll(".verifactu-lock-msg-country").length === 0) {
+                                $select.after("<div class=\"verifactu-lock-msg-country verifactu-note\">" + countryLockMessage + "</div>");
+                            }
+                        });
+                    }
+
                     // Interceptar envío del formulario de cliente/tercero
-                    $(\'form[name="add"], form[name="update"]\').on("submit", function(e) {
+                    $("form[name=\"add\"], form[name=\"update\"]").on("submit", function(e) {
                         console.log("Verifactu: Interceptando envío de formulario de cliente");
 
                         var errors = [];
 
                         // Validar dirección obligatoria
-                        var address = $(\'input[name="address"]\').val() || "";
+                        var address = $("input[name=\"address\"]").val() || "";
                         if (!address.trim()) {
                             errors.push("La dirección es obligatoria para clientes según normativa Verifactu");
                         }
 
                         // Validar CIF/NIF solo si el país es España
-                        var country = $(\'select[name="country_id"]\').val() || $(\'select[name="country"]\').val() || "";
-                        var cif = $(\'input[name="idprof1"]\').val() || "";
+                        var country = $("select[name=\"country_id\"]").val() || $("select[name=\"country\"]").val() || "";
+                        var cif = $("input[name=\"idprof1\"]").val() || "";
 
                         console.log("Verifactu: País seleccionado:", country, "CIF:", cif);
 
@@ -1290,13 +1361,13 @@ private function validarCIFNIFNIEDNI($doc)
                         }
 
                         // Validar código postal obligatorio
-                        var zip = $(\'input[name="zipcode"], input[name="zip"]\').val() || "";
+                        var zip = $("input[name=\"zipcode\"], input[name=\"zip\"]").val() || "";
                         if (!zip.trim()) {
                             errors.push("El código postal es obligatorio para clientes según normativa Verifactu");
                         }
 
                         // Validar población obligatoria
-                        var town = $(\'input[name="town"]\').val() || "";
+                        var town = $("input[name=\"town\"]").val() || "";
                         if (!town.trim()) {
                             errors.push("La población es obligatoria para clientes según normativa Verifactu");
                         }
@@ -1318,6 +1389,36 @@ private function validarCIFNIFNIEDNI($doc)
         }
 
         return 0;
+    }
+
+    /**
+     * Comprueba si el tercero tiene facturas emitidas (validadas o más)
+     *
+     * @param int $thirdpartyId
+     * @return bool
+     */
+    private function thirdpartyHasIssuedInvoices($thirdpartyId)
+    {
+        global $conf;
+
+        if (empty($thirdpartyId)) {
+            return false;
+        }
+
+        $sql = "SELECT COUNT(f.rowid) AS nb FROM " . $this->db->prefix() . "facture AS f
+            WHERE f.fk_soc = " . ((int) $thirdpartyId) . "
+            AND f.fk_statut > 0
+            AND f.entity = " . ((int) $conf->entity);
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            dol_syslog("Verifactu: Error comprobando facturas emitidas para tercero id=" . $thirdpartyId . " - " . $this->db->lasterror(), LOG_ERR);
+            return false;
+        }
+
+        $obj = $this->db->fetch_object($resql);
+        $this->db->free($resql);
+
+        return (!empty($obj) && (int) $obj->nb > 0);
     }
 
 

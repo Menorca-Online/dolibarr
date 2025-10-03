@@ -35,6 +35,60 @@ require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuclaveregimen.
 class InterfaceVerifactu extends DolibarrTriggers
 {
     /**
+     * Captura los datos del cliente en los nuevos campos extra cuando la factura se valida.
+     *
+     * @param Facture $invoice
+     * @return int 1 si OK, <0 si error
+     */
+    private function snapshotCustomerDataOnInvoice($invoice)
+    {
+        if (empty($invoice) || empty($invoice->id)) {
+            dol_syslog("Verifactu: snapshotCustomerDataOnInvoice sin factura válida", LOG_WARNING);
+            return -1;
+        }
+
+        // Asegurar que tenemos los datos completos del cliente y los extrafields cargados
+        if (empty($invoice->thirdparty) || empty($invoice->thirdparty->id)) {
+            $invoice->fetch_thirdparty();
+        }
+        $invoice->fetch_optionals();
+
+        $thirdparty = $invoice->thirdparty;
+        if (empty($thirdparty) || empty($thirdparty->id)) {
+            dol_syslog("Verifactu: No se ha podido recuperar el tercero asociado a la factura id=" . $invoice->id, LOG_ERR);
+            return -1;
+        }
+
+        $customerName = dol_trunc($thirdparty->name, 255, 'right', 'UTF-8', 1);
+        $customerVat = !empty($thirdparty->idprof1) ? $thirdparty->idprof1 : $thirdparty->tva_intra;
+        $customerVat = dol_trunc($customerVat, 50, 'right', 'UTF-8', 1);
+        $customerAddress = dol_trunc(preg_replace("/(\r\n|\r|\n)+/", ' ', (string) $thirdparty->address), 255, 'right', 'UTF-8', 1);
+        $customerZip = dol_trunc((string) $thirdparty->zip, 20, 'right', 'UTF-8', 1);
+        $customerTown = dol_trunc((string) $thirdparty->town, 150, 'right', 'UTF-8', 1);
+        $customerState = dol_trunc((string) ($thirdparty->state ?: $thirdparty->state_code), 150, 'right', 'UTF-8', 1);
+        $customerCountry = dol_trunc((string) $thirdparty->country, 150, 'right', 'UTF-8', 1);
+        $customerCountryCode = dol_trunc((string) $thirdparty->country_code, 10, 'right', 'UTF-8', 1);
+
+        $invoice->array_options['options_verifactu_client_name'] = $customerName;
+        $invoice->array_options['options_verifactu_client_vat'] = $customerVat;
+        $invoice->array_options['options_verifactu_client_address'] = $customerAddress;
+        $invoice->array_options['options_verifactu_client_zip'] = $customerZip;
+        $invoice->array_options['options_verifactu_client_town'] = $customerTown;
+        $invoice->array_options['options_verifactu_client_state'] = $customerState;
+        $invoice->array_options['options_verifactu_client_country'] = $customerCountry;
+        $invoice->array_options['options_verifactu_client_country_code'] = $customerCountryCode;
+
+        $res = $invoice->updateExtraFields();
+        if ($res < 0) {
+            dol_syslog("Verifactu: Error guardando snapshot de cliente en factura id=" . $invoice->id . ". Error: " . $invoice->error, LOG_ERR);
+            return -1;
+        }
+
+        dol_syslog("Verifactu: Snapshot de datos del cliente guardado en factura id=" . $invoice->id, LOG_INFO);
+        return 1;
+    }
+
+    /**
      * Constructor
      *
      * @param DoliDB $db Database handler
@@ -356,6 +410,14 @@ class InterfaceVerifactu extends DolibarrTriggers
             }
         }
 
+
+        $snapshotResult = $this->snapshotCustomerDataOnInvoice($object);
+        if ($snapshotResult < 0) {
+            $errorMsg = "ERROR: No se pudo guardar la información del cliente en la cabecera de la factura.";
+            setEventMessages($errorMsg, null, 'errors');
+            $object->error = $errorMsg;
+            return -1;
+        }
 
         include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
         return verifactu_generar_registro_alta($object);

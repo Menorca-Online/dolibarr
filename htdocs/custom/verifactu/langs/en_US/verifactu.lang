@@ -41,6 +41,9 @@ VerifactuErrorFechaNoModificable = The invoice date cannot be modified according
 VerifactuErrorFechaDebeSerHoy = The invoice date must be the current date according to Verifactu regulations
 VerifactuFechaAjustadaAutomaticamente = The invoice date has been automatically adjusted to the current date to comply with Verifactu regulations
 VerifactuFacturaNoModificable = This invoice cannot be modified or deleted because it is no longer in draft status
+VerifactuSimplifiedInvoiceLabel = SIMPLIFIED INVOICE
+VerifactuErrorImmutableVat = You can't modify the VAT/Tax ID because there are already issued invoices for this customer
+VerifactuErrorImmutableCountry = You can't modify the country because there are already issued invoices for this customer
 #
 # About page
 #
