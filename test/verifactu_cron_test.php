@@ -1,7 +1,10 @@
 <?php
 
-require_once '/var/www/html/htdocs/conf/conf.php';
-require_once '/var/www/html/htdocs/master.inc.php';
+require_once '/var/www/vhosts/stoic-fermat.151-80-20-157.plesk.page/httpdocs/htdocs/conf/conf.php';
+require_once '/var/www/vhosts/stoic-fermat.151-80-20-157.plesk.page/httpdocs/htdocs/master.inc.php';
+
+
+
 global $db, $user;
 if (!$db) { echo 'DB error'; exit; }
 require_once DOL_DOCUMENT_ROOT . '/user/class/user.class.php';
