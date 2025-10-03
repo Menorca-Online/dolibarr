@@ -576,7 +576,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->SetTextColor(200, 0, 0);
 			$pdf->SetFont('', 'B', $default_font_size - 1);
 			$pdf->SetXY($posx + 2, $posy + $hautcadre - 10);
-			$pdf->MultiCell($maxWidth, 4, $outputlangs->transnoentities('VerifactuSimplifiedInvoiceLabel'), 0, 'R');
+			$pdf->MultiCell($maxWidth, 4, $outputlangs->transnoentities('VerifactuSimplifiedInvoiceLabel'), 0, 'L');
 		}
 	}
 
