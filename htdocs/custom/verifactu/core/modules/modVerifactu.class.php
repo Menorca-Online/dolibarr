@@ -1377,7 +1377,7 @@ class modVerifactu extends DolibarrModules
 					'',
 					'-1',
 					0,
-					1
+					0
 				);
 				if ($resCreate < 0) {
 					return -1;
