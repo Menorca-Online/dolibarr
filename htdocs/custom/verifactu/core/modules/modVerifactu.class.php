@@ -849,6 +849,23 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+	// Crear tabla de errores
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_errores (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			tipo_error varchar(50) NOT NULL,
+			mensaje text NOT NULL,
+			notificado tinyint(1) DEFAULT 0,
+			fk_batch integer DEFAULT NULL,
+			fk_registro integer DEFAULT NULL,
+			datos_adicionales text DEFAULT NULL
+		) ENGINE=innodb;";
+
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
 
 
 
@@ -1118,74 +1135,74 @@ class modVerifactu extends DolibarrModules
 
 	public function _remove_maestros()
 	{
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_facture_types";
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_facture_types";
 
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_last_hash";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimenes";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_operaciones";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_exenciones";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_regimenes";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_operaciones";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_clave_exenciones";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_estados";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_estados";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_factura_registros";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_operaciones";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_registro_operaciones";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_estado_batch";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "c_verifactu_estado_batch";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
-		$sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_batches";
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
+		// $sql = "DROP TABLE IF EXISTS " . MAIN_DB_PREFIX . "verifactu_batches";
+		// $resql = $this->db->query($sql);
+		// if (! $resql) {
+		// 	dol_print_error($this->db);
+		// 	return -1;
+		// }
 
 
 
@@ -1567,72 +1584,55 @@ class modVerifactu extends DolibarrModules
 	public function _remove_extra_fields()
 	{
 		include_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
-		$extrafields = new ExtraFields($this->db);
+		// $extrafields = new ExtraFields($this->db);
 
-		// Eliminar campo fk_facture_type
-		$result1 = $extrafields->delete('fk_facture_type', 'facture');
-		if ($result1 < 0) {
-			return -1;
-		}
+		// // Eliminar campo fk_facture_type
+		// $result1 = $extrafields->delete('fk_facture_type', 'facture');
+		// if ($result1 < 0) {
+		// 	return -1;
+		// }
 
 
-		// Eliminar campos de líneas de facturas (facturedet)
-		$result6 = $extrafields->delete('fk_clave_regimen', 'facturedet');
-		if ($result6 < 0) {
-			return -1;
-		}
+		// // Eliminar campos de líneas de facturas (facturedet)
+		// $result6 = $extrafields->delete('fk_clave_regimen', 'facturedet');
+		// if ($result6 < 0) {
+		// 	return -1;
+		// }
 
-		$result7 = $extrafields->delete('fk_clave_operacion', 'facturedet');
-		if ($result7 < 0) {
-			return -1;
-		}
+		// $result7 = $extrafields->delete('fk_clave_operacion', 'facturedet');
+		// if ($result7 < 0) {
+		// 	return -1;
+		// }
 
-		$result8 = $extrafields->delete('fk_clave_exencion', 'facturedet');
-		if ($result8 < 0) {
-			return -1;
-		}
+		// $result8 = $extrafields->delete('fk_clave_exencion', 'facturedet');
+		// if ($result8 < 0) {
+		// 	return -1;
+		// }
 
-		$result9 = $extrafields->delete('fk_verifactu_registro_estado', 'facture');
-		if ($result9 < 0) {
-			return -1;
-		}
+		// $result9 = $extrafields->delete('fk_verifactu_registro_estado', 'facture');
+		// if ($result9 < 0) {
+		// 	return -1;
+		// }
 
-		$customerSnapshotFields = array(
-			'verifactu_client_name',
-			'verifactu_client_vat',
-			'verifactu_client_address',
-			'verifactu_client_zip',
-			'verifactu_client_town',
-			'verifactu_client_state',
-			'verifactu_client_country',
-			'verifactu_client_country_code',
-		);
+		// $customerSnapshotFields = array(
+		// 	'verifactu_client_name',
+		// 	'verifactu_client_vat',
+		// 	'verifactu_client_address',
+		// 	'verifactu_client_zip',
+		// 	'verifactu_client_town',
+		// 	'verifactu_client_state',
+		// 	'verifactu_client_country',
+		// 	'verifactu_client_country_code',
+		// );
 
-		foreach ($customerSnapshotFields as $fieldName) {
-			$resultDelete = $extrafields->delete($fieldName, 'facture');
-			if ($resultDelete < 0 && $extrafields->error != 'ErrorFieldNotFound') {
-				return -1;
-			}
-		}
+		// foreach ($customerSnapshotFields as $fieldName) {
+		// 	$resultDelete = $extrafields->delete($fieldName, 'facture');
+		// 	if ($resultDelete < 0 && $extrafields->error != 'ErrorFieldNotFound') {
+		// 		return -1;
+		// 	}
+		// }
 
-		// Crear tabla de errores
-		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_errores (
-			rowid integer AUTO_INCREMENT PRIMARY KEY,
-			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			tipo_error varchar(50) NOT NULL,
-			mensaje text NOT NULL,
-			notificado tinyint(1) DEFAULT 0,
-			fk_batch integer DEFAULT NULL,
-			fk_registro integer DEFAULT NULL,
-			datos_adicionales text DEFAULT NULL
-		) ENGINE=innodb;";
-
-		$resql = $this->db->query($sql);
-		if (! $resql) {
-			dol_print_error($this->db);
-			return -1;
-		}
-
+	
 		return 1;
 	}
 }
