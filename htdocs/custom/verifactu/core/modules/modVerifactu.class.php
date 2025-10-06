@@ -201,6 +201,7 @@ class modVerifactu extends DolibarrModules
 		// Array to add new pages in new tabs
 		/* BEGIN MODULEBUILDER TABS */
 		$this->tabs = array();
+		$this->tabs[] = array('data' => 'invoice:+verifacturegisters:Registros Verifact:$user->rights->verifactu->read:/verifactu/verifactu_factura_registros.php?id=__ID__');
 		/* END MODULEBUILDER TABS */
 		// Example:
 		// To add a new tab identified by code tabname1

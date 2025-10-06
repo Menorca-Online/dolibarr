@@ -44,6 +44,8 @@ VerifactuFacturaNoModificable = This invoice cannot be modified or deleted becau
 VerifactuSimplifiedInvoiceLabel = SIMPLIFIED INVOICE
 VerifactuErrorImmutableVat = You can't modify the VAT/Tax ID because there are already issued invoices for this customer
 VerifactuErrorImmutableCountry = You can't modify the country because there are already issued invoices for this customer
+VerifactuTabRegisters = Verifactu Registers
+VerifactuErrorContactHasInvoices = This contact can't be deleted because it's linked to issued invoices
 #
 # About page
 #

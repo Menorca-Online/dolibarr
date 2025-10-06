@@ -1089,16 +1089,12 @@ private function validarCIFNIFNIEDNI($doc)
 				&& !empty($object->id) && $object->status > 0) {
 
 				// PINTA el botón tú mismo (no devuelvas array)
-				print '<div class="inline-block divButAction">'
-					. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
-					. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
-					. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
-					. '</div>';
-				print '<div class="inline-block divButAction">'
-					. '<a id="verifactu-xml-btn" class="butAction" '
-					. 'href="' . dol_buildpath('/custom/verifactu/generar_subsanacion.php?id=' . $object->id, 1) . '">'
-					. '<i class="fa fa-code"></i> ' . $langs->trans("GenerarSubsanacion") . '</a>'
-					. '</div>';
+				// print '<div class="inline-block divButAction">'
+				// 	. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
+				// 	. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
+				// 	. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
+				// 	. '</div>';
+
 
 				return 0; // no reemplazo los botones estándar
 			}
@@ -1113,6 +1109,29 @@ private function validarCIFNIFNIEDNI($doc)
     public function doActions($parameters, &$object, &$action, $hookmanager)
     {
         global $langs, $user;
+
+        if ($parameters['currentcontext'] === 'contactcard' || $parameters['currentcontext'] === 'contact') {
+            $langs->load("verifactu@verifactu");
+
+            $confirm = GETPOST('confirm', 'alpha');
+            $isDelete = false;
+            if ($action === 'confirm_delete' && $confirm === 'yes') {
+                $isDelete = true;
+            } elseif ($action === 'delete') {
+                $isDelete = true;
+            }
+
+            if ($isDelete && !empty($object->id)) {
+                if ($this->contactHasInvoiceLinks($object->id)) {
+                    setEventMessages($langs->trans('VerifactuErrorContactHasInvoices'), null, 'errors');
+                    dol_syslog('Verifactu: Bloqueada eliminación de contacto id=' . $object->id . ' por tener facturas asociadas');
+                    $action = '';
+                    $_POST['action'] = '';
+                    $_GET['action'] = '';
+                    return -1;
+                }
+            }
+        }
 
         // Validación de terceros/clientes
         if ($parameters['currentcontext'] === 'thirdpartycard') {
@@ -1549,6 +1568,41 @@ private function validarCIFNIFNIEDNI($doc)
         $resql = $this->db->query($sql);
         if (!$resql) {
             dol_syslog("Verifactu: Error comprobando facturas emitidas para tercero id=" . $thirdpartyId . " - " . $this->db->lasterror(), LOG_ERR);
+            return false;
+        }
+
+        $obj = $this->db->fetch_object($resql);
+        $this->db->free($resql);
+
+        return (!empty($obj) && (int) $obj->nb > 0);
+    }
+
+    /**
+     * Comprueba si un contacto está asociado a alguna factura
+     *
+     * @param int $contactId
+     * @return bool
+     */
+    private function contactHasInvoiceLinks($contactId)
+    {
+        global $conf;
+
+        if (empty($contactId)) {
+            return false;
+        }
+
+        $sql = "SELECT COUNT(ec.rowid) AS nb
+                FROM " . $this->db->prefix() . "element_contact AS ec
+                INNER JOIN " . $this->db->prefix() . "facture AS f ON f.rowid = ec.fk_element
+                WHERE ec.fk_contact = " . ((int) $contactId) . "
+                  AND ec.element IN ('facture','invoice')
+                  AND ec.entity = " . ((int) $conf->entity) . "
+                  AND f.entity = " . ((int) $conf->entity) . "
+                  AND f.fk_statut >= 0";
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            dol_syslog("Verifactu: Error comprobando facturas asociadas a contacto id=" . $contactId . " - " . $this->db->lasterror(), LOG_ERR);
             return false;
         }
 
