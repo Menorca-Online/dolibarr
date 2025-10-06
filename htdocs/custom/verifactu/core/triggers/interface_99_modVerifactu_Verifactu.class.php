@@ -438,6 +438,7 @@ class InterfaceVerifactu extends DolibarrTriggers
      */
     public function runTrigger($action, $object, $user, $langs, $conf)
     {
+        global $db;
         if (!isModEnabled('verifactu')) {
             return 0; // If module not enabled, we do nothing
         }
@@ -458,6 +459,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_MODIFY':
+                return -1;
                 dol_syslog("Verifactu: Entrando en BILL_MODIFY para factura id={$object->id}, ref={$object->ref}");
                 // PROTECCIÓN CRÍTICA: Evitar que se cambie la fecha de factura una vez creada
                 if (isset($object->oldcopy) && isset($object->oldcopy->date)) {
@@ -476,6 +478,71 @@ class InterfaceVerifactu extends DolibarrTriggers
 
                         return -1; // Bloquear la operación
                     }
+                }
+                // 2️⃣ Registrar cambios en formato JSON para auditoría
+                $old = null;
+                if (!isset($object->oldcopy)) {
+                    $old = new Facture($db);
+                    $old->fetch($object->id);
+                } else {
+                    $old = $object->oldcopy;
+                }
+                $cambios = [];
+                $campos_a_controlar = [
+                    'date_lim_reglement',
+                    'fk_account',
+                    'fk_cond_reglement',
+                    'fk_mode_reglement',
+                    'note_public',
+                    'note_private',
+                ];
+
+                foreach ($campos_a_controlar as $campo) {
+                    $valor_ant = $old->$campo ?? null;
+                    $valor_nue = $object->$campo ?? null;
+
+                    var_dump($campo, $valor_ant, $valor_nue);
+
+                    if ($valor_ant != $valor_nue) {
+                        $cambios[$campo] = [
+                            'antes' => $valor_ant,
+                            'despues' => $valor_nue
+                        ];
+                    }
+                }
+                var_dump('tipo factura');
+                var_dump($old->array_options['options_fk_facture_type'] ?? null, $object->array_options['options_fk_facture_type'] ?? null);
+                if($old->array_options && $object->array_options) {
+                    if($old->array_options['options_fk_facture_type'] != $object->array_options['options_fk_facture_type']) {
+                        $cambios['tipo_factura'] = [
+                            'antes' => $old->array_options['options_fk_facture_type'],
+                            'despues' => $object->array_options['options_fk_facture_type']
+                        ];
+                    }
+                }
+                
+                if (!empty($cambios)) {
+                    $json = json_encode($cambios, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                    var_dump($json);
+                    dol_syslog("Verifactu: Cambios detectados en factura {$object->ref}: " . $json);
+
+                    // Registrar en el log del objeto (ActionComm)
+                    require_once DOL_DOCUMENT_ROOT . '/comm/action/class/actioncomm.class.php';
+
+                    $actioncomm = new ActionComm($db);
+                    $actioncomm->type_code = 'AC_OTH_AUTO';
+                    $actioncomm->label = 'MODIFICACION_JSON';
+                    $actioncomm->note = $json;
+                    $actioncomm->datep = dol_now();
+                    $actioncomm->fk_user_action = $user->id;
+                    $actioncomm->fk_user_done = $user->id;
+                    $actioncomm->elementtype = $object->element;
+                    $actioncomm->fk_element = $object->id;
+                    $actioncomm->userownerid = $user->id;
+
+                    $res = $actioncomm->create($user);
+
+                    var_dump('result',$actioncomm->error." / ".join(', ', (array)$actioncomm->errors), LOG_ERR);
                 }
                 break;
 

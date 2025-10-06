@@ -63,72 +63,72 @@ class ActionsVerifactu
      * @param string $cif CIF/NIF a validar
      * @return bool True si es válido
      */
-/**
- * Valida un CIF, NIF, NIE o DNI español
- *
- * @param string $doc Documento a validar
- * @return bool True si es válido
- */
-private function validarCIFNIFNIEDNI($doc)
-{
-    if (empty($doc)) {
-        return false;
-    }
+    /**
+     * Valida un CIF, NIF, NIE o DNI español
+     *
+     * @param string $doc Documento a validar
+     * @return bool True si es válido
+     */
+    private function validarCIFNIFNIEDNI($doc)
+    {
+        if (empty($doc)) {
+            return false;
+        }
 
-    $doc = strtoupper(trim($doc));
+        $doc = strtoupper(trim($doc));
 
-    // --- Validar NIF/DNI (8 dígitos + letra) ---
-    if (preg_match('/^[0-9]{8}[A-Z]$/', $doc)) {
-        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
-        $numero = substr($doc, 0, 8);
-        $letra = substr($doc, -1);
-        return ($letra === $letras[$numero % 23]);
-    }
+        // --- Validar NIF/DNI (8 dígitos + letra) ---
+        if (preg_match('/^[0-9]{8}[A-Z]$/', $doc)) {
+            $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+            $numero = substr($doc, 0, 8);
+            $letra = substr($doc, -1);
+            return ($letra === $letras[$numero % 23]);
+        }
 
-    // --- Validar NIE (X/Y/Z + 7 dígitos + letra) ---
-    if (preg_match('/^[XYZ][0-9]{7}[A-Z]$/', $doc)) {
-        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
-        $numero = str_replace(['X','Y','Z'], ['0','1','2'], substr($doc, 0, 1)) . substr($doc, 1, 7);
-        $letra = substr($doc, -1);
-        return ($letra === $letras[$numero % 23]);
-    }
+        // --- Validar NIE (X/Y/Z + 7 dígitos + letra) ---
+        if (preg_match('/^[XYZ][0-9]{7}[A-Z]$/', $doc)) {
+            $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+            $numero = str_replace(['X', 'Y', 'Z'], ['0', '1', '2'], substr($doc, 0, 1)) . substr($doc, 1, 7);
+            $letra = substr($doc, -1);
+            return ($letra === $letras[$numero % 23]);
+        }
 
-    // --- Validar CIF ---
-    if (preg_match('/^[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J]$/', $doc)) {
-        $letras = 'JABCDEFGHI';
-        $suma = 0;
+        // --- Validar CIF ---
+        if (preg_match('/^[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J]$/', $doc)) {
+            $letras = 'JABCDEFGHI';
+            $suma = 0;
 
-        for ($i = 1; $i < 8; $i++) {
-            $digito = (int)$doc[$i];
-            if ($i % 2 == 0) {
-                $suma += $digito;
+            for ($i = 1; $i < 8; $i++) {
+                $digito = (int)$doc[$i];
+                if ($i % 2 == 0) {
+                    $suma += $digito;
+                } else {
+                    $doble = $digito * 2;
+                    $suma += ($doble >= 10) ? $doble - 9 : $doble;
+                }
+            }
+
+            $resto = $suma % 10;
+            $digitoControl = ($resto == 0) ? 0 : 10 - $resto;
+            $ultimo = $doc[8];
+
+            if (is_numeric($ultimo)) {
+                return ((int)$ultimo == $digitoControl);
             } else {
-                $doble = $digito * 2;
-                $suma += ($doble >= 10) ? $doble - 9 : $doble;
+                return ($ultimo == $letras[$digitoControl]);
             }
         }
 
-        $resto = $suma % 10;
-        $digitoControl = ($resto == 0) ? 0 : 10 - $resto;
-        $ultimo = $doc[8];
-
-        if (is_numeric($ultimo)) {
-            return ((int)$ultimo == $digitoControl);
-        } else {
-            return ($ultimo == $letras[$digitoControl]);
+        // --- NIF especiales (K, L, M) validan como DNI ---
+        if (preg_match('/^[KLM][0-9]{7}[A-Z]$/', $doc)) {
+            $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+            $numero = substr($doc, 1, 7);
+            $letra = substr($doc, -1);
+            return ($letra === $letras[$numero % 23]);
         }
-    }
 
-    // --- NIF especiales (K, L, M) validan como DNI ---
-    if (preg_match('/^[KLM][0-9]{7}[A-Z]$/', $doc)) {
-        $letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
-        $numero = substr($doc, 1, 7);
-        $letra = substr($doc, -1);
-        return ($letra === $letras[$numero % 23]);
+        return false; // No cumple ningún formato
     }
-
-    return false; // No cumple ningún formato
-}
 
 
     /**
@@ -140,7 +140,7 @@ private function validarCIFNIFNIEDNI($doc)
         global $langs, $db, $conf, $extrafields;
 
 
-        
+
         if ($parameters['currentcontext'] === 'invoicecard') {
             $langs->load("verifactu@verifactu");
 
@@ -156,37 +156,31 @@ private function validarCIFNIFNIEDNI($doc)
                 $isExistingInvoice = !empty($object->id) && $object->id > 0;
                 $isCreating = ($action === 'create' || empty($object->id));
 
-                if ($isCreating)
-                {
+                if ($isCreating) {
                     $oldType = -1;
                     //leemos la factura original para obtener su fk_facture_type
                     $factureOriginal = new Facture($db);
-                    if (isset($_GET['facid']) && is_numeric($_GET['facid']) && $_GET['facid'] > 0)
-                    {
+                    if (isset($_GET['facid']) && is_numeric($_GET['facid']) && $_GET['facid'] > 0) {
                         $factureOriginal->fetch($_GET['facid']);
                     }
                     //si es una factura recurrente, leemos la factura origen
-                    if (isset($_GET['fac_rec']) && is_numeric($_GET['fac_rec']) && $_GET['fac_rec'] > 0)
-                    {
+                    if (isset($_GET['fac_rec']) && is_numeric($_GET['fac_rec']) && $_GET['fac_rec'] > 0) {
                         $factureOriginal->fetch($_GET['fac_rec']);
-                    }//sino puede ser una factura de abono
-                    else if (isset($_GET['fac_avoir']) && is_numeric($_GET['fac_avoir']) && $_GET['fac_avoir'] > 0)
-                    {
+                    } //sino puede ser una factura de abono
+                    else if (isset($_GET['fac_avoir']) && is_numeric($_GET['fac_avoir']) && $_GET['fac_avoir'] > 0) {
                         $factureOriginal->fetch($_GET['fac_avoir']);
                     }
-                    if ($factureOriginal->id > 0 && isset($factureOriginal->array_options['options_fk_facture_type']) && $factureOriginal->array_options['options_fk_facture_type'] > 0)
-                    {
+                    if ($factureOriginal->id > 0 && isset($factureOriginal->array_options['options_fk_facture_type']) && $factureOriginal->array_options['options_fk_facture_type'] > 0) {
                         $verifactuFactureType = new VerifactuFactureType($db);
                         $verifactuFactureType->fetch($factureOriginal->array_options['options_fk_facture_type']);
                         $oldType = $verifactuFactureType->code;
                     }
-
                 }
 
-                
+
                 // Detectar si es factura correctiva (tiene factura origen)
                 $isFacturaCorrectiva = $object->fk_facture_source > 0;
-                
+
                 // También detectar por URL para casos de creación
                 $correctionFromUrl = (
                     isset($_GET['fac_avoir']) ||        // Factura de abono
@@ -197,7 +191,7 @@ private function validarCIFNIFNIEDNI($doc)
                     strpos($_SERVER['REQUEST_URI'] ?? '', 'fac_rec') !== false ||
                     strpos($_SERVER['REQUEST_URI'] ?? '', 'correction') !== false
                 );
-                
+
                 // Combinar ambas detecciones
                 $isFacturaCorrectiva = $isFacturaCorrectiva || $correctionFromUrl;
 
@@ -1071,34 +1065,35 @@ private function validarCIFNIFNIEDNI($doc)
                 });
                 </script>';
         }
-		
+
         return 0;
     }
 
     // /**
     //  * Hook para interceptar y desactivar los botones de modificar y eliminar en facturas no borrador
     //  */
-	public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
-	{
-		global $langs;
+    public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
+    {
+        global $langs;
 
-		if (strpos($parameters['currentcontext'], 'invoicecard') !== false) {
-			$langs->load("verifactu@verifactu");
+        if (strpos($parameters['currentcontext'], 'invoicecard') !== false) {
+            $langs->load("verifactu@verifactu");
 
-			if (($object->element == 'facture' || get_class($object) == 'Facture')
-				&& !empty($object->id) && $object->status > 0) {
+            if (($object->element == 'facture' || get_class($object) == 'Facture')
+                && !empty($object->id) && $object->status > 0
+            ) {
 
-				// PINTA el botón tú mismo (no devuelvas array)
-				// print '<div class="inline-block divButAction">'
-				// 	. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
-				// 	. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
-				// 	. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
-				// 	. '</div>';
+                // PINTA el botón tú mismo (no devuelvas array)
+                // print '<div class="inline-block divButAction">'
+                // 	. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
+                // 	. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
+                // 	. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
+                // 	. '</div>';
 
 
-				return 0; // no reemplazo los botones estándar
-			}
-		}
+                return 0; // no reemplazo los botones estándar
+            }
+        }
 
         return 0;
     }
@@ -1136,7 +1131,7 @@ private function validarCIFNIFNIEDNI($doc)
         // Validación de terceros/clientes
         if ($parameters['currentcontext'] === 'thirdpartycard') {
             $langs->load("verifactu@verifactu");
-            
+
             dol_syslog("Verifactu: doActions EJECUTADO para tercero - Contexto: " . ($parameters['currentcontext'] ?? 'N/A') . ", Acción: " . $action . ", Elemento: " . ($object->element ?? 'N/A'));
 
             // Validar cuando se crea un cliente (solo cuando se envía el formulario)
@@ -1152,20 +1147,20 @@ private function validarCIFNIFNIEDNI($doc)
                 // Validar CIF/NIF solo si el país es España
                 $country = $_POST['country_id'] ?? $_POST['country'] ?? '';
                 $cif = trim($_POST['idprof1'] ?? '');
-                
+
 
                 dol_syslog("Verifactu: País seleccionado: $country, CIF: $cif");
-                
+
                 if ($country == '4'  || strtoupper($country) == 'ES' || strtoupper($country) == 'ESPAÑA') {
                     if (empty($cif)) {
                         $errors[] = "El CIF/NIF es obligatorio para clientes españoles según normativa Verifactu";
                     } elseif (!$this->validarCIFNIFNIEDNI($cif)) {
                         $errors[] = "El CIF/NIF proporcionado no es válido";
                     }
-                }else{
+                } else {
                     if (empty($_POST['typent_id']))
                         $errors[] = "Tipo de tercero es obligatorio para clientes no españoles";
-                    if ($_POST['typent_id'] != 8 ) // Si es tipo 5 (NIF extranjero) el CIF/NIF es obligatorio
+                    if ($_POST['typent_id'] != 8) // Si es tipo 5 (NIF extranjero) el CIF/NIF es obligatorio
                         $errors[] = "Tipo de tercero debe ser 'Particular' para emitir facturas con IVA al prestarse el servicio en España";
                 }
 
@@ -1547,6 +1542,39 @@ private function validarCIFNIFNIEDNI($doc)
         return 0;
     }
 
+    function formEditValueBeforeUpdate($parameters, &$object, &$action, $hookmanager)
+    {
+        global $user;
+
+        // Solo nos interesa si es una factura
+        if ($object->element == 'facture') {
+
+            $fieldname = $parameters['fieldname'] ?? '';
+            $newvalue = $parameters['value'] ?? '';
+            $oldvalue = $object->$fieldname ?? null;
+
+            if ($oldvalue != $newvalue) {
+                $cambio = [
+                    'campo' => $fieldname,
+                    'antes' => $oldvalue,
+                    'despues' => $newvalue,
+                ];
+
+                $json = json_encode($cambio, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+                dol_syslog("Verifactu: Cambio detectado por edición inline en factura {$object->ref}: " . $json);
+
+                // Registrar el cambio en el log/auditoría
+                $object->log($user->id, 'MODIFICACION_INLINE_JSON', $json);
+            }
+
+            var_dump('detectado cambio en campo ' . $fieldname . ': ' . $oldvalue . ' -> ' . $newvalue);
+            die();
+        }
+
+        return 0;
+    }
+
     /**
      * Comprueba si el tercero tiene facturas emitidas (validadas o más)
      *
@@ -1612,5 +1640,22 @@ private function validarCIFNIFNIEDNI($doc)
         return (!empty($obj) && (int) $obj->nb > 0);
     }
 
+    function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+    {
+        global $langs;
 
+        // Verificamos si es una llamada de API sobre facturas
+        if (!empty($_SERVER['REQUEST_URI']) && str_contains($_SERVER['REQUEST_URI'], '/invoices/') && $_SERVER['REQUEST_METHOD'] === 'PUT') {
+
+            // Aquí podrías comprobar si la factura ya está verificada o enviada a la AEAT
+            // (Ejemplo: $object es la factura)
+            http_response_code(403);
+            echo json_encode([
+                'error' => 'Factura bloqueada por VeriFactu. No se permite modificar una factura ya enviada a AEAT.'
+            ]);
+            exit;
+        }
+
+        return 0;
+    }
 }
