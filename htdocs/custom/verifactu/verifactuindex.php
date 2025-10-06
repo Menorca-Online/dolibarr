@@ -62,7 +62,7 @@ if (!$res) {
 }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
-
+require_once DOL_DOCUMENT_ROOT.'/custom/verifactu/lib/verifactu.lib.php';
 /**
  * @var Conf $conf
  * @var DoliDB $db
@@ -163,10 +163,11 @@ if ($resql) {
 // Contar facturas con hash (solo facturas validadas/no borrador)
 $sql = "SELECT COUNT(DISTINCT f.rowid) as con_hash
         FROM ".MAIN_DB_PREFIX."facture f
-        INNER JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
+        INNER JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid
         WHERE ef.hash IS NOT NULL
         AND ef.hash != ''
         AND f.fk_statut > 0
+        AND ef.estado = ".VERIFACTU_ESTADO_REGISTRO_CORRECTO."
         AND f.entity IN (".getEntity('invoice').")";
 $resql = $db->query($sql);
 if ($resql) {
@@ -207,10 +208,10 @@ print '</div>';
 print '<div class="div-table-responsive-no-min" style="margin-top: 20px;">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
-print '<th colspan="2">Último Hash Generado</th>';
+print '<th colspan="2">Último Hash Generado Válido</th>';
 print "</tr>\n";
 
-$sql_last_hash = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_last_hash ORDER BY rowid DESC LIMIT 1";
+$sql_last_hash = "SELECT hash FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros ORDER BY rowid DESC LIMIT 1";
 $resql_last = $db->query($sql_last_hash);
 if ($resql_last) {
     $obj_last = $db->fetch_object($resql_last);
@@ -237,22 +238,25 @@ print '<tr class="liste_titre">';
 print '<th colspan="4">Facturas Recientes sin Hash</th>';
 print "</tr>\n";
 
-$sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client
+$sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client, ef.hash, est.label as estado_label
         FROM ".MAIN_DB_PREFIX."facture f
         LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid
-        LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
+        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid
+        LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado
         WHERE f.entity IN (".getEntity('invoice').")
         AND f.fk_statut > 0
         AND (ef.hash IS NULL OR ef.hash = '')
+        AND (ef.estado <> ".VERIFACTU_ESTADO_REGISTRO_CORRECTO." or ef.estado IS NULL)
         ORDER BY f.datef DESC
-        LIMIT 10";$resql = $db->query($sql);
+        LIMIT 10";
+$resql = $db->query($sql);
 if ($resql) {
     $num = $db->num_rows($resql);
     if ($num > 0) {
         print '<tr class="liste_titre">';
         print '<th>Referencia</th>';
         print '<th>Fecha</th>';
-        print '<th>Cliente</th>';
+        print '<th>Estado Registro</th>';
         print '<th class="right">Total</th>';
         print '</tr>';
 
@@ -262,7 +266,7 @@ if ($resql) {
             print '<tr class="oddeven">';
             print '<td><a href="'.DOL_URL_ROOT.'/compta/facture/card.php?facid='.$obj->rowid.'">'.$obj->ref.'</a></td>';
             print '<td>'.dol_print_date($db->jdate($obj->datef), 'day').'</td>';
-            print '<td>'.$obj->client.'</td>';
+            print '<td>'.$obj->estado_label.'</td>';
             print '<td class="right">'.price($obj->total_ttc).'</td>';
             print '</tr>';
             $i++;
@@ -295,12 +299,6 @@ print '</tr>';
 
 
 
-if ($facturas_sin_hash > 0) {
-    print '<tr class="oddeven">';
-    print '<td><a href="#" onclick="regenerarHashMasivo(); return false;" class="butAction">Regenerar Hash</a></td>';
-    print '<td>Regenerar hash para facturas que no lo tienen ('.$facturas_sin_hash.' pendientes)</td>';
-    print '</tr>';
-}
 
 print '</table>';
 print '</div>';
@@ -357,15 +355,15 @@ print_liste_field_titre('Fecha', $_SERVER["PHP_SELF"], 'f.datef', '', '', 'cente
 print_liste_field_titre('Última Modif.', $_SERVER["PHP_SELF"], 'f.tms', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Total', $_SERVER["PHP_SELF"], 'f.total_ttc', '', '', 'right', $sortfield, $sortorder);
 print_liste_field_titre('Hash Verifactu', $_SERVER["PHP_SELF"], 'ef.hash', '', '', 'center', $sortfield, $sortorder);
-print_liste_field_titre('Hash Anterior', $_SERVER["PHP_SELF"], 'ef.hash_anterior', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
 // Construir consulta con filtros
-$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, ef.hash_anterior";
+$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label";
 $sql .= " FROM ".MAIN_DB_PREFIX."facture f";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid";
-$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object";
+$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid";
+$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado";
 $sql .= " WHERE f.entity IN (".getEntity('invoice').")";
 $sql .= " AND f.fk_statut > 0"; // Excluir facturas borrador por defecto
 
@@ -385,7 +383,7 @@ if ($search_hash !== '') {
 $sql .= $db->order($sortfield, $sortorder);
 
 // Contar total para paginación
-$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, ef.hash_anterior', 'SELECT COUNT(f.rowid) as nb', $sql);
+$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label', 'SELECT COUNT(f.rowid) as nb', $sql);
 $resqlcount = $db->query($sqlcount);
 if ($resqlcount) {
     $objcount = $db->fetch_object($resqlcount);
@@ -438,35 +436,7 @@ if ($resql) {
         }
         print '</td>';
 
-        // Hash Anterior con validación
-        print '<td class="center">';
-        if (!empty($obj->hash_anterior)) {
-            // Obtener el hash de la factura anterior para validar
-            // En Verifactu, el hash_anterior debe ser el hash de la factura inmediatamente anterior
-            $sql_prev = "SELECT ef.hash FROM ".MAIN_DB_PREFIX."facture f
-                        LEFT JOIN ".MAIN_DB_PREFIX."facture_extrafields ef ON f.rowid = ef.fk_object
-                        WHERE f.rowid < ".$obj->rowid." AND f.fk_statut > 0 AND f.entity IN (".getEntity('invoice').")
-                        ORDER BY f.rowid DESC LIMIT 1";
-            $res_prev = $db->query($sql_prev);
-            $hash_prev = null;
-            if ($res_prev && $db->num_rows($res_prev) > 0) {
-                $obj_prev = $db->fetch_object($res_prev);
-                $hash_prev = $obj_prev->hash;
-                $db->free($res_prev);
-            }
-
-            $is_valid = ($hash_prev && $obj->hash_anterior === $hash_prev);
-            $color = $is_valid ? 'green' : 'red';
-            print '<span style="font-family: monospace; font-size: 11px; color: '.$color.';">'.$obj->hash_anterior.'</span>';
-            if (!$is_valid) {
-                // Debug temporal
-                $debug_info = "Factura: ".$obj->ref." | Hash anterior: '".trim($obj->hash_anterior)."' | Hash prev: '".trim($hash_prev)."' | Longitud ant: ".strlen($obj->hash_anterior)." | Longitud prev: ".strlen($hash_prev);
-                print '<br><small style="color: red; font-size: 9px;" title="'.$debug_info.'">⚠ No coincide</small>';
-            }
-        } else {
-            print '<span class="badge badge-secondary">Sin Hash Anterior</span>';
-        }
-        print '</td>';
+       
 
         // Acciones
         print '<td class="center">';
