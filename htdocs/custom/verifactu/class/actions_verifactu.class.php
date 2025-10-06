@@ -1640,12 +1640,9 @@ class ActionsVerifactu
         return (!empty($obj) && (int) $obj->nb > 0);
     }
 
-    function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+
+    function beforeApiCall($parameters, &$object, &$action, $hookmanager)
     {
-
-        global $langs;
-
-        // Verificamos si es una llamada de API sobre facturas
         if (!empty($_SERVER['REQUEST_URI']) && str_contains($_SERVER['REQUEST_URI'], '/invoices/') && $_SERVER['REQUEST_METHOD'] === 'PUT') {
 
             // Aquí podrías comprobar si la factura ya está verificada o enviada a la AEAT
