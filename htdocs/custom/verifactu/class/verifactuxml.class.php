@@ -196,7 +196,7 @@ class VerifactuXML
         $huella = $registro->hash;
         $this->addElement($dom, $registroAlta, 'sum1:Huella', $huella);
 
-        $this->addSignature($dom, $registroAlta);
+        //$this->addSignature($dom, $registroAlta);
 
     }
 
