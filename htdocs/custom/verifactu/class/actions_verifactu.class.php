@@ -1089,16 +1089,12 @@ private function validarCIFNIFNIEDNI($doc)
 				&& !empty($object->id) && $object->status > 0) {
 
 				// PINTA el botón tú mismo (no devuelvas array)
-				print '<div class="inline-block divButAction">'
-					. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
-					. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
-					. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
-					. '</div>';
-				print '<div class="inline-block divButAction">'
-					. '<a id="verifactu-xml-btn" class="butAction" '
-					. 'href="' . dol_buildpath('/custom/verifactu/generar_subsanacion.php?id=' . $object->id, 1) . '">'
-					. '<i class="fa fa-code"></i> ' . $langs->trans("GenerarSubsanacion") . '</a>'
-					. '</div>';
+				// print '<div class="inline-block divButAction">'
+				// 	. '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
+				// 	. 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $object->id, 1) . '">'
+				// 	. '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
+				// 	. '</div>';
+
 
 				return 0; // no reemplazo los botones estándar
 			}
