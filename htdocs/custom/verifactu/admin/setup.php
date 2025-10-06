@@ -175,7 +175,7 @@ $item->fieldParams['isMandatory'] = 1;
 $item = $formSetup->newItem('VERIFACTU_SISTEMA_ID');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '00';
-$item->helpText = 'Identificador del sistema informático que emite la factura electrónica. Por defecto, 00';
+$item->helpText = 'Identificador del sistema informático que emite la factura electrónica, por entidad productora del SIF. Por defecto, 00';
 
 $item = $formSetup->newItem('VERIFACTU_SOFTWARE_VERSION');
 $item->fieldParams['isMandatory'] = 1;
@@ -185,7 +185,7 @@ $item->helpText = 'Versión del software que genera la factura electrónica. Por
 $item = $formSetup->newItem('VERIFACTU_NUM_INSTALACION');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '123456789';
-$item->helpText = 'Número de instalación del sistema informático que emite la factura electrónica. Por defecto, 123456789';
+$item->helpText = 'Número de instalación del sistema informático que emite la factura electrónica, por obligado emisor';
 
 // $item = $formSetup->newItem('VERIFACTU_SOLO_VERIFACTU');
 // $item->fieldParams['isMandatory'] = 1;
