@@ -145,11 +145,11 @@ print '<div class="inline-block divButAction">'
     . 'href="' . dol_buildpath('/custom/verifactu/generar_subsanacion.php?id=' . $invoiceId, 1) . '">'
     . '<i class="fa fa-code"></i> ' . $langs->trans("GenerarSubsanacion") . '</a>'
     . '</div>';
-print '<div class="inline-block divButAction">'
-    . '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
-    . 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $invoiceId, 1) . '">'
-    . '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
-    . '</div>';    
+// print '<div class="inline-block divButAction">'
+//     . '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
+//     . 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $invoiceId, 1) . '">'
+//     . '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
+//     . '</div>';    
 dol_fiche_end();
 
 llxFooter();
