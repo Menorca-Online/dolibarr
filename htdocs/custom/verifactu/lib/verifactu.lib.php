@@ -145,7 +145,7 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 		}
 
 
-		if ($esSubsanacion && ($object->array_options['options_fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES   ||  $object->array_options['options_fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_INCORRECTO)) {
+		if ($esSubsanacion && ($object->array_options['options_fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES   &&  $object->array_options['options_fk_verifactu_registro_estado'] != VERIFACTU_ESTADO_REGISTRO_INCORRECTO)) {
 			setEventMessages("ADVERTENCIA: No se puede generar una subsanación para una factura que no sea aceptada con errores", null, 'warnings');
 			return 1;
 		}
