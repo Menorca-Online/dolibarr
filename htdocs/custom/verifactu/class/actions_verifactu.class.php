@@ -1642,6 +1642,7 @@ class ActionsVerifactu
 
     function printCommonFooter($parameters, &$object, &$action, $hookmanager)
     {
+
         global $langs;
 
         // Verificamos si es una llamada de API sobre facturas

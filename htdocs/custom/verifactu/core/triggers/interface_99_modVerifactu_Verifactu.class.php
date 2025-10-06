@@ -459,7 +459,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 break;
 
             case 'BILL_MODIFY':
-                return -1;
+
                 dol_syslog("Verifactu: Entrando en BILL_MODIFY para factura id={$object->id}, ref={$object->ref}");
                 // PROTECCIÓN CRÍTICA: Evitar que se cambie la fecha de factura una vez creada
                 if (isset($object->oldcopy) && isset($object->oldcopy->date)) {
@@ -501,7 +501,6 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $valor_ant = $old->$campo ?? null;
                     $valor_nue = $object->$campo ?? null;
 
-                    var_dump($campo, $valor_ant, $valor_nue);
 
                     if ($valor_ant != $valor_nue) {
                         $cambios[$campo] = [
@@ -510,8 +509,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                         ];
                     }
                 }
-                var_dump('tipo factura');
-                var_dump($old->array_options['options_fk_facture_type'] ?? null, $object->array_options['options_fk_facture_type'] ?? null);
+
                 if($old->array_options && $object->array_options) {
                     if($old->array_options['options_fk_facture_type'] != $object->array_options['options_fk_facture_type']) {
                         $cambios['tipo_factura'] = [
@@ -523,7 +521,7 @@ class InterfaceVerifactu extends DolibarrTriggers
                 
                 if (!empty($cambios)) {
                     $json = json_encode($cambios, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                    var_dump($json);
+
                     dol_syslog("Verifactu: Cambios detectados en factura {$object->ref}: " . $json);
 
                     // Registrar en el log del objeto (ActionComm)
@@ -542,7 +540,6 @@ class InterfaceVerifactu extends DolibarrTriggers
 
                     $res = $actioncomm->create($user);
 
-                    var_dump('result',$actioncomm->error." / ".join(', ', (array)$actioncomm->errors), LOG_ERR);
                 }
                 break;
 
