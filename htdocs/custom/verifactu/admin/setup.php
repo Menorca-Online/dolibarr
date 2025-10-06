@@ -110,11 +110,11 @@ if (!$user->admin) {
 
 // Enter here all parameters in your setup page
 
-// Setup conf for selection of an URL
-$item = $formSetup->newItem('VERIFACTU_URL_ENDPOINT');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'];
-$item->cssClass = 'minwidth500';
+// // Setup conf for selection of an URL
+// $item = $formSetup->newItem('VERIFACTU_URL_ENDPOINT');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->fieldAttr['placeholder'] = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'];
+// $item->cssClass = 'minwidth500';
 
 // // Setup conf for selection of a simple string input
 // $item = $formSetup->newItem('VERIFACTU_MYPARAM2');
@@ -142,11 +142,11 @@ $item->cssClass = 'minwidth500';
 $item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
 $item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 
-$item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
-$item->cssClass = 'minwidth500';
-$item->helpText = 'Ruta completa al certificado digital en formato PEM.';
+// $item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
+// $item->cssClass = 'minwidth500';
+// $item->helpText = 'Ruta completa al certificado digital en formato PEM.';
 
 
 
