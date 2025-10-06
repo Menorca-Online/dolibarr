@@ -136,7 +136,8 @@ class modVerifactu extends DolibarrModules
 				'globalcard',
 				'thirdpartycard',
 				'contactcard',
-				'contact'
+				'contact',
+				'api',
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
 			// Set this to 1 if features of module are opened to external users

@@ -37,6 +37,7 @@ const VERIFACTU_ESTADO_REGISTRO_ENVIANDO = 6;
 const VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
 const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
 const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
+const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT = 4;
 
 
 
@@ -149,9 +150,6 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 			setEventMessages("ADVERTENCIA: No se puede generar una subsanación para una factura que no sea aceptada con errores", null, 'warnings');
 			return 1;
 		}
-		if ($esSubsanacion && $object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_INCORRECTO) {
-			$esSubsanacion = false;
-		}
 
 		$newHash = generateHash($invoiceData);
 
@@ -176,6 +174,8 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 			);
 			if ($existingPreviousSubsanation) {
 				$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA;
+			}else{
+				$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT;
 			}
 		} else {
 			$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA;
