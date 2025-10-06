@@ -170,20 +170,12 @@ $item->fieldAttr['type'] = 'number';
 $item->fieldAttr['step'] = '0.01';
 $item->fieldParams['isMandatory'] = 1;
 
-$item = $formSetup->newItem('VERIFACTU_SISTEMA_NOMBRE');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'MENORCAONLINE S.L.';
-$item->helpText = 'Nombre del sistema informático que emite la factura electrónica. Por defecto, MENORCAONLINE S.L.';
 
-$item = $formSetup->newItem('VERIFACTU_SOFTWARE_NOMBRE');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'Verifactu';
-$item->helpText = 'Nombre del software que genera la factura electrónica. Por defecto, Verifactu';
 
 $item = $formSetup->newItem('VERIFACTU_SISTEMA_ID');
 $item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = '123456789';
-$item->helpText = 'Identificador del sistema informático que emite la factura electrónica. Por defecto, 123456789';
+$item->fieldAttr['placeholder'] = '00';
+$item->helpText = 'Identificador del sistema informático que emite la factura electrónica. Por defecto, 00';
 
 $item = $formSetup->newItem('VERIFACTU_SOFTWARE_VERSION');
 $item->fieldParams['isMandatory'] = 1;
@@ -194,17 +186,18 @@ $item = $formSetup->newItem('VERIFACTU_NUM_INSTALACION');
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['placeholder'] = '123456789';
 $item->helpText = 'Número de instalación del sistema informático que emite la factura electrónica. Por defecto, 123456789';
-$item = $formSetup->newItem('VERIFACTU_SOLO_VERIFACTU');
-$item->fieldParams['isMandatory'] = 1;
-$item->helpText = 'Si está activado, solo se permitirá el uso de tipos de factura Verifactu en las facturas electrónicas.';
 
-$item = $formSetup->newItem('VERIFACTU_MULTI_OT');
-$item->fieldParams['isMandatory'] = 1;
-$item->helpText = 'Si está activado, se permitirá el uso de múltiples operaciones de tipo Verifactu en las facturas electrónicas.';
+// $item = $formSetup->newItem('VERIFACTU_SOLO_VERIFACTU');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->helpText = 'Si está activado, solo se permitirá el uso de tipos de factura Verifactu en las facturas electrónicas.';
 
-$item = $formSetup->newItem('VERIFACTU_INDICADOR_MULTI');
-$item->fieldParams['isMandatory'] = 1;
-$item->helpText = 'Si está activado, se permitirá el uso de múltiples indicadores de tipo Verifactu en las facturas electrónicas.';
+// $item = $formSetup->newItem('VERIFACTU_MULTI_OT');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->helpText = 'Si está activado, se permitirá el uso de múltiples operaciones de tipo Verifactu en las facturas electrónicas.';
+
+// $item = $formSetup->newItem('VERIFACTU_INDICADOR_MULTI');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->helpText = 'Si está activado, se permitirá el uso de múltiples indicadores de tipo Verifactu en las facturas electrónicas.';
 
 
 // // Setup conf for a selection of a secured key

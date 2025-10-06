@@ -67,18 +67,15 @@ class VerifactuXML
             'emisor_nombre' => $this->getConfigValue($conf, 'MAIN_INFO_SOCIETE_NOM', ''),
 
             // Información del sistema informático
-            'sistema_nombre' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NOMBRE', 'MENORCAONLINE S.L.'),
-            'sistema_nif' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_NIF') ?:
-                $this->getConfigValue($conf, 'MAIN_INFO_TVAINTRA') ?:
-                $this->getConfigValue($conf, 'MAIN_INFO_SIREN') ?:
-                $this->getConfigValue($conf, 'MAIN_INFO_NIF') ?: '',
-            'sistema_nombre_software' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_NOMBRE', 'MENORCA ONLINE MOD VERIFACTU'),
+            'sistema_nombre' => 'Menorca Online S.L.',
+            'sistema_nif' => 'B57479677',
+            'sistema_nombre_software' => 'Eco Verifactu',
             'sistema_id' => $this->getConfigValue($conf, 'VERIFACTU_SISTEMA_ID', '01'),
             'sistema_version' => $this->getConfigValue($conf, 'VERIFACTU_SOFTWARE_VERSION', '1.0.0'),
             'sistema_instalacion' => $this->getConfigValue($conf, 'VERIFACTU_NUM_INSTALACION', 'DOLI' . strtoupper(substr(md5(DOL_DOCUMENT_ROOT), 0, 8))),
-            'sistema_solo_verifactu' => $this->getConfigValue($conf, 'VERIFACTU_SOLO_VERIFACTU', 'S'),
-            'sistema_multi_ot' => $this->getConfigValue($conf, 'VERIFACTU_MULTI_OT', 'S'),
-            'sistema_indicador_multi' => $this->getConfigValue($conf, 'VERIFACTU_INDICADOR_MULTI', 'N')
+            'sistema_solo_verifactu' => 'S',
+            'sistema_multi_ot' => 'N',
+            'sistema_indicador_multi' => 'N'
         );
     }
 
