@@ -40,7 +40,9 @@ require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregist
 
 $langs->loadLangs(array('bills', 'verifactu@verifactu'));
 
-if (empty($user->rights->verifactu->read)) {
+$hasReadRights = $user->hasRight("verifactu", "myobject", "read");
+$hasWriteRights = $user->hasRight("verifactu", "myobject", "write");
+if (!$hasReadRights) {
 	accessforbidden();
 }
 
@@ -140,11 +142,14 @@ if (!$resql) {
 
 	$db->free($resql);
 }
+
+if ($hasWriteRights) {
 print '<div class="inline-block divButAction">'
     . '<a id="verifactu-xml-btn" class="butAction" '
     . 'href="' . dol_buildpath('/custom/verifactu/generar_subsanacion.php?id=' . $invoiceId, 1) . '">'
     . '<i class="fa fa-code"></i> ' . $langs->trans("GenerarSubsanacion") . '</a>'
     . '</div>';
+}
 // print '<div class="inline-block divButAction">'
 //     . '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
 //     . 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $invoiceId, 1) . '">'
