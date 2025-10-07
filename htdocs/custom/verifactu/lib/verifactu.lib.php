@@ -174,7 +174,7 @@ function verifactu_generar_registro_alta($object, $esSubsanacion = false)
 			);
 			if ($existingPreviousSubsanation) {
 				$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA;
-			}else{
+			} else if ($object->array_options['options_fk_verifactu_registro_estado'] == VERIFACTU_ESTADO_REGISTRO_INCORRECTO) {
 				$registro->operation = VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT;
 			}
 		} else {
