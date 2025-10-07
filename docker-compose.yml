@@ -12,5 +12,10 @@ services:
       - ./docker/php.ini:/usr/local/etc/php/php.ini
     ports:
       - "80:80"
-
-
+    cap_add:
+      - SYS_ADMIN               # 🔹 Permite operaciones del sistema necesarias para FUSE
+    devices:
+      - /dev/fuse:/dev/fuse     # 🔹 Da acceso al dispositivo FUSE del host
+    security_opt:
+      - apparmor:unconfined     # 🔹 Evita que AppArmor bloquee el montaje
+    privileged: true            # 🔹 (opcional, pero asegura compatibilidad máxima con FUSE)
