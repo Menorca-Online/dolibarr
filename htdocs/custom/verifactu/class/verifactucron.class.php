@@ -53,10 +53,19 @@ class VerifactuCron extends CommonObject
 	 */
 	public function doScheduledJob($parameters = '', &$count = 0, &$message = '')
 	{
-		global $langs, $user;
+		global $langs, $user, $conf;
 
 		$count = 0;
 		$message = '';
+
+		// Comprobar si hay que esperar antes de enviar otro batch
+		$proximo_envio = (int) ((isset($conf->global->VERIFACTU_PROXIMO_ENVIO) && $conf->global->VERIFACTU_PROXIMO_ENVIO) ? $conf->global->VERIFACTU_PROXIMO_ENVIO : 0);
+
+		if ($proximo_envio > time()) {
+			$message = "Esperando para el próximo envío. Próximo envío en " . dol_print_date($proximo_envio, 'dayhour') . ".";
+			return 0;
+		}
+
 		$this->db->begin();
 		try {
 			$sql = "SELECT rowid FROM " . MAIN_DB_PREFIX . "verifactu_factura_registros WHERE estado = 1 ORDER BY rowid ASC LIMIT 1000";

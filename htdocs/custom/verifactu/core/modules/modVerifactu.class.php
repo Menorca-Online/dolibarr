@@ -525,7 +525,9 @@ class modVerifactu extends DolibarrModules
 			'prefix' => img_picto('', 'globe', 'class="pictofixedwidth valignmiddle paddingright"'),
 			'mainmenu' => 'verifactu',
 			'leftmenu' => 'verifactu_aeat_consulta',
-			'url' => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			'url' => $conf->global->VERIFACTU_PRODUCCION == "1" ?
+				$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
+				$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			#'url' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
@@ -851,7 +853,7 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-	// Crear tabla de errores
+		// Crear tabla de errores
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_errores (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1132,6 +1134,41 @@ class modVerifactu extends DolibarrModules
 				}
 			}
 		}
+
+		//mirar si en la tabla llx_const existen las variables VERIFACTU_URL_ENDPOINT_PROD y VERIFACTU_URL_ENDPOINT_DEV y sino crearlas, tipo chain created at ahora
+		$sql = "SELECT COUNT(*) as count FROM " . MAIN_DB_PREFIX . "const WHERE name IN ('VERIFACTU_URL_ENDPOINT_PROD', 'VERIFACTU_URL_ENDPOINT_DEV')";
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			$obj = $this->db->fetch_array($resql);
+			$count = ($obj && isset($obj['count'])) ? $obj['count']
+				: 0;
+			if ($count < 2) {
+				$sql = "INSERT INTO " . MAIN_DB_PREFIX . "const (name, value, type, entity, note, visible, tms) VALUES ";
+				$values = array();
+				if (
+					strpos($sql, 'VERIFACTU_URL_ENDPOINT_PROD') === false
+				) {
+					$values[] = "('VERIFACTU_URL_ENDPOINT_PROD', 'https://www1.agenciatributaria.gob.es', 'chaine', 1, 'Endpoint de producción de Verifactu', 0, NOW())";
+				}
+				if (
+					strpos($sql, 'VERIFACTU_URL_ENDPOINT_DEV') === false
+				) {
+					$values[] = "('VERIFACTU_URL_ENDPOINT_DEV', 'https://prewww1.aeat.es', 'chaine', 1, 'Endpoint de desarrollo de Verifactu', 0, NOW())";
+				}
+				if (count($values) > 0) {
+					$sql .= implode(", ", $values);
+					$resql = $this->db->query($sql);
+					if (! $resql) {
+						dol_print_error($this->db);
+						return -1;
+					}
+				}
+			}
+		} else {
+			dol_print_error($this->db);
+			return -1;
+		}
+
 		return 1;
 	}
 
@@ -1634,7 +1671,7 @@ class modVerifactu extends DolibarrModules
 		// 	}
 		// }
 
-	
+
 		return 1;
 	}
 }
