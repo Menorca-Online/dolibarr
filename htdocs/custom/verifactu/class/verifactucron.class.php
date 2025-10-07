@@ -59,7 +59,7 @@ class VerifactuCron extends CommonObject
 		$message = '';
 
 		// Comprobar si hay que esperar antes de enviar otro batch
-		$proximo_envio = (int) $conf->global->VERIFACTU_PROXIMO_ENVIO;
+		$proximo_envio = (int) ((isset($conf->global->VERIFACTU_PROXIMO_ENVIO) && $conf->global->VERIFACTU_PROXIMO_ENVIO) ? $conf->global->VERIFACTU_PROXIMO_ENVIO : 0);
 
 		if ($proximo_envio > time()) {
 			$message = "Esperando para el próximo envío. Próximo envío en " . dol_print_date($proximo_envio, 'dayhour') . ".";
