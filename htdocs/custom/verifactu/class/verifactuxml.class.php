@@ -129,11 +129,11 @@ class VerifactuXML
         // 4. NombreRazonEmisor
         $this->addElement($dom, $registroAlta, 'sum1:NombreRazonEmisor', $this->config['emisor_nombre']);
 
-        if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION || $registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA || VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT) {
+        if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION || $registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA || $registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT) {
             $this->addElement($dom, $registroAlta, 'sum1:Subsanacion', 'S');
             if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA) {
                 $this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'S');
-            }else if($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT){
+            } else if ($registro->operation == VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA_NO_AEAT) {
                 $this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'X');
             }
             //$this->addElement($dom, $registroAlta, 'sum1:RechazoPrevio', 'N');
