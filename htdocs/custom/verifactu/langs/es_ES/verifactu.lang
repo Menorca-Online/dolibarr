@@ -90,6 +90,7 @@ VerifactuErrorNotificationSent = Notificación de errores enviada por email
 VerifactuErrorNotificationFailed = Error al enviar notificación de errores
 VerifactuErrorImmutableVat = No se puede modificar el CIF/NIF porque ya existen facturas emitidas para este cliente
 VerifactuErrorImmutableCountry = No se puede modificar el país porque ya existen facturas emitidas para este cliente
-VerifactuTabRegisters = Registros Verifactu
-VerifactuErrorContactHasInvoices = No se puede eliminar el contacto porque está vinculado a facturas emitidas
+VerifactuRegisters = Registros Verifactu
+RecordUpdated = Registro actualizado correctamente
+ErrorUpdatingRecord = Error al actualizar el registro
 

@@ -67,3 +67,7 @@ MyPageName = My page name
 #
 MyWidget = My widget
 MyWidgetDescription = My widget description
+
+VerifactuRegisters = Verifactu Registers
+RecordUpdated = Record updated successfully
+ErrorUpdatingRecord = Error updating record
