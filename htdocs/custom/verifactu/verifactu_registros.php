@@ -68,7 +68,7 @@ if (!$sortorder) {
 $verifactufacturaregistro = new VerifactuFacturaRegistro($db);
 
 // Fetch operations
-$sql_op = 'SELECT code, label FROM ' . MAIN_DB_PREFIX . 'c_verifactu_clave_operaciones WHERE active=1';
+$sql_op = 'SELECT code, label FROM ' . MAIN_DB_PREFIX . 'c_verifactu_registro_operaciones WHERE active=1';
 $result_op = $db->query($sql_op);
 $operations = array();
 if ($result_op) {
@@ -186,6 +186,7 @@ foreach ($records as $record) {
 		print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . '">';
 		print '<input type="hidden" name="action" value="update_operation">';
 		print '<input type="hidden" name="record_id" value="' . $record->rowid . '">';
+		print '<input type="hidden" name="token" value="' . newToken() . '">';
 		print '<select name="new_operation" onchange="this.form.submit();">';
 		foreach ($operations as $op) {
 			$selected = ($op->code == $record->operation) ? 'selected' : '';
@@ -204,6 +205,7 @@ foreach ($records as $record) {
 		print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . '">';
 		print '<input type="hidden" name="action" value="update_estado">';
 		print '<input type="hidden" name="record_id" value="' . $record->rowid . '">';
+		print '<input type="hidden" name="token" value="' . newToken() . '">';
 		print '<select name="new_estado" onchange="this.form.submit();">';
 		foreach ($estados as $est) {
 			$selected = ($est->rowid == $record->estado) ? 'selected' : '';

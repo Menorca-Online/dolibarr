@@ -140,4 +140,10 @@ class VerifactuFacturaRegistro extends CommonObject
 
         return null;
     }
+
+    public function update($user, $notrigger = 0)
+    {
+        return $this->updateCommon($user, $notrigger);
+    }
 }
+
