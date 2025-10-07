@@ -1143,17 +1143,17 @@ class modVerifactu extends DolibarrModules
 			$count = ($obj && isset($obj['count'])) ? $obj['count']
 				: 0;
 			if ($count < 2) {
-				$sql = "INSERT INTO " . MAIN_DB_PREFIX . "const (name, value, type, entity, note, visible, position, import_key, createdby, tms) VALUES ";
+				$sql = "INSERT INTO " . MAIN_DB_PREFIX . "const (name, value, type, entity, note, visible, tms) VALUES ";
 				$values = array();
 				if (
 					strpos($sql, 'VERIFACTU_URL_ENDPOINT_PROD') === false
 				) {
-					$values[] = "('VERIFACTU_URL_ENDPOINT_PROD', 'https://www1.agenciatributaria.gob.es', 'chaine', 1, 'Endpoint de producción de Verifactu', 0, 0, 'VERIFACTU_URL_ENDPOINT_PROD', " . $user->id . ", NOW())";
+					$values[] = "('VERIFACTU_URL_ENDPOINT_PROD', 'https://www1.agenciatributaria.gob.es', 'chaine', 1, 'Endpoint de producción de Verifactu', 0, NOW())";
 				}
 				if (
 					strpos($sql, 'VERIFACTU_URL_ENDPOINT_DEV') === false
 				) {
-					$values[] = "('VERIFACTU_URL_ENDPOINT_DEV', 'https://prewww1.aeat.es', 'chaine', 1, 'Endpoint de desarrollo de Verifactu', 0, 0, 'VERIFACTU_URL_ENDPOINT_DEV', " . $user->id . ", NOW())";
+					$values[] = "('VERIFACTU_URL_ENDPOINT_DEV', 'https://prewww1.aeat.es', 'chaine', 1, 'Endpoint de desarrollo de Verifactu', 0, NOW())";
 				}
 				if (count($values) > 0) {
 					$sql .= implode(", ", $values);
