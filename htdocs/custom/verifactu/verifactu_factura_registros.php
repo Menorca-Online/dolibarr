@@ -41,7 +41,9 @@ require_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactufacturaregist
 $langs->loadLangs(array('bills', 'verifactu@verifactu'));
 
 $user->loadRights();
-if (empty($user->rights->verifactu->read)) {
+if (!$user->hasRight("verifactu", "myobject", "read")) {
+	var_dump($user);
+	die();
 	accessforbidden();
 }
 
