@@ -169,6 +169,13 @@ $item->cssClass = 'minwidth500';
 
 $item->fieldAttr['default'] = 'https://www1.agenciatributaria.gob.es'; // valor por defecto
 $item->helpText = 'ENDPOINT PRODUCCIÓN de la AEAT - https://www1.agenciatributaria.gob.es';
+
+$item = $formSetup->newItem('VERIFACTU_PROXIMO_ENVIO');
+$item->fieldAttr['type'] = 'number';
+$item->cssClass = 'minwidth500';
+
+$item->fieldAttr['default'] = '0'; // valor por defecto
+$item->helpText = 'FECHA PROXIMO ENVIO EN SEGUNDOS';
 // $item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
 // $item->fieldParams['isMandatory'] = 1;
 // $item->fieldAttr['placeholder'] = '/path/to/certificado.pem';
