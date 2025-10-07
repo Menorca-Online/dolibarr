@@ -38,6 +38,9 @@ VERIFACTU_SOLO_VERIFACTU=Solo Verifactu
 VERIFACTU_MULTI_OT=Multi OT
 VERIFACTU_INDICADOR_MULTI=Indicador Multi
 VerifactuErrorClienteGenericoNoDefinido=Error: Cliente genérico no definido en configuración
+VERIFACTU_PRODUCCION=Producción
+VERIFACTU_URL_ENDPOINT_DEV=URL ENDPOINT DESARROLLO
+VERIFACTU_URL_ENDPOINT_PROD=URL ENDPOINT PRODUCCIÓN
 #
 # Errores y mensajes Verifactu
 #
