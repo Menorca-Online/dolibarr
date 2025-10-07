@@ -883,7 +883,7 @@ class VerifactuXML
      */
     private function processResponse($response)
     {
-        global $user;
+        global $user, $conf;
         if (empty($response)) {
             return;
         }
@@ -961,8 +961,8 @@ class VerifactuXML
             // Extraer TiempoEsperaEnvio
             $tiempoEsperaEnvioNode = $xpath->query('//tikR:TiempoEsperaEnvio')->item(0);
             if ($tiempoEsperaEnvioNode) {
-                //tiempo en segundos, sumarselo a la hora actual para saber cuando volver a enviar
-                $this->batch->tiempo_espera_envio = (int) $tiempoEsperaEnvioNode->textContent + time();
+                //tiempo en segundos, sumarselo a la hora actual para saber cuando volver a enviar y guardar ese valor en la config global
+                $conf->global->VERIFACTU_PROXIMO_ENVIO = (int) $tiempoEsperaEnvioNode->textContent + time();
             }
 
             // Extraer EstadoEnvio
