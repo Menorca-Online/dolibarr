@@ -1134,6 +1134,16 @@ class modVerifactu extends DolibarrModules
 				}
 			}
 		}
+
+		//mirar si en llx_const existen las variables VERIFACTU_URL_ENDPOINT_PROD y VERIFACTU_URL_ENDPOINT_DEV y sino crearlas, tipo chain created at ahora
+		$this->loadConfigVars();
+		if (empty($conf->global->VERIFACTU_URL_ENDPOINT_PROD)) {
+			$this->setConfigVar('VERIFACTU_URL_ENDPOINT_PROD', 'https://www1.agenciatributaria.gob.es', 'chaine', 0, '', 0, '', 0, 'URL endpoint producción de Verifactu');
+		}
+		if (empty($conf->global->VERIFACTU_URL_ENDPOINT_DEV)) {
+			$this->setConfigVar('VERIFACTU_URL_ENDPOINT_DEV', 'https://prewww1.aeat.es', 'chaine', 0, '', 0, '', 0, 'URL endpoint desarrollo de Verifactu');
+		}
+
 		return 1;
 	}
 
