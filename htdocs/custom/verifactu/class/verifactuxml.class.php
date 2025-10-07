@@ -962,7 +962,10 @@ class VerifactuXML
             $tiempoEsperaEnvioNode = $xpath->query('//tikR:TiempoEsperaEnvio')->item(0);
             if ($tiempoEsperaEnvioNode) {
                 //tiempo en segundos, sumarselo a la hora actual para saber cuando volver a enviar y guardar ese valor en la config global
-                $conf->global->VERIFACTU_PROXIMO_ENVIO = (int) $tiempoEsperaEnvioNode->textContent + time();
+                $valor = (int)$tiempoEsperaEnvioNode->textContent + time();
+
+                // Guardar en la configuración global
+                dolibarr_set_const($this->db, 'VERIFACTU_PROXIMO_ENVIO', $valor, 'integer', 0, '', $conf->entity);
             }
 
             // Extraer EstadoEnvio
