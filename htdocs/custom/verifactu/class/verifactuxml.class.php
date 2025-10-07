@@ -963,6 +963,7 @@ class VerifactuXML
             if ($tiempoEsperaEnvioNode) {
                 //tiempo en segundos, sumarselo a la hora actual para saber cuando volver a enviar y guardar ese valor en la config global
                 $valor = (int)$tiempoEsperaEnvioNode->textContent + time();
+                require_once DOL_DOCUMENT_ROOT . '/core/lib/admin.lib.php';
 
                 // Guardar en la configuración global
                 dolibarr_set_const($this->db, 'VERIFACTU_PROXIMO_ENVIO', $valor, 'integer', 0, '', $conf->entity);
