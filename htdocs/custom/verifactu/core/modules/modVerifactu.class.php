@@ -893,6 +893,22 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX .
+			"verifactu_incidencias (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			persona_nombre varchar(255) NOT NULL,
+			persona_apellido_1 varchar(255) NOT NULL,
+			persona_apellido_2 varchar(255) DEFAULT NULL,
+			persona_nif varchar(20) NOT NULL,
+			persona_email varchar(255) NOT NULL,
+			persona_telefono varchar(50) DEFAULT NULL,
+			incidencia text NOT NULL ) ENGINE=innodb;";
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
 		//añadimos este trigger a la tabla
 
 
