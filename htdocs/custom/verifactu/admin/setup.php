@@ -138,37 +138,37 @@ $item = $formSetup->newItem('VERIFACTU_PRODUCCION')->setAsYesNo();
 $item->fieldParams['isMandatory'] = 1;
 $item->fieldAttr['default'] = 0; // valor por defecto
 
-$item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA_DEV');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
-$item->cssClass = 'minwidth500';
+// $item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA_DEV');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
+// $item->cssClass = 'minwidth500';
 
-$item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
-$item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
+// $item->fieldAttr['default'] = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
+// $item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR';
 
 $item = $formSetup->newItem('VERIFACTU_URL_ENDPOINT_DEV');
 $item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
+$item->fieldAttr['placeholder'] = 'https://prewww1.aeat.es';
 $item->cssClass = 'minwidth500';
 
-$item->fieldAttr['default'] = 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion'; // valor por defecto
-$item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
+$item->fieldAttr['default'] = 'https://prewww1.aeat.es'; // valor por defecto
+$item->helpText = 'ENDPOINT DESARROLLO de la AEAT';
 
-$item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA_PROD');
-$item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR';
-$item->cssClass = 'minwidth500';
+// $item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA_PROD');
+// $item->fieldParams['isMandatory'] = 1;
+// $item->fieldAttr['placeholder'] = 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR';
+// $item->cssClass = 'minwidth500';
 
-$item->fieldAttr['default'] = 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
-$item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR';
+// $item->fieldAttr['default'] = 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?'; // valor por defecto
+// $item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR';
 
 $item = $formSetup->newItem('VERIFACTU_URL_ENDPOINT_PROD');
 $item->fieldParams['isMandatory'] = 1;
-$item->fieldAttr['placeholder'] = 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
+$item->fieldAttr['placeholder'] = 'https://www1.agenciatributaria.gob.es';
 $item->cssClass = 'minwidth500';
 
-$item->fieldAttr['default'] = 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion'; // valor por defecto
-$item->helpText = 'URL para comprobar las facturas en la AEAT. Para pruebas: https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
+$item->fieldAttr['default'] = 'https://www1.agenciatributaria.gob.es'; // valor por defecto
+$item->helpText = 'ENDPOINT PRODUCCIÓN de la AEAT';
 // $item = $formSetup->newItem('VERIFACTU_CERTIFICADO_AEAT');
 // $item->fieldParams['isMandatory'] = 1;
 // $item->fieldAttr['placeholder'] = '/path/to/certificado.pem';

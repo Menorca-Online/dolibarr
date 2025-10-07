@@ -21,12 +21,12 @@
  *	\brief      File of class to generate customers invoices from verifactu model
  */
 
-require_once DOL_DOCUMENT_ROOT.'/core/modules/facture/modules_facture.php';
-require_once DOL_DOCUMENT_ROOT.'/core/modules/facture/doc/pdf_crabe.modules.php';
-require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/pdf.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/core/modules/facture/modules_facture.php';
+require_once DOL_DOCUMENT_ROOT . '/core/modules/facture/doc/pdf_crabe.modules.php';
+require_once DOL_DOCUMENT_ROOT . '/product/class/product.class.php';
+require_once DOL_DOCUMENT_ROOT . '/core/lib/company.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/core/lib/functions2.lib.php';
+require_once DOL_DOCUMENT_ROOT . '/core/lib/pdf.lib.php';
 
 /**
  *	Class to generate the customer invoice PDF with template Verifactu
@@ -85,7 +85,7 @@ class pdf_verifactu extends ModelePDFFactures
 	 *  @param		DoliDB		$db      Database handler
 	 */
 
-	public $verifactuQR = '' ;
+	public $verifactuQR = '';
 
 	public function __construct($db)
 	{
@@ -102,10 +102,10 @@ class pdf_verifactu extends ModelePDFFactures
 		// Obtener la URL del endpoint desde la configuración del módulo
 		$verifactuEndpoint = getDolGlobalString('VERIFACTU_URL_ENDPOINT', '');
 		$verifactuUrlComprobar = getDolGlobalString('VERIFACTU_URL_COMPROBAR_FACTURA', '');
-		
+
 		// Construir la URL del QR usando la configuración
 		$this->verifactuQR = !empty($verifactuUrlComprobar) ? $verifactuUrlComprobar : $verifactuEndpoint;
-		
+
 
 		// Si no hay configuración, usar una URL por defecto
 		if (empty($this->verifactuQR)) {
@@ -175,7 +175,7 @@ class pdf_verifactu extends ModelePDFFactures
 		$this->situationinvoice = false;
 
 		if ($mysoc === null) {
-			dol_syslog(get_class($this).'::__construct() Global $mysoc should not be null.'. getCallerInfoString(), LOG_ERR);
+			dol_syslog(get_class($this) . '::__construct() Global $mysoc should not be null.' . getCallerInfoString(), LOG_ERR);
 			return;
 		}
 
@@ -203,22 +203,22 @@ class pdf_verifactu extends ModelePDFFactures
 		global $conf, $hookmanager, $langs, $user;
 
 		// Incluir librerías necesarias para QR
-		require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-		require_once DOL_DOCUMENT_ROOT.'/core/lib/pdf.lib.php';
-		
+		require_once DOL_DOCUMENT_ROOT . '/core/lib/files.lib.php';
+		require_once DOL_DOCUMENT_ROOT . '/core/lib/pdf.lib.php';
+
 		// Generar la URL del QR con los datos de la factura
 		$qrData = $this->generateQRData($object);
-		
+
 		// Crear una instancia de la plantilla crabe modificada
 		$crabeTemplate = new pdf_crabe_verifactu($this->db, $qrData);
-		
+
 		// Copiar nuestras propiedades específicas
 		$crabeTemplate->name = $this->name;
 		$crabeTemplate->description = $this->description;
-		
+
 		// Generar el PDF usando la plantilla modificada
 		$result = $crabeTemplate->write_file($object, $outputlangs, $srctemplatepath, $hidedetails, $hidedesc, $hideref);
-		
+
 		return $result;
 	}
 
@@ -228,14 +228,16 @@ class pdf_verifactu extends ModelePDFFactures
 	private function generateQRData($object)
 	{
 		global $conf;
-		
+
 		// Obtener configuraciones
-		$urlComprobar = getDolGlobalString('VERIFACTU_URL_COMPROBAR_FACTURA', 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR');
+		$urlComprobar = $conf->global->VERIFACTU_PRODUCCION == "1" ?
+			$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
+			$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/ValidarQR';
 		$nif = $this->emetteur->idprof1 ? $this->emetteur->idprof1 : 'TESTNIF';
 		$num = $object->ref ? $object->ref : 'TESTREF';
 		$fecha = $object->datef ? dol_print_date($object->datef, '%d-%m-%Y') : date('d-m-Y');
 		$importe = $object->total_ttc ? number_format($object->total_ttc, 2, '.', '') : '0.00';
-		
+
 		// Construir URL con parámetros de la factura
 		$params = array(
 			'nif' => $nif,
@@ -243,12 +245,12 @@ class pdf_verifactu extends ModelePDFFactures
 			'fecha' => $fecha, //dd-mm-aaaa
 			'importe' => $importe
 		);
-		
+
 		$qrUrl = $urlComprobar . '?' . http_build_query($params);
 
 		// Log para debug
 		dol_syslog("QR Data: " . $qrUrl, LOG_DEBUG);
-		
+
 		return $qrUrl;
 	}
 }
@@ -259,23 +261,23 @@ class pdf_verifactu extends ModelePDFFactures
 class pdf_crabe_verifactu extends pdf_crabe
 {
 	public $qrData = '';
-	
+
 	public function __construct($db, $qrData = '')
 	{
 		parent::__construct($db);
 		$this->qrData = $qrData;
 	}
-	
+
 	/**
 	 * Verificar si la factura es simplificada (cliente genérico)
 	 */
 	private function isFacturaSimplificada($object)
 	{
 		$clienteGenerico = getDolGlobalString('INVOICE_CLIENTE_GENERICO', '');
-		
+
 		if (!empty($clienteGenerico) && isset($object->socid)) {
 			// Cargar el cliente para verificar su ID
-			require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
+			require_once DOL_DOCUMENT_ROOT . '/societe/class/societe.class.php';
 			$thirdparty = new Societe($this->db);
 			if ($thirdparty->fetch($object->socid) > 0) {
 				// Verificar si es el cliente genérico (por ID o por nombre)
@@ -284,10 +286,10 @@ class pdf_crabe_verifactu extends pdf_crabe
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Sobrescribir el método para agregar QR en la cabecera y manejar facturas simplificadas
 	 */
@@ -295,7 +297,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 	{
 		// Verificar si es cliente genérico para factura simplificada
 		$isFacturaSimplificada = $this->isFacturaSimplificada($object);
-		
+
 		// Llamar a la cabecera original
 		$result = parent::_pagehead($pdf, $object, $showaddress, $outputlangs, $outputlangsbis, $titlekey);
 
@@ -306,12 +308,12 @@ class pdf_crabe_verifactu extends pdf_crabe
 
 		// Redibujar el área del destinatario usando los datos inmutables capturados
 		$this->renderRecipientSnapshotArea($pdf, $object, $outputlangs, $isFacturaSimplificada);
-		
+
 		// Agregar código QR si tenemos datos (después de la cabecera)
 		if (!empty($this->qrData)) {
 			$this->addQRCodeToHeader($pdf, $object);
 		}
-		
+
 		return $result;
 	}
 
@@ -321,9 +323,9 @@ class pdf_crabe_verifactu extends pdf_crabe
 	private function enhanceSenderArea(&$pdf, $object, $outputlangs)
 	{
 		global $conf;
-		
+
 		$default_font_size = pdf_getPDFFontSize($outputlangs);
-		
+
 		// Calcular posición del área del emisor (igual que en pdf_crabe)
 		$top_shift = 0; // Ajustar si hay objetos enlazados
 		$posy = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 40 : 42;
@@ -332,23 +334,23 @@ class pdf_crabe_verifactu extends pdf_crabe
 		if (getDolGlobalString('MAIN_INVERT_SENDER_RECIPIENT')) {
 			$posx = $this->page_largeur - $this->marge_droite - 80;
 		}
-		
+
 		$hautcadre = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 38 : 40;
 		$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 82;
-		
+
 		// Construir información del emisor con CIF explícito
 		$carac_emetteur_enhanced = '';
-		
+
 		// Agregar CIF/NIF si existe
 		if (!empty($this->emetteur->idprof1)) {
 			$carac_emetteur_enhanced .= 'CIF: ' . $this->emetteur->idprof1 . "\n";
 		}
-		
+
 		// Agregar dirección
 		if (!empty($this->emetteur->address)) {
 			$carac_emetteur_enhanced .= $this->emetteur->address . "\n";
 		}
-		
+
 		// Agregar código postal y ciudad
 		$cp_ciudad = '';
 		if (!empty($this->emetteur->zip)) {
@@ -360,16 +362,16 @@ class pdf_crabe_verifactu extends pdf_crabe
 		if ($cp_ciudad) {
 			$carac_emetteur_enhanced .= $cp_ciudad . "\n";
 		}
-		
+
 		// Agregar país si no es España
 		if (!empty($this->emetteur->country_code) && $this->emetteur->country_code != 'ES') {
 			$carac_emetteur_enhanced .= $this->emetteur->country_code . "\n";
 		}
-		
+
 		// Limpiar el área del emisor existente
 		$pdf->SetFillColor(255, 255, 255);
 		$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'F');
-		
+
 		// Redibujar el marco del emisor
 		if (!getDolGlobalString('MAIN_PDF_NO_SENDER_FRAME')) {
 			$pdf->SetTextColor(0, 0, 0);
@@ -381,7 +383,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->RoundedRect($posx, $posy, $widthrecbox, $hautcadre, $this->corner_radius, '1234', 'F');
 			$pdf->SetTextColor(0, 0, 60);
 		}
-		
+
 		// Mostrar nombre del emisor
 		if (!getDolGlobalString('MAIN_PDF_HIDE_SENDER_NAME')) {
 			$pdf->SetXY($posx + 2, $posy + 3);
@@ -389,7 +391,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->MultiCell($widthrecbox - 2, 4, $outputlangs->convToOutputCharset($this->emetteur->name), 0, 'L');
 			$posy = $pdf->getY();
 		}
-		
+
 		// Mostrar información mejorada del emisor (con CIF)
 		$pdf->SetXY($posx + 2, $posy);
 		$pdf->SetFont('', '', $default_font_size - 1);
@@ -405,36 +407,35 @@ class pdf_crabe_verifactu extends pdf_crabe
 		// Solo llamar al pie de página original, sin QR
 		return parent::_pagefoot($pdf, $object, $outputlangs, $hidefreetext, $heightforqrinvoice);
 	}
-	
+
 	/**
 	 * Agregar código QR en la cabecera (entre empresa y datos de factura)
 	 */
 	private function addQRCodeToHeader(&$pdf, $object)
 	{
 		// Incluir librería QR
-		require_once DOL_DOCUMENT_ROOT.'/includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php';
-		
+		require_once DOL_DOCUMENT_ROOT . '/includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php';
+
 		// Verificar si la librería QR está disponible
 		if (class_exists('TCPDF2DBarcode')) {
 			// Posición del QR en la cabecera
 			$qrSize = 30; // mm - más grande para ser visible en cabecera
-			
+
 			// Posición: lado derecho, después del logo/empresa (aprox. línea 60-80)
 			$x = $this->page_largeur - $this->marge_droite - $qrSize - 5; // Lado derecho
 			$y = 45; // Posición vertical entre empresa y datos de factura
-			
+
 			// Generar y agregar el QR
 			$pdf->write2DBarcode($this->qrData, 'QRCODE,L', $x, $y, $qrSize, $qrSize, array(), false);
-			
+
 			// Agregar texto explicativo debajo del QR
 			$pdf->SetFont('helvetica', '', 8);
 			$pdf->SetXY($x, $y + $qrSize + 2);
 			$pdf->Cell($qrSize, 4, 'Verificar en AEAT', 0, 0, 'C');
-			
+
 			// Debug: agregar un rectángulo para ver la posición (quitar después)
 			$pdf->SetDrawColor(0, 255, 0); // Color verde para diferenciarlo
 			$pdf->Rect($x, $y, $qrSize, $qrSize);
-			
 		} else {
 			// Si no hay QR, agregar texto de debug en cabecera
 			$pdf->SetFont('helvetica', '', 8);
@@ -527,7 +528,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 		$cursorY = $posy + 3;
 		$lineHeight = 5;
 		$maxWidth = $widthrecbox - 4;
-		
+
 		$pdf->SetTextColor(0, 0, 60);
 		$pdf->SetFont('', 'B', $default_font_size);
 		$pdf->SetXY($posx + 2, $cursorY);
@@ -615,9 +616,9 @@ class pdf_crabe_verifactu extends pdf_crabe
 
 		$form = new Form($this->db);
 
-		$texte = $this->description.".<br>\n";
-		$texte .= '<form action="'.$_SERVER["PHP_SELF"].'" method="POST" enctype="multipart/form-data">';
-		$texte .= '<input type="hidden" name="token" value="'.newToken().'">';
+		$texte = $this->description . ".<br>\n";
+		$texte .= '<form action="' . $_SERVER["PHP_SELF"] . '" method="POST" enctype="multipart/form-data">';
+		$texte .= '<input type="hidden" name="token" value="' . newToken() . '">';
 		$texte .= '<input type="hidden" name="page_y" value="">';
 		$texte .= '<input type="hidden" name="action" value="setModuleOptions">';
 		$texte .= '<input type="hidden" name="param1" value="INVOICE_MODEL_VERIFACTU">';
@@ -634,7 +635,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 
 		$texte .= '</table>';
 		$texte .= '<div class="center">';
-		$texte .= '<input type="submit" class="button" value="'.$langs->trans("Modify").'">';
+		$texte .= '<input type="submit" class="button" value="' . $langs->trans("Modify") . '">';
 		$texte .= '</div>';
 		$texte .= '</form>';
 		return $texte;

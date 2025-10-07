@@ -525,7 +525,9 @@ class modVerifactu extends DolibarrModules
 			'prefix' => img_picto('', 'globe', 'class="pictofixedwidth valignmiddle paddingright"'),
 			'mainmenu' => 'verifactu',
 			'leftmenu' => 'verifactu_aeat_consulta',
-			'url' => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			'url' => $conf->global->VERIFACTU_PRODUCCION == "1" ?
+				$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
+				$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			#'url' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
@@ -851,7 +853,7 @@ class modVerifactu extends DolibarrModules
 			return -1;
 		}
 
-	// Crear tabla de errores
+		// Crear tabla de errores
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX . "verifactu_errores (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			fecha timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1634,7 +1636,7 @@ class modVerifactu extends DolibarrModules
 		// 	}
 		// }
 
-	
+
 		return 1;
 	}
 }

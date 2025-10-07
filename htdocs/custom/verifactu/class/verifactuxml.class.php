@@ -686,7 +686,9 @@ class VerifactuXML
         $file = $outbox_dir . '/' . $this->facture->ref . '.xml';
         file_put_contents($file, $this->xml);
         $return = "";
-        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        $url = $conf->global->VERIFACTU_PRODUCCION == "1" ?
+            $conf->global->VERIFACTU_URL_ENDPOINT_PROD :
+            $conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -826,7 +828,11 @@ class VerifactuXML
 
         $return = "";
 
-        $url = "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion";
+        $url = $conf->global->VERIFACTU_PRODUCCION == "1" ?
+            $conf->global->VERIFACTU_URL_ENDPOINT_PROD :
+            $conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP?op=RegFactuSistemaFacturacion';
+
+
         #$url = "https://google.com";
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
