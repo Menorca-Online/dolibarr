@@ -102,7 +102,7 @@ if ($result_count) {
     $db->free($result_count);
 }
 
-$sql = 'SELECT t.rowid, t.factureid as fk_facture, t.operation, t.estado, t.fecha as date_creation';
+$sql = 'SELECT t.rowid, t.factureid, t.operation, t.estado, t.fecha';
 $sql .= ' FROM ' . MAIN_DB_PREFIX . 'verifactu_factura_registros as t';
 $sql .= $db->order($sortfield, $sortorder);
 $sql .= $db->plimit($limit + 1, $offset);
@@ -166,10 +166,10 @@ print '<table class="liste">';
 print '<thead>';
 print '<tr class="liste_titre">';
 print_liste_field_titre('ID', $_SERVER['PHP_SELF'], 't.rowid', '', '', '', $sortfield, $sortorder);
-print_liste_field_titre('Factura', $_SERVER['PHP_SELF'], 't.fk_facture', '', '', '', $sortfield, $sortorder);
+print_liste_field_titre('Factura', $_SERVER['PHP_SELF'], 't.factureid', '', '', '', $sortfield, $sortorder);
 print_liste_field_titre('Operation', $_SERVER['PHP_SELF'], 't.operation', '', '', '', $sortfield, $sortorder);
 print_liste_field_titre('Estado', $_SERVER['PHP_SELF'], 't.estado', '', '', '', $sortfield, $sortorder);
-print_liste_field_titre('DateCreation', $_SERVER['PHP_SELF'], 't.date_creation', '', '', '', $sortfield, $sortorder);
+print_liste_field_titre('DateCreation', $_SERVER['PHP_SELF'], 't.fecha', '', '', '', $sortfield, $sortorder);
 print '<th>' . $langs->trans('Actions') . '</th>';
 print '</tr>';
 print '</thead>';
@@ -178,7 +178,7 @@ print '<tbody>';
 foreach ($records as $record) {
 	print '<tr>';
 	print '<td>' . $record->rowid . '</td>';
-	print '<td><a href="' . DOL_URL_ROOT . '/compta/facture/card.php?id=' . $record->fk_facture . '">' . $record->fk_facture . '</a></td>';
+	print '<td><a href="' . DOL_URL_ROOT . '/compta/facture/card.php?id=' . $record->factureid . '">' . $record->factureid . '</a></td>';
 	
 	// Operation select
 	print '<td>';
@@ -218,7 +218,7 @@ foreach ($records as $record) {
 	}
 	print '</td>';
 	
-	print '<td>' . dol_print_date($record->date_creation, 'dayhour') . '</td>';
+	print '<td>' . dol_print_date($record->fecha, 'dayhour') . '</td>';
 	print '<td></td>';
 	print '</tr>';
 }

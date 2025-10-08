@@ -525,9 +525,9 @@ class modVerifactu extends DolibarrModules
 			'prefix' => img_picto('', 'globe', 'class="pictofixedwidth valignmiddle paddingright"'),
 			'mainmenu' => 'verifactu',
 			'leftmenu' => 'verifactu_aeat_consulta',
-			'url' => $conf->global->VERIFACTU_PRODUCCION == "1" ?
-				$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
-				$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			'url' => ($conf->global->VERIFACTU_PRODUCCION ?? "0") == "1" ?
+					($conf->global->VERIFACTU_URL_ENDPOINT_PROD ?? '') :
+					($conf->global->VERIFACTU_URL_ENDPOINT_DEV ?? '') . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			#'url' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
@@ -571,7 +571,21 @@ class modVerifactu extends DolibarrModules
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
-
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Verifactu Registros',
+			'prefix' => img_picto('', 'fa-archive', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_registros',
+			'url' => '/verifactu/verifactu_registros.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '$user->hasRight("verifactu", "myobject", "read")',
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
 
 		// Exports profiles provided by this module
 		$r = 0;
