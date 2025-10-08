@@ -586,6 +586,21 @@ class modVerifactu extends DolibarrModules
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Verifactu Incidencias',
+			'prefix' => img_picto('', 'fa-archive', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_incidencias',
+			'url' => '/verifactu/verifactuincidencia_list.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '$user->hasRight("verifactu", "myobject", "read")',
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
 
 		// Exports profiles provided by this module
 		$r = 0;
@@ -901,6 +916,22 @@ class modVerifactu extends DolibarrModules
 			fk_batch integer DEFAULT NULL
 		) ENGINE=innodb;";
 
+		$resql = $this->db->query($sql);
+		if (! $resql) {
+			dol_print_error($this->db);
+			return -1;
+		}
+
+		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX .
+			"verifactu_incidencias (
+			rowid integer AUTO_INCREMENT PRIMARY KEY,
+			persona_nombre varchar(255) NOT NULL,
+			persona_apellido_1 varchar(255) NOT NULL,
+			persona_apellido_2 varchar(255) DEFAULT NULL,
+			persona_nif varchar(20) NOT NULL,
+			persona_email varchar(255) NOT NULL,
+			persona_telefono varchar(50) DEFAULT NULL,
+			incidencia text NOT NULL ) ENGINE=innodb;";
 		$resql = $this->db->query($sql);
 		if (! $resql) {
 			dol_print_error($this->db);
