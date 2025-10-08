@@ -525,9 +525,9 @@ class modVerifactu extends DolibarrModules
 			'prefix' => img_picto('', 'globe', 'class="pictofixedwidth valignmiddle paddingright"'),
 			'mainmenu' => 'verifactu',
 			'leftmenu' => 'verifactu_aeat_consulta',
-			'url' => $conf->global->VERIFACTU_PRODUCCION == "1" ?
-				$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
-				$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
+			'url' => ($conf->global->VERIFACTU_PRODUCCION ?? "0") == "1" ?
+					($conf->global->VERIFACTU_URL_ENDPOINT_PROD ?? '') :
+					($conf->global->VERIFACTU_URL_ENDPOINT_DEV ?? '') . '/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			#'url' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/SvTikeEmitidasQuery',
 			'langs' => 'verifactu@verifactu',
 			'position' => 1000 + $r,
