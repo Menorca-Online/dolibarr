@@ -940,47 +940,47 @@ class modVerifactu extends DolibarrModules
 		//añadimos este trigger a la tabla
 
 
-		// // Verificar si el trigger ya existe antes de crearlo
-		// $sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
-		// 			  WHERE TRIGGER_SCHEMA = DATABASE() 
-		// 			  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT'";
-		// $resql_check = $this->db->query($sql_check);
-		// if ($resql_check && $this->db->num_rows($resql_check) == 0) {
-		// 	$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
-		// 	AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
-		// 	FOR EACH ROW
-		// 	BEGIN
-		// 		UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
-		// 		SET fk_verifactu_registro_estado = NEW.estado
-		// 		WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		// 	END";
-		// 	$resql = $this->db->query($sql);
-		// 	if (! $resql) {
-		// 		dol_print_error($this->db);
-		// 		return -1;
-		// 	}
-		// }
+		// Verificar si el trigger ya existe antes de crearlo
+		$sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
+					  WHERE TRIGGER_SCHEMA = DATABASE() 
+					  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT'";
+		$resql_check = $this->db->query($sql_check);
+		if ($resql_check && $this->db->num_rows($resql_check) == 0) {
+			$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_INSERT
+			AFTER INSERT ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+			FOR EACH ROW
+			BEGIN
+				UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+				SET fk_verifactu_registro_estado = NEW.estado
+				WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+			END";
+			$resql = $this->db->query($sql);
+			if (! $resql) {
+				dol_print_error($this->db);
+				return -1;
+			}
+		}
 
-		// // Verificar si el trigger de UPDATE ya existe antes de crearlo
-		// $sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
-		// 			  WHERE TRIGGER_SCHEMA = DATABASE() 
-		// 			  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE'";
-		// $resql_check = $this->db->query($sql_check);
-		// if ($resql_check && $this->db->num_rows($resql_check) == 0) {
-		// 	$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE
-		// 	AFTER UPDATE ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
-		// 	FOR EACH ROW
-		// 	BEGIN
-		// 		UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
-		// 		SET fk_verifactu_registro_estado = NEW.estado
-		// 		WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
-		// 	END";
-		// 	$resql = $this->db->query($sql);
-		// 	if (! $resql) {
-		// 		dol_print_error($this->db);
-		// 		return -1;
-		// 	}
-		// }
+		// Verificar si el trigger de UPDATE ya existe antes de crearlo
+		$sql_check = "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS 
+					  WHERE TRIGGER_SCHEMA = DATABASE() 
+					  AND TRIGGER_NAME = '" . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE'";
+		$resql_check = $this->db->query($sql_check);
+		if ($resql_check && $this->db->num_rows($resql_check) == 0) {
+			$sql = "CREATE TRIGGER " . MAIN_DB_PREFIX . "_verifactu_factura_registros_AFTER_UPDATE
+			AFTER UPDATE ON " . MAIN_DB_PREFIX . "verifactu_factura_registros
+			FOR EACH ROW
+			BEGIN
+				UPDATE " . MAIN_DB_PREFIX . "facture_extrafields
+				SET fk_verifactu_registro_estado = NEW.estado
+				WHERE " . MAIN_DB_PREFIX . "facture_extrafields.fk_object = NEW.factureid;
+			END";
+			$resql = $this->db->query($sql);
+			if (! $resql) {
+				dol_print_error($this->db);
+				return -1;
+			}
+		}
 
 		//L10
 		$claveExencion = array(
