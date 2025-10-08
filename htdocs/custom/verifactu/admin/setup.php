@@ -154,6 +154,14 @@ $item->cssClass = 'minwidth500';
 $item->fieldAttr['default'] = 'https://prewww1.aeat.es'; // valor por defecto
 $item->helpText = 'ENDPOINT DESARROLLO de la AEAT - https://prewww1.aeat.es';
 
+$item = $formSetup->newItem('VERIFACTU_URL_CHECK_DEV');
+$item->fieldParams['isMandatory'] = 1;
+$item->fieldAttr['placeholder'] = 'https://prewww2.aeat.es';
+$item->cssClass = 'minwidth500';
+
+$item->fieldAttr['default'] = 'https://prewww2.aeat.es'; // valor por defecto
+$item->helpText = 'ENDPOINT DESARROLLO de la AEAT - https://prewww2.aeat.es';
+
 // $item = $formSetup->newItem('VERIFACTU_URL_COMPROBAR_FACTURA_PROD');
 // $item->fieldParams['isMandatory'] = 1;
 // $item->fieldAttr['placeholder'] = 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR';
@@ -169,6 +177,14 @@ $item->cssClass = 'minwidth500';
 
 $item->fieldAttr['default'] = 'https://www1.agenciatributaria.gob.es'; // valor por defecto
 $item->helpText = 'ENDPOINT PRODUCCIÓN de la AEAT - https://www1.agenciatributaria.gob.es';
+
+$item = $formSetup->newItem('VERIFACTU_URL_CHECK_PROD');
+$item->fieldParams['isMandatory'] = 1;
+$item->fieldAttr['placeholder'] = 'https://www2.agenciatributaria.gob.es';
+$item->cssClass = 'minwidth500';
+
+$item->fieldAttr['default'] = 'https://www2.agenciatributaria.gob.es'; // valor por defecto
+$item->helpText = 'ENDPOINT PRODUCCIÓN de la AEAT - https://www2.agenciatributaria.gob.es';
 
 $item = $formSetup->newItem('VERIFACTU_PROXIMO_ENVIO');
 $item->fieldAttr['type'] = 'number';

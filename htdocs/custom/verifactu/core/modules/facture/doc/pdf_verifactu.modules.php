@@ -231,8 +231,8 @@ class pdf_verifactu extends ModelePDFFactures
 
 		// Obtener configuraciones
 		$urlComprobar = $conf->global->VERIFACTU_PRODUCCION == "1" ?
-			$conf->global->VERIFACTU_URL_ENDPOINT_PROD :
-			$conf->global->VERIFACTU_URL_ENDPOINT_DEV . '/wlpl/TIKE-CONT/ValidarQR';
+			$conf->global->VERIFACTU_URL_CHECK_PROD :
+			$conf->global->VERIFACTU_URL_CHECK_DEV . '/wlpl/TIKE-CONT/ValidarQR';
 		$nif = $this->emetteur->idprof1 ? $this->emetteur->idprof1 : 'TESTNIF';
 		$num = $object->ref ? $object->ref : 'TESTREF';
 		$fecha = $object->datef ? dol_print_date($object->datef, '%d-%m-%Y') : date('d-m-Y');
