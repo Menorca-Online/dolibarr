@@ -231,11 +231,15 @@ if (empty($reshook)) {
 }
 
 
+if (empty($user->rights->verifactu->write)) {
+    accessforbidden();
+}
 
 
 /*
  * View
  */
+
 
 $form = new Form($db);
 $formfile = new FormFile($db);

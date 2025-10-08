@@ -176,6 +176,9 @@ $fieldstosearchall = array();
 // } elseif ($reshook == 0) {
 // 	$fieldstosearchall = array_merge($fieldstosearchall, empty($hookmanager->resArray['fieldstosearchall']) ? array() : $hookmanager->resArray['fieldstosearchall']);
 // }
+if (empty($user->rights->verifactu->read)) {
+    accessforbidden();
+}
 
 // Definition of array of fields for columns
 $tableprefix = 't';

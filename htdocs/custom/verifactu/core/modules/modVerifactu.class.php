@@ -586,6 +586,21 @@ class modVerifactu extends DolibarrModules
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Verifactu Incidencias',
+			'prefix' => img_picto('', 'fa-archive', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_incidencias',
+			'url' => '/verifactu/verifactuincidencia_list.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '$user->hasRight("verifactu", "myobject", "read")',
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
 
 		// Exports profiles provided by this module
 		$r = 0;
