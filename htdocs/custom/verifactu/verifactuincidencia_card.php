@@ -231,7 +231,7 @@ if (empty($reshook)) {
 }
 
 
-if (empty($user->rights->verifactu->write)) {
+if (empty($user->rights->verifactu->myobject->write)) {
     accessforbidden();
 }
 

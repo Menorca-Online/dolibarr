@@ -176,7 +176,8 @@ $fieldstosearchall = array();
 // } elseif ($reshook == 0) {
 // 	$fieldstosearchall = array_merge($fieldstosearchall, empty($hookmanager->resArray['fieldstosearchall']) ? array() : $hookmanager->resArray['fieldstosearchall']);
 // }
-if (empty($user->rights->verifactu->read)) {
+
+if (empty($user->rights->verifactu->myobject->read)) {
     accessforbidden();
 }
 
