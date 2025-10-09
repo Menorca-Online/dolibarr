@@ -375,6 +375,7 @@ $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid 
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado";
 $sql .= " WHERE f.entity IN (".getEntity('invoice').")";
 $sql .= " AND f.fk_statut > 0"; // Excluir facturas borrador por defecto
+$sql .= " ORDER BY ef.rowid DESC";
 
 // Aplicar filtros
 if ($search_ref) {
@@ -447,7 +448,12 @@ if ($resql) {
 		// Hash anterior
 		print '<td class="center">';
 		if (!empty($obj->hash_data)) {
-			print '<span style="font-family: monospace; font-size: 11px;">'.$obj->hash_data.'</span>';
+			$decoded = json_decode($obj->hash_data, true);
+			if (json_last_error() === JSON_ERROR_NONE && isset($decoded['Huella'])) {
+			print '<span style="font-family: monospace; font-size: 11px;">'.$decoded['Huella'].'</span>';
+			} else {
+				print '<span class="badge badge-secondary">Formato inválido</span>';
+			}
 		} else {
 			print '<span class="badge badge-secondary">No disponible</span>';
 		}
