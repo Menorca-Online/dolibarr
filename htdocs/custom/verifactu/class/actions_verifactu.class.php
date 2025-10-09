@@ -927,6 +927,28 @@ class ActionsVerifactu
 
                             console.log("Verifactu: Radiobutton de anticipo deshabilitado");
                         }
+                        var advanceRadios = $(\'input[type="radio"][name="type"][value="1"]\');
+
+                        if (advanceRadios.length > 0) {
+                            // Deshabilitar el radiobutton de anticipo
+                            advanceRadios.prop("disabled", true);
+                            advanceRadios.prop("checked", false);
+
+                            // Ocultar visualmente la opción de anticipo
+                            advanceRadios.closest("label, .radio, tr, div").hide();
+
+                            // Agregar mensaje explicativo si no existe
+                            var advanceContainer = advanceRadios.closest("td, div").first();
+                            if (advanceContainer.length && !advanceContainer.find(".verifactu-anticipo-warning").length) {
+                                advanceContainer.append(
+                                    \'<div class="verifactu-anticipo-warning" style="background:#f8d7da; border:1px solid #f5c6cb; padding:6px; margin:5px 0; border-radius:3px; font-size:11px; color:#721c24;">\' +
+                                    \'<i class="fa fa-ban"></i> <strong>Verifactu:</strong> Los anticipos no están permitidos en este sistema.\' +
+                                    \'</div>\'
+                                );
+                            }
+
+                            console.log("Verifactu: Radiobutton de anticipo deshabilitado");
+                        }
 
                         // También buscar con otros posibles selectores
                         var otherAdvanceSelectors = [
