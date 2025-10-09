@@ -248,7 +248,7 @@ $sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client, ef.hash, e
 		) AS ur
 			ON ur.factureid = f.rowid
 
-        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid
+        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON  ef.rowid = ur.rowid
         LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado
         WHERE f.entity IN (".getEntity('invoice').")
         AND f.fk_statut > 0
