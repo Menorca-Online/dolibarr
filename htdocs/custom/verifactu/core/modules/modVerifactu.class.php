@@ -922,7 +922,7 @@ class modVerifactu extends DolibarrModules
 		}
 
 		$sql = "CREATE TABLE IF NOT EXISTS " . MAIN_DB_PREFIX .
-			"verifactu_verifactuincidencias (
+			"verifactu_verifactuincidencia (
 			rowid integer AUTO_INCREMENT PRIMARY KEY,
 			persona_nombre varchar(255) NOT NULL,
 			persona_apellido_1 varchar(255) NOT NULL,
