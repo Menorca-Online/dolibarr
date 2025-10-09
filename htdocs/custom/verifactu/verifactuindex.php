@@ -375,7 +375,7 @@ $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid 
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado";
 $sql .= " WHERE f.entity IN (".getEntity('invoice').")";
 $sql .= " AND f.fk_statut > 0"; // Excluir facturas borrador por defecto
-$sql .= " ORDER BY ef.rowid DESC";
+
 
 // Aplicar filtros
 if ($search_ref) {
@@ -388,6 +388,8 @@ if ($search_hash !== '') {
         $sql .= " AND (ef.hash IS NULL OR ef.hash = '')";
     }
 }
+
+
 
 // Ordenamiento
 $sql .= $db->order($sortfield, $sortorder);
