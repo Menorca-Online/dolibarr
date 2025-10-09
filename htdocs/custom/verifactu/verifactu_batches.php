@@ -424,6 +424,9 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '</div>';
 
     print '</div>';
+}
+
 // End of page
 llxFooter();
 $db->close();
+
