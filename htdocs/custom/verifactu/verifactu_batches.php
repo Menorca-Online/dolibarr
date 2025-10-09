@@ -93,7 +93,13 @@ $offset = $limit * $page;
 $search_ref = GETPOST('search_ref', 'alpha');
 $search_hash = GETPOST('search_hash', 'alpha');
 
-if (!$sortfield) $sortfield = 'f.datef';
+// Filtros específicos para batches
+$search_date_start = GETPOST('search_date_start', 'alpha');
+$search_date_end = GETPOST('search_date_end', 'alpha');
+$search_estado = GETPOST('search_estado', 'int');
+$search_msg_error = GETPOST('search_msg_error', 'alpha');
+
+if (!$sortfield) $sortfield = 'b.fecha';
 if (!$sortorder) $sortorder = 'DESC';
 
 // Security check - Protection if external user
@@ -137,26 +143,24 @@ include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactuestadobatch.c
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/class/verifactubatch.class.php';
 include_once DOL_DOCUMENT_ROOT . '/custom/verifactu/lib/verifactu.lib.php';
 
-// //ESTADOS REGISTRO
-// const VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
-// const VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
-// const VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
-// const VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
-// const VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
+//ESTADOS REGISTRO
+const VERIFACTU_ESTADO_REGISTRO_PENDIENTE_ENVIO = 1;
+const VERIFACTU_ESTADO_REGISTRO_CORRECTO = 2;
+const VERIFACTU_ESTADO_REGISTRO_ACEPTADO_CON_ERRORES = 3;
+const VERIFACTU_ESTADO_REGISTRO_INCORRECTO = 4;
+const VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO = 5;
+const VERIFACTU_ESTADO_REGISTRO_ENVIANDO = 6;
 
+//OPERACIONES
+const VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
+const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
+const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
 
-// //OPERACIONES
-// const VERIFACTU_OPERACION_REGISTRO_ALTA = 1;
-// const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION = 2;
-// const VERIFACTU_OPERACION_REGISTRO_ALTA_SUBSANACION_RECHAZADA = 3;
-
-
-
-// //ESTADOS BATCH
-// const VERIFACTU_ESTADO_BATCH_PENDIENTE = 1;
-// const VERIFACTU_ESTADO_BATCH_CORRECTO = 2;
-// const VERIFACTU_ESTADO_BATCH_INCORRECTO = 3;
-// const VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO = 4;
+//ESTADOS BATCH
+const VERIFACTU_ESTADO_BATCH_PENDIENTE = 1;
+const VERIFACTU_ESTADO_BATCH_CORRECTO = 2;
+const VERIFACTU_ESTADO_BATCH_INCORRECTO = 3;
+const VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO = 4;
 
 
 /*
@@ -169,15 +173,6 @@ $formfile = new FormFile($db);
 llxHeader("", $langs->trans("VerifactuArea"), '', '', 0, 0, '', '', '', 'mod-verifactu page-index');
 
 print load_fiche_titre($langs->trans("Verifactu Batches"), '', 'verifactu.png@verifactu');
-
-// Filtros
-$search_date_start = GETPOST('search_date_start', 'alpha');
-$search_date_end = GETPOST('search_date_end', 'alpha');
-$search_estado = GETPOST('search_estado', 'int');
-$search_msg_error = GETPOST('search_msg_error', 'alpha');
-
-if (!$sortfield) $sortfield = 'b.fecha';
-if (!$sortorder) $sortorder = 'DESC';
 
 print '<div class="fichecenter">';
 
