@@ -176,23 +176,17 @@ $search_date_end = GETPOST('search_date_end', 'alpha');
 $search_estado = GETPOST('search_estado', 'int');
 $search_msg_error = GETPOST('search_msg_error', 'alpha');
 
+if (!$sortfield) $sortfield = 'b.fecha';
+if (!$sortorder) $sortorder = 'DESC';
+
 print '<div class="fichecenter">';
 
 // Formulario de filtros
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
-
-// Selector de número de registros por página
-print '<div class="inline-block">';
-print '<label for="limit">'.$langs->trans("Show").':</label> ';
-print '<select name="limit" id="limit" onchange="this.form.submit()" class="flat valignmiddle">';
-$limits = array(10, 25, 50, 100);
-foreach ($limits as $val) {
-    print '<option value="'.$val.'"'.($limit == $val ? ' selected' : '').'>'.$val.'</option>';
-}
-print '</select>';
-print ' '.$langs->trans("entries");
-print '</div>';
+print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
+print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
+print '<input type="hidden" name="page" value="'.$page.'">';
 
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
@@ -223,86 +217,94 @@ print '</tr>';
 
 // Cabeceras de tabla
 print '<tr class="liste_titre">';
-print '<th>Fecha</th>';
-print '<th class="center">Estado</th>';
-print '<th class="center">Num. Registros</th>';
-print '<th>Mensaje Error</th>';
-print '<th class="center">Acciones</th>';
+print_liste_field_titre('Fecha', $_SERVER["PHP_SELF"], 'b.fecha', '', '', '', $sortfield, $sortorder);
+print_liste_field_titre('Estado', $_SERVER["PHP_SELF"], 'b.estado', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Num. Registros', $_SERVER["PHP_SELF"], '', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Mensaje Error', $_SERVER["PHP_SELF"], 'b.msg_error', '', '', '', $sortfield, $sortorder);
+print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
-// Construir condiciones WHERE
-$where = array();
+// Construir consulta con filtros
+$sql = "SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label";
+$sql .= " FROM ".MAIN_DB_PREFIX."verifactu_batches b";
+$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid";
+$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid";
+$sql .= " WHERE 1=1";
+
+// Aplicar filtros
 if ($search_date_start) {
-    $where[] = "b.fecha >= '".$db->escape($search_date_start)." 00:00:00'";
+    $sql .= " AND b.fecha >= '".$db->escape($search_date_start)." 00:00:00'";
 }
 if ($search_date_end) {
-    $where[] = "b.fecha <= '".$db->escape($search_date_end)." 23:59:59'";
+    $sql .= " AND b.fecha <= '".$db->escape($search_date_end)." 23:59:59'";
 }
 if ($search_estado) {
-    $where[] = "b.estado = ".intval($search_estado);
+    $sql .= " AND b.estado = ".intval($search_estado);
 }
 if ($search_msg_error) {
-    $where[] = "b.msg_error LIKE '%".$db->escape($search_msg_error)."%'";
+    $sql .= " AND b.msg_error LIKE '%".$db->escape($search_msg_error)."%'";
 }
 
-$where_clause = "";
-if (!empty($where)) {
-    $where_clause = " WHERE " . implode(' AND ', $where);
+$sql .= " GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label";
+
+// Ordenamiento
+$sql .= $db->order($sortfield, $sortorder);
+
+// Contar total para paginación
+$sqlcount = str_replace('SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label', 'SELECT COUNT(DISTINCT b.rowid) as nb', $sql);
+$resqlcount = $db->query($sqlcount);
+if ($resqlcount) {
+    $objcount = $db->fetch_object($resqlcount);
+    $nbtotalofrecords = $objcount->nb;
+    $db->free($resqlcount);
+} else {
+    $nbtotalofrecords = 0;
 }
 
-// Consulta para contar total de registros
-$sql_count = "SELECT COUNT(DISTINCT b.rowid) as total
-        FROM ".MAIN_DB_PREFIX."verifactu_batches b
-        LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid
-        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid".$where_clause;
-
-$resql_count = $db->query($sql_count);
-$total_records = 0;
-if ($resql_count) {
-    $obj_count = $db->fetch_object($resql_count);
-    $total_records = $obj_count->total;
-    $db->free($resql_count);
-}
-
-$total_pages = ceil($total_records / $limit);
-
-// Construir consulta con paginación
-$sql = "SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label
-        FROM ".MAIN_DB_PREFIX."verifactu_batches b
-        LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid
-        LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid".$where_clause."
-        GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label
-        ORDER BY b.fecha DESC
-        LIMIT ".intval($limit)." OFFSET ".intval($offset);
+// Aplicar límite y offset
+$sql .= $db->plimit($limit + 1, $offset);
 
 $resql = $db->query($sql);
 if ($resql) {
     $num = $db->num_rows($resql);
-    if ($num > 0) {
-        $i = 0;
-        while ($i < $num) {
-            $obj = $db->fetch_object($resql);
-            print '<tr class="oddeven">';
-            print '<td>'.dol_print_date($db->jdate($obj->fecha), 'dayhour').'</td>';
-            // Estado
-            $estado_badge = '';
-            switch ($obj->estado) {
-                case VERIFACTU_ESTADO_BATCH_PENDIENTE: $estado_badge = '<span class="badge badge-warning">Pendiente</span>'; break;
-                case VERIFACTU_ESTADO_BATCH_CORRECTO: $estado_badge = '<span class="badge badge-success">Correcto</span>'; break;
-                case VERIFACTU_ESTADO_BATCH_INCORRECTO: $estado_badge = '<span class="badge badge-danger">Incorrecto</span>'; break;
-                case VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO: $estado_badge = '<span class="badge badge-info">Parcialmente correcto</span>'; break;
-                default: $estado_badge = '<span class="badge badge-secondary">'.$obj->estado_label.'</span>';
-            }
-            print '<td class="center">'.$estado_badge.'</td>';
-            print '<td class="center"><span class="badge badge-info">'.$obj->num_records.'</span></td>';
-            print '<td>'.($obj->msg_error ? $obj->msg_error : '-').'</td>';
-            print '<td class="center"><a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.urlencode($obj->rowid).'" class="button_search_x" title="Ver detalle">👁️</a></td>';
-            print '</tr>';
-            $i++;
+
+    // Mostrar información de paginación
+    $param = '';
+    if ($search_date_start) $param .= '&search_date_start='.urlencode($search_date_start);
+    if ($search_date_end) $param .= '&search_date_end='.urlencode($search_date_end);
+    if ($search_estado) $param .= '&search_estado='.$search_estado;
+    if ($search_msg_error) $param .= '&search_msg_error='.urlencode($search_msg_error);
+
+    print '<tr><td colspan="5">';
+    print_barre_liste('', $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'batch', 0, '', '', $limit, 0, 0, 1);
+    print '</td></tr>';
+
+    $i = 0;
+    while ($i < min($num, $limit)) {
+        $obj = $db->fetch_object($resql);
+        print '<tr class="oddeven">';
+        print '<td>'.dol_print_date($db->jdate($obj->fecha), 'dayhour').'</td>';
+        // Estado
+        $estado_badge = '';
+        switch ($obj->estado) {
+            case VERIFACTU_ESTADO_BATCH_PENDIENTE: $estado_badge = '<span class="badge badge-warning">Pendiente</span>'; break;
+            case VERIFACTU_ESTADO_BATCH_CORRECTO: $estado_badge = '<span class="badge badge-success">Correcto</span>'; break;
+            case VERIFACTU_ESTADO_BATCH_INCORRECTO: $estado_badge = '<span class="badge badge-danger">Incorrecto</span>'; break;
+            case VERIFACTU_ESTADO_BATCH_PARCIALMENTE_CORRECTO: $estado_badge = '<span class="badge badge-info">Parcialmente correcto</span>'; break;
+            default: $estado_badge = '<span class="badge badge-secondary">'.$obj->estado_label.'</span>';
         }
-    } else {
+        print '<td class="center">'.$estado_badge.'</td>';
+        print '<td class="center"><span class="badge badge-info">'.$obj->num_records.'</span></td>';
+        print '<td>'.($obj->msg_error ? $obj->msg_error : '-').'</td>';
+        print '<td class="center"><a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.urlencode($obj->rowid).'" class="button_search_x" title="Ver detalle">👁️</a></td>';
+        print '</tr>';
+        $i++;
+    }
+
+    if ($num == 0) {
         print '<tr class="oddeven"><td colspan="5" class="center">No hay batches que coincidan con los filtros</td></tr>';
     }
+
     $db->free($resql);
 } else {
     print '<tr class="oddeven"><td colspan="5" class="center">Error consultando batches</td></tr>';
@@ -310,90 +312,6 @@ if ($resql) {
 
 print '</table>';
 print '</div>';
-
-// Información de paginación
-if ($total_records > 0) {
-    $start_record = ($page * $limit) + 1;
-    $end_record = min(($page + 1) * $limit, $total_records);
-
-    print '<div class="center">';
-    print '<div class="opacitymedium" style="margin: 10px 0;">';
-    print 'Mostrando '.$start_record.' - '.$end_record.' de '.$total_records.' registros';
-    print '</div>';
-
-    // Navegación de páginas
-    if ($total_pages > 1) {
-        print '<div class="pagination">';
-
-        // Botón anterior
-        if ($page > 0) {
-            print '<a href="'.$_SERVER["PHP_SELF"].'?page='.($page-1).'&limit='.$limit;
-            if ($search_date_start) print '&search_date_start='.urlencode($search_date_start);
-            if ($search_date_end) print '&search_date_end='.urlencode($search_date_end);
-            if ($search_estado) print '&search_estado='.$search_estado;
-            if ($search_msg_error) print '&search_msg_error='.urlencode($search_msg_error);
-            print '" class="butAction">‹ Anterior</a> ';
-        } else {
-            print '<span class="butActionRefused">‹ Anterior</span> ';
-        }
-
-        // Números de página
-        $start_page = max(0, $page - 2);
-        $end_page = min($total_pages - 1, $page + 2);
-
-        if ($start_page > 0) {
-            print '<a href="'.$_SERVER["PHP_SELF"].'?page=0&limit='.$limit;
-            if ($search_date_start) print '&search_date_start='.urlencode($search_date_start);
-            if ($search_date_end) print '&search_date_end='.urlencode($search_date_end);
-            if ($search_estado) print '&search_estado='.$search_estado;
-            if ($search_msg_error) print '&search_msg_error='.urlencode($search_msg_error);
-            print '" class="butAction">1</a> ';
-            if ($start_page > 1) {
-                print '<span class="opacitymedium">...</span> ';
-            }
-        }
-
-        for ($i = $start_page; $i <= $end_page; $i++) {
-            if ($i == $page) {
-                print '<span class="butActionRefused">'.($i + 1).'</span> ';
-            } else {
-                print '<a href="'.$_SERVER["PHP_SELF"].'?page='.$i.'&limit='.$limit;
-                if ($search_date_start) print '&search_date_start='.urlencode($search_date_start);
-                if ($search_date_end) print '&search_date_end='.urlencode($search_date_end);
-                if ($search_estado) print '&search_estado='.$search_estado;
-                if ($search_msg_error) print '&search_msg_error='.urlencode($search_msg_error);
-                print '" class="butAction">'.($i + 1).'</a> ';
-            }
-        }
-
-        if ($end_page < $total_pages - 1) {
-            if ($end_page < $total_pages - 2) {
-                print '<span class="opacitymedium">...</span> ';
-            }
-            print '<a href="'.$_SERVER["PHP_SELF"].'?page='.($total_pages - 1).'&limit='.$limit;
-            if ($search_date_start) print '&search_date_start='.urlencode($search_date_start);
-            if ($search_date_end) print '&search_date_end='.urlencode($search_date_end);
-            if ($search_estado) print '&search_estado='.$search_estado;
-            if ($search_msg_error) print '&search_msg_error='.urlencode($search_msg_error);
-            print '" class="butAction">'.$total_pages.'</a> ';
-        }
-
-        // Botón siguiente
-        if ($page < $total_pages - 1) {
-            print '<a href="'.$_SERVER["PHP_SELF"].'?page='.($page+1).'&limit='.$limit;
-            if ($search_date_start) print '&search_date_start='.urlencode($search_date_start);
-            if ($search_date_end) print '&search_date_end='.urlencode($search_date_end);
-            if ($search_estado) print '&search_estado='.$search_estado;
-            if ($search_msg_error) print '&search_msg_error='.urlencode($search_msg_error);
-            print '" class="butAction">Siguiente ›</a>';
-        } else {
-            print '<span class="butActionRefused">Siguiente ›</span>';
-        }
-
-        print '</div>';
-    }
-    print '</div>';
-}
 print '</form>';
 
 print '</div>';
@@ -401,14 +319,6 @@ print '</div>';
 // Si se solicita detalle de un batch
 if ($action == 'detail' && GETPOST('id', 'int')) {
     $id = GETPOST('id', 'int');
-
-    // Parámetros de paginación para detalle
-    $limit_detail = GETPOSTINT('limit_detail') ? GETPOSTINT('limit_detail') : 25;
-    $page_detail = GETPOSTINT('page_detail');
-    if (empty($page_detail) || $page_detail < 0) {
-        $page_detail = 0;
-    }
-    $offset_detail = $limit_detail * $page_detail;
 
     print '<div class="fichecenter" style="margin-top: 20px;">';
     print load_fiche_titre('Detalle del Batch ID ' . $id, '', '');
@@ -421,18 +331,6 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<input type="hidden" name="action" value="detail">';
     print '<input type="hidden" name="id" value="'.$id.'">';
-
-    // Selector de número de registros por página para detalle
-    print '<div class="inline-block">';
-    print '<label for="limit_detail">'.$langs->trans("Show").':</label> ';
-    print '<select name="limit_detail" id="limit_detail" onchange="this.form.submit()" class="flat valignmiddle">';
-    $limits_detail = array(10, 25, 50, 100);
-    foreach ($limits_detail as $val) {
-        print '<option value="'.$val.'"'.($limit_detail == $val ? ' selected' : '').'>'.$val.'</option>';
-    }
-    print '</select>';
-    print ' '.$langs->trans("entries");
-    print '</div>';
 
     print '<div class="div-table-responsive-no-min">';
     print '<table class="noborder centpercent">';
@@ -467,37 +365,20 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '<th></th>'; // Para botones de filtros
     print '</tr>';
 
-    // Construir condiciones WHERE para detalle
-    $where_detail = array("r.fk_batch = ".intval($id));
+    // Consulta con filtros
+    $sql_detail = "SELECT r.rowid, r.factureid, r.fecha, r.estado, r.msg_error, f.ref";
+    $sql_detail .= " FROM ".MAIN_DB_PREFIX."verifactu_factura_registros r";
+    $sql_detail .= " LEFT JOIN ".MAIN_DB_PREFIX."facture f ON r.factureid = f.rowid";
+    $sql_detail .= " WHERE r.fk_batch = ".intval($id);
+
     if ($search_detail_estado) {
-        $where_detail[] = "r.estado = ".intval($search_detail_estado);
+        $sql_detail .= " AND r.estado = ".intval($search_detail_estado);
     }
     if ($search_detail_msg_error) {
-        $where_detail[] = "r.msg_error LIKE '%".$db->escape($search_detail_msg_error)."%'";
-    }
-    $where_detail_clause = " WHERE " . implode(' AND ', $where_detail);
-
-    // Consulta para contar total de registros de detalle
-    $sql_count_detail = "SELECT COUNT(*) as total
-                   FROM ".MAIN_DB_PREFIX."verifactu_factura_registros r
-                   LEFT JOIN ".MAIN_DB_PREFIX."facture f ON r.factureid = f.rowid".$where_detail_clause;
-
-    $resql_count_detail = $db->query($sql_count_detail);
-    $total_records_detail = 0;
-    if ($resql_count_detail) {
-        $obj_count_detail = $db->fetch_object($resql_count_detail);
-        $total_records_detail = $obj_count_detail->total;
-        $db->free($resql_count_detail);
+        $sql_detail .= " AND r.msg_error LIKE '%".$db->escape($search_detail_msg_error)."%'";
     }
 
-    $total_pages_detail = ceil($total_records_detail / $limit_detail);
-
-    // Consulta con filtros y paginación
-    $sql_detail = "SELECT r.rowid, r.factureid, r.fecha, r.estado, r.msg_error, f.ref
-                   FROM ".MAIN_DB_PREFIX."verifactu_factura_registros r
-                   LEFT JOIN ".MAIN_DB_PREFIX."facture f ON r.factureid = f.rowid".$where_detail_clause."
-                   ORDER BY r.fecha DESC
-                   LIMIT ".intval($limit_detail)." OFFSET ".intval($offset_detail);
+    $sql_detail .= " ORDER BY r.fecha DESC";
 
     $resql_detail = $db->query($sql_detail);
     if ($resql_detail) {
@@ -536,81 +417,6 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
 
     print '</table>';
     print '</div>';
-
-    // Información de paginación para detalle
-    if ($total_records_detail > 0) {
-        $start_record_detail = ($page_detail * $limit_detail) + 1;
-        $end_record_detail = min(($page_detail + 1) * $limit_detail, $total_records_detail);
-
-        print '<div class="center">';
-        print '<div class="opacitymedium" style="margin: 10px 0;">';
-        print 'Mostrando '.$start_record_detail.' - '.$end_record_detail.' de '.$total_records_detail.' registros del batch';
-        print '</div>';
-
-        // Navegación de páginas para detalle
-        if ($total_pages_detail > 1) {
-            print '<div class="pagination">';
-
-            // Botón anterior
-            if ($page_detail > 0) {
-                print '<a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.$id.'&page_detail='.($page_detail-1).'&limit_detail='.$limit_detail;
-                if ($search_detail_estado) print '&search_detail_estado='.$search_detail_estado;
-                if ($search_detail_msg_error) print '&search_detail_msg_error='.urlencode($search_detail_msg_error);
-                print '" class="butAction">‹ Anterior</a> ';
-            } else {
-                print '<span class="butActionRefused">‹ Anterior</span> ';
-            }
-
-            // Números de página
-            $start_page_detail = max(0, $page_detail - 2);
-            $end_page_detail = min($total_pages_detail - 1, $page_detail + 2);
-
-            if ($start_page_detail > 0) {
-                print '<a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.$id.'&page_detail=0&limit_detail='.$limit_detail;
-                if ($search_detail_estado) print '&search_detail_estado='.$search_detail_estado;
-                if ($search_detail_msg_error) print '&search_detail_msg_error='.urlencode($search_detail_msg_error);
-                print '" class="butAction">1</a> ';
-                if ($start_page_detail > 1) {
-                    print '<span class="opacitymedium">...</span> ';
-                }
-            }
-
-            for ($i = $start_page_detail; $i <= $end_page_detail; $i++) {
-                if ($i == $page_detail) {
-                    print '<span class="butActionRefused">'.($i + 1).'</span> ';
-                } else {
-                    print '<a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.$id.'&page_detail='.$i.'&limit_detail='.$limit_detail;
-                    if ($search_detail_estado) print '&search_detail_estado='.$search_detail_estado;
-                    if ($search_detail_msg_error) print '&search_detail_msg_error='.urlencode($search_detail_msg_error);
-                    print '" class="butAction">'.($i + 1).'</a> ';
-                }
-            }
-
-            if ($end_page_detail < $total_pages_detail - 1) {
-                if ($end_page_detail < $total_pages_detail - 2) {
-                    print '<span class="opacitymedium">...</span> ';
-                }
-                print '<a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.$id.'&page_detail='.($total_pages_detail - 1).'&limit_detail='.$limit_detail;
-                if ($search_detail_estado) print '&search_detail_estado='.$search_detail_estado;
-                if ($search_detail_msg_error) print '&search_detail_msg_error='.urlencode($search_detail_msg_error);
-                print '" class="butAction">'.$total_pages_detail.'</a> ';
-            }
-
-            // Botón siguiente
-            if ($page_detail < $total_pages_detail - 1) {
-                print '<a href="'.$_SERVER["PHP_SELF"].'?action=detail&id='.$id.'&page_detail='.($page_detail+1).'&limit_detail='.$limit_detail;
-                if ($search_detail_estado) print '&search_detail_estado='.$search_detail_estado;
-                if ($search_detail_msg_error) print '&search_detail_msg_error='.urlencode($search_detail_msg_error);
-                print '" class="butAction">Siguiente ›</a>';
-            } else {
-                print '<span class="butActionRefused">Siguiente ›</span>';
-            }
-
-            print '</div>';
-        }
-        print '</div>';
-    }
-
     print '</form>';
 
     print '<div class="center" style="margin-top: 10px;">';
@@ -618,8 +424,6 @@ if ($action == 'detail' && GETPOST('id', 'int')) {
     print '</div>';
 
     print '</div>';
-}
-
 // End of page
 llxFooter();
 $db->close();
