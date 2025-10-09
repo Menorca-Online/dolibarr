@@ -358,8 +358,8 @@ print '</tr>';
 // Cabeceras de tabla
 print '<tr class="liste_titre">';
 print_liste_field_titre('Referencia', $_SERVER["PHP_SELF"], 'f.ref', '', '', '', $sortfield, $sortorder);
-print_liste_field_titre('Fecha', $_SERVER["PHP_SELF"], 'f.datef', '', '', 'center', $sortfield, $sortorder);
-print_liste_field_titre('Última Modif.', $_SERVER["PHP_SELF"], 'f.tms', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Fecha factura', $_SERVER["PHP_SELF"], 'f.datef', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Fec. Reg. Fact.', $_SERVER["PHP_SELF"], 'ef.fecha', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Total', $_SERVER["PHP_SELF"], 'f.total_ttc', '', '', 'right', $sortfield, $sortorder);
 print_liste_field_titre('Hash Verifactu', $_SERVER["PHP_SELF"], 'ef.hash', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Hash anterior', $_SERVER["PHP_SELF"], 'ef.hash_data', '', '', 'center', $sortfield, $sortorder);
@@ -368,7 +368,7 @@ print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
 // Construir consulta con filtros
-$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label, ef.hash_data";
+$sql = "SELECT f.rowid, f.ref, ef.fecha, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label, ef.hash_data";
 $sql .= " FROM ".MAIN_DB_PREFIX."facture f";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid";
@@ -434,7 +434,7 @@ if ($resql) {
         print '<td class="center">'.dol_print_date($db->jdate($obj->datef), 'day').'</td>';
 
         // Última Modificación (timestamp)
-        print '<td class="center">'.dol_print_date($db->jdate($obj->tms), 'dayhour').'</td>';
+        print '<td class="center">'.dol_print_date($db->jdate($obj->fecha), 'dayhour').'</td>';
 
         // Total
         print '<td class="right">'.price($obj->total_ttc).'</td>';
