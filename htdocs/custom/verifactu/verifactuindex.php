@@ -235,7 +235,7 @@ print '</div><div class="fichetwothirdright">';
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
-print '<th colspan="4">Facturas Recientes sin Hash</th>';
+print '<th colspan="4">Facturas Recientes sin Hash / Estado no correcto</th>';
 print "</tr>\n";
 
 $sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client, ef.hash, est.label as estado_label
@@ -245,8 +245,8 @@ $sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client, ef.hash, e
         LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado
         WHERE f.entity IN (".getEntity('invoice').")
         AND f.fk_statut > 0
-        AND (ef.hash IS NULL OR ef.hash = '')
-        AND (ef.estado <> ".VERIFACTU_ESTADO_REGISTRO_CORRECTO." or ef.estado IS NULL)
+		AND ((ef.hash IS NULL OR ef.hash = '') or
+         (ef.estado <> ".VERIFACTU_ESTADO_REGISTRO_CORRECTO." or ef.estado IS NULL))
         ORDER BY f.datef DESC
         LIMIT 10";
 $resql = $db->query($sql);
@@ -436,7 +436,7 @@ if ($resql) {
         }
         print '</td>';
 
-       
+
 
         // Acciones
         print '<td class="center">';
