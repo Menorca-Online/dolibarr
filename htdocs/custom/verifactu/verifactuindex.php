@@ -241,6 +241,13 @@ print "</tr>\n";
 $sql = "SELECT f.rowid, f.ref, f.datef, f.total_ttc, s.nom as client, ef.hash, est.label as estado_label
         FROM ".MAIN_DB_PREFIX."facture f
         LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid
+		LEFT JOIN (
+			SELECT factureid, MAX(rowid) AS rowid
+			FROM ".MAIN_DB_PREFIX."verifactu_factura_registros
+			GROUP BY factureid
+		) AS ur
+			ON ur.factureid = f.rowid
+
         LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid
         LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_registro_estados est ON est.rowid = ef.estado
         WHERE f.entity IN (".getEntity('invoice').")
