@@ -126,7 +126,9 @@ if ($action == 'update_operation' && $hasWriteRights) {
 	$id = GETPOSTINT('record_id');
 	$new_operation = GETPOST('new_operation', 'alpha');
 	if ($id && $new_operation) {
-		$verifactufacturaregistro->id = $id;
+		// Cargar el registro completo primero
+		$verifactufacturaregistro->fetch($id);
+		// Cambiar solo el campo que queremos actualizar
 		$verifactufacturaregistro->operation = $new_operation;
 		$result = $verifactufacturaregistro->update($user);
 		if ($result > 0) {
@@ -143,7 +145,9 @@ if ($action == 'update_estado' && $hasWriteRights) {
 	$id = GETPOSTINT('record_id');
 	$new_estado = GETPOSTINT('new_estado');
 	if ($id && $new_estado) {
-		$verifactufacturaregistro->id = $id;
+		// Cargar el registro completo primero
+		$verifactufacturaregistro->fetch($id);
+		// Cambiar solo el campo que queremos actualizar
 		$verifactufacturaregistro->estado = $new_estado;
 		$result = $verifactufacturaregistro->update($user);
 		if ($result > 0) {
@@ -179,7 +183,7 @@ foreach ($records as $record) {
 	print '<tr>';
 	print '<td>' . $record->rowid . '</td>';
 	print '<td><a href="' . DOL_URL_ROOT . '/compta/facture/card.php?id=' . $record->factureid . '">' . $record->factureid . '</a></td>';
-	
+
 	// Operation select
 	print '<td>';
 	if ($hasWriteRights) {
@@ -198,7 +202,7 @@ foreach ($records as $record) {
 		print $record->operation;
 	}
 	print '</td>';
-	
+
 	// Estado select
 	print '<td>';
 	if ($hasWriteRights) {
@@ -217,7 +221,7 @@ foreach ($records as $record) {
 		print $record->estado;
 	}
 	print '</td>';
-	
+
 	print '<td>' . dol_print_date($record->fecha, 'dayhour') . '</td>';
 	print '<td></td>';
 	print '</tr>';
