@@ -362,12 +362,13 @@ print_liste_field_titre('Fecha', $_SERVER["PHP_SELF"], 'f.datef', '', '', 'cente
 print_liste_field_titre('Última Modif.', $_SERVER["PHP_SELF"], 'f.tms', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Total', $_SERVER["PHP_SELF"], 'f.total_ttc', '', '', 'right', $sortfield, $sortorder);
 print_liste_field_titre('Hash Verifactu', $_SERVER["PHP_SELF"], 'ef.hash', '', '', 'center', $sortfield, $sortorder);
+print_liste_field_titre('Hash anterior', $_SERVER["PHP_SELF"], 'ef.hash_data', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('Estado', $_SERVER["PHP_SELF"], 'est.label', '', '', 'center', $sortfield, $sortorder);
 print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
 // Construir consulta con filtros
-$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label";
+$sql = "SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label, ef.hash_data";
 $sql .= " FROM ".MAIN_DB_PREFIX."facture f";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid";
@@ -443,6 +444,14 @@ if ($resql) {
             print '<span class="badge badge-warning">Sin Hash</span>';
         }
         print '</td>';
+		// Hash anterior
+		print '<td class="center">';
+		if (!empty($obj->hash_data)) {
+			print '<span style="font-family: monospace; font-size: 11px;">'.$obj->hash_data.'</span>';
+		} else {
+			print '<span class="badge badge-secondary">No disponible</span>';
+		}
+		print '</td>';
 		// Estado
 		print '<td class="center">';
 		if (!empty($obj->estado_label)) {
