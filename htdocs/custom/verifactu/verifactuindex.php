@@ -368,7 +368,7 @@ print_liste_field_titre('', $_SERVER["PHP_SELF"], '', '', '', 'center');
 print '</tr>';
 
 // Construir consulta con filtros
-$sql = "SELECT f.rowid, f.ref, ef.fecha, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label, ef.hash_data";
+$sql = "SELECT f.rowid, f.ref,f.datef, ef.fecha, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label, ef.hash_data";
 $sql .= " FROM ".MAIN_DB_PREFIX."facture f";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe s ON f.fk_soc = s.rowid";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros ef ON f.rowid = ef.factureid";
@@ -395,7 +395,7 @@ if ($search_hash !== '') {
 $sql .= $db->order($sortfield, $sortorder);
 
 // Contar total para paginación
-$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, f.tms, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label', 'SELECT COUNT(f.rowid) as nb', $sql);
+$sqlcount = str_replace('SELECT f.rowid, f.ref, f.datef, ef.fecha, f.total_ttc, f.fk_statut, s.nom as client, ef.hash, est.label as estado_label', 'SELECT COUNT(f.rowid) as nb', $sql);
 $resqlcount = $db->query($sqlcount);
 if ($resqlcount) {
     $objcount = $db->fetch_object($resqlcount);
