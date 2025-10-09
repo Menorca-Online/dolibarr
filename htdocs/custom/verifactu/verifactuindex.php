@@ -417,7 +417,7 @@ if ($resql) {
     if ($search_ref) $param .= '&search_ref='.urlencode($search_ref);
     if ($search_hash !== '') $param .= '&search_hash='.urlencode($search_hash);
 
-    print '<tr><td colspan="6">';
+    print '<tr><td colspan="8">';
     print_barre_liste('', $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'bill', 0, '', '', $limit, 0, 0, 1);
     print '</td></tr>';
 
