@@ -134,7 +134,7 @@ function sendInvoiceGenerica($email, $booking, $price)
 			'DOLAPIKEY: '.$DOLIBAR_KEY
 		),
 	);
-
+	$curl = curl_init();
 	curl_setopt_array($curl, $options);
 
 	$response = curl_exec($curl);
@@ -151,12 +151,12 @@ function sendInvoiceGenerica($email, $booking, $price)
 	} else {
 		echo "Error al crear la factura para el email: " . $email . ". Código HTTP: " . $httpcode . "\n";
 	}
-
 	curl_close($curl);
 
 }
 
-
+$URL= 'https://stoic-fermat.151-80-20-157.plesk.page/api/index.php';
+$DOLIBAR_KEY= '283Nl20WRuaRMWxlU1u3cpKG75xal1KZ';
 
 
 $CLIENTE_GENERICO = 2;
@@ -178,82 +178,38 @@ $PAYMENT_TYPES = [
 	105 => 'Paypal'
 ];
 
+//abrir fichero reservas.txt y si no existe crearlo
+if (!file_exists('reservas.txt')) {
+	file_put_contents('reservas.txt', '1');
+}
 
-$tests = [
-	'test001@verifactu.com' =>  ['shuttle-booking 001' => 114.876033], //139 con IVA 21%
-	'test002@verifactu.com' =>  ['shuttle-booking 002' => 123.140495], //149 con IVA 21%
-	'test003@verifactu.com' =>  ['shuttle-booking 003' => 135.520661], //163.98 con IVA 21%
-	'test004@verifactu.com' =>  ['shuttle-booking 004' => 124.380165], //150.50 con IVA 21%
-	'test005@verifactu.com' =>  ['shuttle-booking 005' => 170.247107], //206 con IVA 21%
-	'test006@verifactu.com' =>  ['shuttle-booking 006' => 198.347107], //240 con IVA 21%
+$reserva = file_get_contents('reservas.txt');
+$reserva = trim($reserva);
+file_put_contents('reservas.txt', $reserva + 1);
+
+
+$testsGenericas = [
+	// 'test001@verifactu.com' =>  ['shuttle-booking 001' => 114.876033], //139 con IVA 21%
+	// 'test002@verifactu.com' =>  ['shuttle-booking 002' => 123.140495], //149 con IVA 21%
+	// 'test003@verifactu.com' =>  ['shuttle-booking 003' => 135.520661], //163.98 con IVA 21%
+	// 'test004@verifactu.com' =>  ['shuttle-booking 004' => 124.380165], //150.50 con IVA 21%
+	// 'test005@verifactu.com' =>  ['shuttle-booking 005' => 170.247107], //206 con IVA 21%
+	// 'test006@verifactu.com' =>  ['shuttle-booking 006' => 198.347107], //240 con IVA 21%
 ];
 
+for ($i =0; $i < 5; $i++) {
+	$importe = rand(100,300) + (rand(0,99)/100);
+	$importeSinIva = round($importe / (1 + ($TAX / 100)), 6);
+	$testsGenericas['test00'.$i.'@verifactu.com'] = ['shuttle-booking '.$reserva => $importeSinIva];
+	$reserva++;
+}
+file_put_contents('reservas.txt', $reserva);
 
-foreach ($tests as $email => $bookingData) {
 
 
+foreach ($testsGenericas as $email => $bookingData) {
 	$booking = key($bookingData);
 	$price = current($bookingData);
 	$curl = curl_init();
-
-	$description = "Servicio de transporte desde Palma a Menorca para " . rand(1,10) . " pasajeros. Reserva: " . $booking;
-
-	$options = array(
-		CURLOPT_URL => $URL.'/invoices/',
-		CURLOPT_RETURNTRANSFER => true,
-		CURLOPT_ENCODING => '',
-		CURLOPT_MAXREDIRS => 10,
-		CURLOPT_TIMEOUT => 0,
-		CURLOPT_FOLLOWLOCATION => true,
-		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-		CURLOPT_CUSTOMREQUEST => 'POST',
-		CURLOPT_POSTFIELDS =>'{
-			"socid": '.$CLIENTE_GENERICO.',
-			"note_private": "'.$email.'",
-			"ref_client": "'.$booking.'",
-			"array_options": {
-				"options_fk_facture_type": "'.$TIPO_FACTURA_SIMPLIFICADA.'"
-			},
-			"lines": [
-			{
-				"fk_product": '.$PRODUCTO_TRANSFER.',
-				"qty": 1,
-				"subprice": '.$price.',
-				"tva_tx": '.$TAX.',
-				"desc": "'.$description.'",
-				"array_options": {
-						"options_fk_clave_regimen": "'.$CLAVE_REGIMEN.'",
-						"options_fk_clave_operacion": "'.$CLAVE_OPERACION.'",
-						"options_fk_clave_exencion": "'.$CLAVE_EXENCION.'"
-					}
-			}
-			]
-
-		}',
-		CURLOPT_HTTPHEADER => array(
-			'Content-Type: application/json',
-			'DOLAPIKEY: '.$DOLIBAR_KEY
-		),
-	);
-
-	curl_setopt_array($curl, $options);
-
-	$response = curl_exec($curl);
-	$httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-	if ($httpcode == 200) {
-		$id = $response;
-		if (validateInvoice($id))
-		{
-			$paymentType = array_rand($PAYMENT_TYPES);
-			$paymentName = $PAYMENT_TYPES[$paymentType];
-			$paymentReference = strtoupper(substr($paymentName,0,3)).'-'.rand(1000,9999).'-'.$id;
-			confirmPayment($id, $paymentType, $paymentReference);
-		}
-	} else {
-		echo "Error al crear la factura para el email: " . $email . ". Código HTTP: " . $httpcode . "\n";
-	}
-
-	curl_close($curl);
-
-
+	sendInvoiceGenerica($email, $booking, $price);
 }
