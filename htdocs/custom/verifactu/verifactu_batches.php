@@ -242,11 +242,27 @@ if ($search_msg_error) {
 
 $sql .= " GROUP BY b.rowid, b.fecha, b.estado, b.msg_error, eb.label";
 
-// Ordenamiento
-$sql .= $db->order($sortfield, $sortorder);
+// Contar total para paginación - para consultas con GROUP BY necesitamos un enfoque diferente
+$sqlcount = "SELECT COUNT(DISTINCT b.rowid) as nb";
+$sqlcount .= " FROM ".MAIN_DB_PREFIX."verifactu_batches b";
+$sqlcount .= " LEFT JOIN ".MAIN_DB_PREFIX."c_verifactu_estado_batch eb ON b.estado = eb.rowid";
+$sqlcount .= " LEFT JOIN ".MAIN_DB_PREFIX."verifactu_factura_registros r ON r.fk_batch = b.rowid";
+$sqlcount .= " WHERE 1=1";
 
-// Contar total para paginación
-$sqlcount = str_replace('SELECT b.rowid, b.fecha, b.estado, b.msg_error, COUNT(r.rowid) as num_records, eb.label as estado_label', 'SELECT COUNT(DISTINCT b.rowid) as nb', $sql);
+// Aplicar los mismos filtros para el conteo
+if ($search_date_start) {
+    $sqlcount .= " AND b.fecha >= '".$db->escape($search_date_start)." 00:00:00'";
+}
+if ($search_date_end) {
+    $sqlcount .= " AND b.fecha <= '".$db->escape($search_date_end)." 23:59:59'";
+}
+if ($search_estado) {
+    $sqlcount .= " AND b.estado = ".intval($search_estado);
+}
+if ($search_msg_error) {
+    $sqlcount .= " AND b.msg_error LIKE '%".$db->escape($search_msg_error)."%'";
+}
+
 $resqlcount = $db->query($sqlcount);
 if ($resqlcount) {
     $objcount = $db->fetch_object($resqlcount);
@@ -255,6 +271,9 @@ if ($resqlcount) {
 } else {
     $nbtotalofrecords = 0;
 }
+
+// Ordenamiento
+$sql .= $db->order($sortfield, $sortorder);
 
 // Aplicar límite y offset
 $sql .= $db->plimit($limit + 1, $offset);
