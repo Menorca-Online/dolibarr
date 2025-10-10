@@ -916,6 +916,12 @@ class VerifactuXML
                     $error->fk_registro = 0;
                     $error->datos_adicionales = $response;
                     $error->create($user);
+
+                    foreach ($this->batch->registros() as $registro) {
+                        $registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                        $registro->msg_error = $errorMsg;
+                        $registro->update($user);
+                    }
                 }
                 $this->db->commit();
                 return 0;
@@ -947,7 +953,7 @@ class VerifactuXML
                 $this->batch->updateCommon($user);
 
 
-                foreach($this->batch->registros() as $registro) {
+                foreach ($this->batch->registros() as $registro) {
                     $registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
                     $registro->msg_error = $errorMsg;
                     $registro->update($user);
