@@ -164,12 +164,30 @@ class InterfaceVerifactu extends DolibarrTriggers
             $object->error = $errorMsg;
             return -1;
         }
+        $object->fetch_thirdparty();
         //regla para facturas nominativas, el cliente no es generico
         if ($object->socid != $clienteGenerico) {
-            $object->fetch_thirdparty();
             //si el pais es ESPAÑA (ES), el cliente tiene que tener un NIF valido
             if ($object->thirdparty->country == 'ES' && (empty($object->thirdparty->id) || empty($object->thirdparty->id) || empty($object->thirdparty->id))) {
                 $errorMsg = "ERROR: El cliente de la factura debe tener un NIF válido";
+                setEventMessages($errorMsg, null, 'errors');
+                $object->error = $errorMsg;
+                return -1;
+            }
+        } else {
+            if (!in_array($factureType, ['F2', 'R5'])) {
+
+                $errorMsg = "ERROR: El tipo de factura debe ser F2 o R5 para clientes genéricos";
+                setEventMessages($errorMsg, null, 'errors');
+                $object->error = $errorMsg;
+                return -1;
+            }
+        }
+
+        if (!in_array($factureType, ['F2', 'R5'])) {
+            //validar que NIF de cliente es valido
+            if(empty($object->thirdparty->id)){
+                $errorMsg = "ERROR: El cliente de la factura debe tener un NIF";
                 setEventMessages($errorMsg, null, 'errors');
                 $object->error = $errorMsg;
                 return -1;
@@ -510,15 +528,15 @@ class InterfaceVerifactu extends DolibarrTriggers
                     }
                 }
 
-                if($old->array_options && $object->array_options) {
-                    if($old->array_options['options_fk_facture_type'] != $object->array_options['options_fk_facture_type']) {
+                if ($old->array_options && $object->array_options) {
+                    if ($old->array_options['options_fk_facture_type'] != $object->array_options['options_fk_facture_type']) {
                         $cambios['tipo_factura'] = [
                             'antes' => $old->array_options['options_fk_facture_type'],
                             'despues' => $object->array_options['options_fk_facture_type']
                         ];
                     }
                 }
-                
+
                 if (!empty($cambios)) {
                     $json = json_encode($cambios, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
@@ -539,7 +557,6 @@ class InterfaceVerifactu extends DolibarrTriggers
                     $actioncomm->userownerid = $user->id;
 
                     $res = $actioncomm->create($user);
-
                 }
                 break;
 
