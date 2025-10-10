@@ -947,6 +947,14 @@ class VerifactuXML
                 $this->batch->updateCommon($user);
 
 
+                foreach($this->batch->registros() as $registro) {
+                    $registro->estado = VERIFACTU_ESTADO_REGISTRO_NO_ENVIADO;
+                    $registro->msg_error = $errorMsg;
+                    $registro->update($user);
+                }
+
+
+
 
                 $this->db->commit();
                 return 0;
