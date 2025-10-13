@@ -82,6 +82,10 @@ PleaseSelectRecords = Por favor, seleccione al menos un registro
 PleaseSelectNewEstado = Por favor, seleccione el nuevo estado
 ConfirmMassUpdate = ¿Está seguro de que desea actualizar %s registros al estado '%estado%'?
 VerifactuFacturaNoModificable = Esta factura no puede ser modificada ni eliminada porque ya no está en estado borrador
+SubsanarSelectedRecords = Subsanar registros seleccionados
+MassSubsanacionSuccess = %s registros subsanados correctamente
+MassSubsanacionErrors = %s registros con errores al subsanar
+Nota = Nota
 
 #
 # PDF Template

@@ -600,6 +600,21 @@ class modVerifactu extends DolibarrModules
 			'target' => '',
 			'user' => 2, // Para usuarios internos y externos
 		);
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=verifactu', // Será un submenu del menu principal Verifactu
+			'type' => 'left', // Menu de la izquierda
+			'titre' => 'Verifactu subsanación masiva',
+			'prefix' => img_picto('', 'fa-archive', 'class="pictofixedwidth valignmiddle paddingright"'),
+			'mainmenu' => 'verifactu',
+			'leftmenu' => 'verifactu_incidencias',
+			'url' => '/verifactu/verifactu_subsanacion_masiva_registros.php',
+			'langs' => 'verifactu@verifactu',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("verifactu")',
+			'perms' => '$user->hasRight("verifactu", "myobject", "write")',
+			'target' => '',
+			'user' => 2, // Para usuarios internos y externos
+		);
 
 		// Exports profiles provided by this module
 		$r = 0;

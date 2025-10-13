@@ -483,7 +483,7 @@ if ($hasWriteRights && $nbtotalofrecords > 0) {
     print '<div class="div-table-responsive-no-min" style="background: #f8f9fa; padding: 10px; margin-bottom: 10px; border: 1px solid #dee2e6; border-radius: 5px;">';
     print '<table class="noborder centpercent">';
     print '<tr>';
-    print '<td width="30%"><strong>' . $langs->trans('MassActions') . '</strong></td>';
+    print '<td width="25%"><strong>' . $langs->trans('MassActions') . '</strong></td>';
     print '<td width="25%">';
     print '<select name="new_estado_mass" required>';
     print '<option value="">' . $langs->trans('SelectNewEstado') . '</option>';
