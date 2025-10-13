@@ -49,7 +49,43 @@ VERIFACTU_URL_CHECK_PROD=URL CHECK PRODUCCIÓN
 VerifactuErrorFechaNoModificable = La fecha de factura no puede modificarse según la normativa Verifactu
 VerifactuErrorFechaDebeSerHoy = La fecha de factura debe ser la fecha actual según la normativa Verifactu
 VerifactuFechaAjustadaAutomaticamente = La fecha de factura ha sido ajustada automáticamente a la fecha actual para cumplir con la normativa Verifactu
+
+#
+# Registros y filtros
+#
+VerifactuRegisters = Registros Verifactu
+SearchFilters = Filtros de búsqueda
+ActiveFilters = Filtros activos
+Estado = Estado
+Operation = Operación
+Factura = Factura
+All = Todos
+Search = Buscar
+RemoveFilter = Limpiar filtros
+RecordUpdated = Registro actualizado
+ErrorUpdatingRecord = Error al actualizar el registro
+records = registros
+
+#
+# Acciones masivas
+#
+MassActions = Acciones masivas
+SelectNewEstado = Seleccionar nuevo estado
+UpdateSelectedRecords = Actualizar registros seleccionados
+RecordsSelected = registros seleccionados
+SelectAll = Seleccionar todo
+SelectNone = Deseleccionar todo
+MassUpdateSuccess = %s registros actualizados correctamente
+MassUpdateErrors = %s registros con errores al actualizar
+MassUpdateNoSelection = Debe seleccionar al menos un registro y un estado
+PleaseSelectRecords = Por favor, seleccione al menos un registro
+PleaseSelectNewEstado = Por favor, seleccione el nuevo estado
+ConfirmMassUpdate = ¿Está seguro de que desea actualizar %s registros al estado '%estado%'?
 VerifactuFacturaNoModificable = Esta factura no puede ser modificada ni eliminada porque ya no está en estado borrador
+SubsanarSelectedRecords = Subsanar registros seleccionados
+MassSubsanacionSuccess = %s registros subsanados correctamente
+MassSubsanacionErrors = %s registros con errores al subsanar
+Nota = Nota
 
 #
 # PDF Template

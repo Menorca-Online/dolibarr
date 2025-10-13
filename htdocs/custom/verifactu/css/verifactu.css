@@ -81,3 +81,56 @@
     white-space: nowrap;
     z-index: 1000;
 }
+
+/* Estilos para acciones masivas */
+.mass-actions-container {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.mass-actions-container table {
+    margin: 0;
+}
+
+.mass-actions-container td {
+    padding: 5px 10px;
+    vertical-align: middle;
+}
+
+/* Checkbox maestro */
+#checkAll {
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+/* Checkboxes individuales */
+.record-checkbox {
+    cursor: pointer;
+    transform: scale(1.1);
+}
+
+/* Contador de registros seleccionados */
+#selectedCount {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 14px;
+}
+
+/* Enlaces de selección */
+.mass-actions-container a {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.mass-actions-container a:hover {
+    text-decoration: underline;
+}
+
+/* Checkbox indeterminado */
+input[type="checkbox"]:indeterminate {
+    opacity: 0.8;
+}
