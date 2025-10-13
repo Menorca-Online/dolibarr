@@ -64,6 +64,37 @@ if (!empty($invoice->socid) && empty($invoice->thirdparty)) {
 	$invoice->fetch_thirdparty();
 }
 
+function generateQRData($object)
+{
+ 	global $conf, $mysoc; // 💡 importar $mysoc
+
+	// Obtener configuraciones
+	$urlComprobar = $conf->global->VERIFACTU_PRODUCCION == "1" ?
+		$conf->global->VERIFACTU_URL_CHECK_PROD :
+		$conf->global->VERIFACTU_URL_CHECK_DEV . '/wlpl/TIKE-CONT/ValidarQR';
+
+    $nif = !empty($mysoc->idprof1) ? $mysoc->idprof1 : '00000000';
+	$num = $object->ref ? $object->ref : 'TESTREF';
+	$fecha = $object->datef ? dol_print_date($object->datef, '%d-%m-%Y') : date('d-m-Y');
+	$importe = $object->total_ttc ? number_format($object->total_ttc, 2, '.', '') : '0.00';
+
+	// Construir URL con parámetros de la factura
+	$params = array(
+		'nif' => $nif,
+		'numserie' => $num,
+		'fecha' => $fecha, //dd-mm-aaaa
+		'importe' => $importe
+	);
+
+	$qrUrl = $urlComprobar . '?' . http_build_query($params);
+
+	// Log para debug
+	dol_syslog("QR Data: " . $qrUrl, LOG_DEBUG);
+
+	return $qrUrl;
+}
+
+
 $title = $langs->trans('VerifactuTabRegisters');
 
 llxHeader('', $title);
@@ -150,11 +181,19 @@ print '<div class="inline-block divButAction">'
     . '<i class="fa fa-code"></i> ' . $langs->trans("GenerarSubsanacion") . '</a>'
     . '</div>';
 }
+
+//añadimos un boton para verificar en hacienda con link = generateQRData
+print '<div class="inline-block divButAction">'
+	. '<a id="verifactu-qr-btn" class="butAction" target="_blank" '
+	. 'href="' . generateQRData($invoice) . '">'
+	. '<i class="fa fa-qrcode"></i> ' . $langs->trans("VerQRVerifactu") . '</a>'
+	. '</div>';
+
 // print '<div class="inline-block divButAction">'
 //     . '<a id="verifactu-xml-btn" class="butAction" target="_blank" '
 //     . 'href="' . dol_buildpath('/custom/verifactu/xml_preview.php?id=' . $invoiceId, 1) . '">'
 //     . '<i class="fa fa-code"></i> ' . $langs->trans("VerXMLVerifactu") . '</a>'
-//     . '</div>';    
+//     . '</div>';
 dol_fiche_end();
 
 llxFooter();

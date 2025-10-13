@@ -344,7 +344,7 @@ $PAYMENT_TYPES = [
 
 
 
-$TEST_GENERICAS = false;
+$TEST_GENERICAS = true;
 $TEST_NOMINATIVAS = true;
 
 
@@ -358,7 +358,7 @@ if ($TEST_GENERICAS) {
 	$testsGenericas = [];
 	file_put_contents('reservas.txt', $reserva + 1);
 	for ($i = 0; $i < 5; $i++) {
-		$importe = rand(100, 300) + (rand(0, 99) / 100);
+		$importe = rand(100, 399) + (rand(0, 99) / 100);
 		$importeSinIva = round($importe / (1 + ($TAX / 100)), 6);
 		$testsGenericas['test00' . $i . '@verifactu.com'] = ['shuttle-booking ' . $reserva => $importeSinIva];
 		$reserva++;
@@ -404,11 +404,11 @@ if ($TEST_NOMINATIVAS) {
 
 	$i = 0;
 	foreach ($testsNominativas as $row => $client) {
-		if ($i >= 1) break;
+		if ($i >= 5) break;
 
 		$i++;
 		$booking = 'shuttle-booking ' . $reserva;
-		$importe = rand(100, 300) + (rand(0, 99) / 100);
+		$importe = rand(100, 1000) + (rand(0, 99) / 100);
 		$importeSinIva = round($importe / (1 + ($TAX / 100)), 6);
 		sendInvoiceNominativa($client['email'], $booking, $importeSinIva, $client['name'], $client['lastname'], $client['address'], $client['postalcode'], $client['city'], $client['countryId'], $client['dni']);
 		$reserva++;
