@@ -511,7 +511,7 @@ class pdf_crabe_verifactu extends pdf_crabe
 			// Agregar solo el texto "FACTURA SIMPLIFICADA" centrado en el área
 			$pdf->SetTextColor(200, 0, 0);
 			$pdf->SetFont('', 'B', $default_font_size);
-			$pdf->SetXY($posx, $posy + ($hautcadre / 2) - 5);
+			$pdf->SetXY($posx-10, $posy + ($hautcadre / 2) - 5);
 			$pdf->Cell($widthrecbox, 10, 'FACTURA SIMPLIFICADA', 0, 0, 'C');
 
 			return; // Salir temprano para facturas simplificadas
