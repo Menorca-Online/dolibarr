@@ -490,6 +490,33 @@ class pdf_crabe_verifactu extends pdf_crabe
 	 */
 	private function renderRecipientSnapshotArea(&$pdf, $object, $outputlangs, $isFacturaSimplificada)
 	{
+		// Si es factura simplificada (cliente genérico), no mostrar nada en el área del destinatario
+		if ($isFacturaSimplificada) {
+			$default_font_size = pdf_getPDFFontSize($outputlangs);
+			$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 100;
+			if ($this->page_largeur < 210) {
+				$widthrecbox = 84;
+			}
+			$posy = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 40 : 42;
+			$posx = $this->page_largeur - $this->marge_droite - $widthrecbox;
+			if (getDolGlobalString('MAIN_INVERT_SENDER_RECIPIENT')) {
+				$posx = $this->marge_gauche;
+			}
+			$hautcadre = 40;
+
+			// Limpiar completamente el área del destinatario para facturas simplificadas
+			$pdf->SetFillColor(255, 255, 255);
+			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'F');
+
+			// Agregar solo el texto "FACTURA SIMPLIFICADA" centrado en el área
+			$pdf->SetTextColor(200, 0, 0);
+			$pdf->SetFont('', 'B', $default_font_size);
+			$pdf->SetXY($posx, $posy + ($hautcadre / 2) - 5);
+			$pdf->Cell($widthrecbox, 10, 'FACTURA SIMPLIFICADA', 0, 0, 'C');
+
+			return; // Salir temprano para facturas simplificadas
+		}
+
 		$default_font_size = pdf_getPDFFontSize($outputlangs);
 		$widthrecbox = getDolGlobalString('MAIN_PDF_USE_ISO_LOCATION') ? 92 : 100;
 		if ($this->page_largeur < 210) {
@@ -560,13 +587,6 @@ class pdf_crabe_verifactu extends pdf_crabe
 			$pdf->SetXY($posx + 2, $cursorY);
 			$pdf->MultiCell($maxWidth, $lineHeight, $outputlangs->convToOutputCharset($line), 0, 'L');
 			$cursorY = $pdf->GetY();
-		}
-
-		if ($isFacturaSimplificada) {
-			$pdf->SetTextColor(200, 0, 0);
-			$pdf->SetFont('', 'B', $default_font_size - 1);
-			$pdf->SetXY($posx + 2, $posy + $hautcadre - 10);
-			$pdf->MultiCell($maxWidth, 4, $outputlangs->transnoentities('VerifactuSimplifiedInvoiceLabel'), 0, 'L');
 		}
 	}
 
