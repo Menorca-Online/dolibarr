@@ -316,12 +316,14 @@ function loadCountryList(){
 }
 
 
-$URL = 'https://stoic-fermat.151-80-20-157.plesk.page/api/index.php';
-$DOLIBAR_KEY = '283Nl20WRuaRMWxlU1u3cpKG75xal1KZ';
+#$URL = 'https://stoic-fermat.151-80-20-157.plesk.page/api/index.php';
+#$DOLIBAR_KEY = '283Nl20WRuaRMWxlU1u3cpKG75xal1KZ';
+$URL = 'https://shuttlespain.eco.menorcaon.com/api/index.php';
+$DOLIBAR_KEY = '93j5OqP8IZeSz2Yj2H4sVra7KxfT4u0U';
 
 $ERROR_LOG = [];
 
-$CLIENTE_GENERICO = 2;
+$CLIENTE_GENERICO = 1;
 $TIPO_FACTURA_SIMPLIFICADA = 2;
 $TIPO_FACTURA_NOMINATIVA = 1;
 
@@ -344,7 +346,7 @@ $PAYMENT_TYPES = [
 
 
 
-$TEST_GENERICAS = true;
+$TEST_GENERICAS = false;
 $TEST_NOMINATIVAS = true;
 
 
@@ -357,7 +359,7 @@ if ($TEST_GENERICAS) {
 	$reserva = trim($reserva);
 	$testsGenericas = [];
 	file_put_contents('reservas.txt', $reserva + 1);
-	for ($i = 0; $i < 5; $i++) {
+	for ($i = 0; $i < 2; $i++) {
 		$importe = rand(100, 399) + (rand(0, 99) / 100);
 		$importeSinIva = round($importe / (1 + ($TAX / 100)), 6);
 		$testsGenericas['test00' . $i . '@verifactu.com'] = ['shuttle-booking ' . $reserva => $importeSinIva];
@@ -404,7 +406,7 @@ if ($TEST_NOMINATIVAS) {
 
 	$i = 0;
 	foreach ($testsNominativas as $row => $client) {
-		if ($i >= 5) break;
+		if ($i >= 1) break;
 
 		$i++;
 		$booking = 'shuttle-booking ' . $reserva;
