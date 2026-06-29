@@ -1,0 +1,9 @@
+{
+    "name": "menorcaon/dolibarr-sentry",
+    "description": "Sentry integration module for Dolibarr.",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": "^8.3",
+        "sentry/sentry": "^4.0"
+    }
+}
