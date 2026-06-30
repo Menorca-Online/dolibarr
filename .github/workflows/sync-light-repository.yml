@@ -1,0 +1,160 @@
+name: Sincronizar repositorio ligero
+
+on:
+  push:
+    branches:
+      - 22.0.verifactu
+
+  # Permite ejecutarlo manualmente desde GitHub Actions.
+  workflow_dispatch:
+
+concurrency:
+  group: dolibarr-light-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TARGET_BRANCH: master
+  SYNC_TAG: sync-source
+
+jobs:
+  sync:
+    name: Aplicar commits en repositorio ligero
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio completo
+        uses: actions/checkout@v6
+        with:
+          ref: 22.0.verifactu
+          fetch-depth: 0
+
+          # No descarga inicialmente el contenido histórico de todos
+          # los archivos. Git lo recuperará cuando sea necesario.
+          filter: blob:none
+
+          path: source
+
+      - name: Descargar repositorio ligero
+        uses: actions/checkout@v6
+        with:
+          repository: Menorca-Online/eco.menorcaon.com.git
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.LIGHT_REPO_TOKEN }}
+          path: target
+
+      - name: Aplicar commits pendientes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          SOURCE_DIR="$GITHUB_WORKSPACE/source"
+          TARGET_DIR="$GITHUB_WORKSPACE/target"
+          PATCH_FILE="$RUNNER_TEMP/dolibarr-sync.patch"
+
+          SOURCE_HEAD="$(
+              git -C "$SOURCE_DIR" rev-parse HEAD
+          )"
+
+          LAST_SOURCE_COMMIT="$(
+              git -C "$TARGET_DIR" for-each-ref \
+                  "refs/tags/$SYNC_TAG" \
+                  --format='%(contents:subject)'
+          )"
+
+          if [ -z "$LAST_SOURCE_COMMIT" ]; then
+              echo "::error::No existe la etiqueta $SYNC_TAG en el repositorio ligero."
+              exit 1
+          fi
+
+          echo "Último commit sincronizado: $LAST_SOURCE_COMMIT"
+          echo "Commit actual de 22.0.verifactu:  $SOURCE_HEAD"
+
+          if [ "$LAST_SOURCE_COMMIT" = "$SOURCE_HEAD" ]; then
+              echo "No hay commits nuevos."
+              exit 0
+          fi
+
+          # Comprobar que el commit anterior continúa existiendo.
+          if ! git -C "$SOURCE_DIR" \
+              cat-file -e "$LAST_SOURCE_COMMIT^{commit}"
+          then
+              echo "::error::El commit $LAST_SOURCE_COMMIT no existe en el repositorio completo."
+              exit 1
+          fi
+
+          # Detectar rebase o force-push en 22.0.verifactu.
+          if ! git -C "$SOURCE_DIR" \
+              merge-base --is-ancestor \
+              "$LAST_SOURCE_COMMIT" \
+              "$SOURCE_HEAD"
+          then
+              echo "::error::La rama 22.0.verifactu ha sido reescrita."
+              echo "::error::El último commit sincronizado ya no es ancestro del actual."
+              exit 1
+          fi
+
+          COMMIT_COUNT="$(
+              git -C "$SOURCE_DIR" rev-list \
+                  --count \
+                  "$LAST_SOURCE_COMMIT..$SOURCE_HEAD"
+          )"
+
+          echo "Se aplicarán $COMMIT_COUNT commits."
+
+          # format-patch no reproduce correctamente commits de merge.
+          # Por seguridad, detenemos la sincronización si aparecen.
+          MERGE_COMMITS="$(
+              git -C "$SOURCE_DIR" rev-list \
+                  --merges \
+                  "$LAST_SOURCE_COMMIT..$SOURCE_HEAD"
+          )"
+
+          if [ -n "$MERGE_COMMITS" ]; then
+              echo "::error::Se han encontrado commits de merge:"
+              echo "$MERGE_COMMITS"
+              echo "::error::La rama 22.0.verifactu debe mantenerse lineal mediante rebase, squash o fast-forward."
+              exit 1
+          fi
+
+          git -C "$SOURCE_DIR" format-patch \
+              --stdout \
+              --binary \
+              --full-index \
+              "$LAST_SOURCE_COMMIT..$SOURCE_HEAD" \
+              > "$PATCH_FILE"
+
+          if [ ! -s "$PATCH_FILE" ]; then
+              echo "::error::No se ha generado ningún parche."
+              exit 1
+          fi
+
+          git -C "$TARGET_DIR" config \
+              user.name "GitHub Actions"
+
+          git -C "$TARGET_DIR" config \
+              user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Conserva autor, fecha de autor, mensaje y contenido.
+          git -C "$TARGET_DIR" am \
+              --committer-date-is-author-date \
+              "$PATCH_FILE"
+
+          # Actualizar la referencia al último commit original procesado.
+          git -C "$TARGET_DIR" tag \
+              -f \
+              -a "$SYNC_TAG" \
+              -m "$SOURCE_HEAD" \
+              HEAD
+
+          # Rama y etiqueta se actualizan conjuntamente.
+          git -C "$TARGET_DIR" push \
+              --atomic \
+              origin \
+              "HEAD:refs/heads/$TARGET_BRANCH" \
+              "+refs/tags/$SYNC_TAG:refs/tags/$SYNC_TAG"
+
+          echo "Sincronización terminada en $SOURCE_HEAD."
