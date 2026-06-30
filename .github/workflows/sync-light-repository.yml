@@ -120,17 +120,17 @@ jobs:
               exit 1
           fi
 
+          # Generar los parches excluyendo .github, ya que esa carpeta
+          # no forma parte del repositorio ligero.
           git -C "$SOURCE_DIR" format-patch \
               --stdout \
               --binary \
               --full-index \
               "$LAST_SOURCE_COMMIT..$SOURCE_HEAD" \
+              -- \
+              . \
+              ':(top,exclude).github/**' \
               > "$PATCH_FILE"
-
-          if [ ! -s "$PATCH_FILE" ]; then
-              echo "::error::No se ha generado ningún parche."
-              exit 1
-          fi
 
           git -C "$TARGET_DIR" config \
               user.name "GitHub Actions"
@@ -139,9 +139,14 @@ jobs:
               user.email "github-actions[bot]@users.noreply.github.com"
 
           # Conserva autor, fecha de autor, mensaje y contenido.
-          git -C "$TARGET_DIR" am \
-              --committer-date-is-author-date \
-              "$PATCH_FILE"
+          if [ -s "$PATCH_FILE" ]; then
+            git -C "$TARGET_DIR" am \
+                --committer-date-is-author-date \
+                "$PATCH_FILE"
+          else
+              echo "Los commits pendientes solo contienen cambios en rutas excluidas."
+              echo "Se actualizará igualmente el marcador de sincronización."
+          fi
 
           # Actualizar la referencia al último commit original procesado.
           git -C "$TARGET_DIR" tag \
